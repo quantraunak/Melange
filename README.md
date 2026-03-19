@@ -6,7 +6,7 @@
 
 | Sign Up | Feed | Chat |
 |---|---|---|
-| ![Auth](public/screenshots/auth.png) | ![Feed](public/screenshots/feed.png) | ![Chat](public/screenshots/chat.png) |
+| ![Auth](./public/screenshots/auth.png) | ![Feed](./public/screenshots/feed.png) | ![Chat](./public/screenshots/chat.png) |
 | User signup and profile creation | Swipe-based collaboration interface | Real-time messaging between matched users |
 
 ## How It Works
