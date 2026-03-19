@@ -7,9 +7,12 @@ import {
   recordSwipe,
   checkAndCreateMatch,
   getMatches,
+  getMessages,
+  sendMessage,
   createPost,
   type CollabPost,
   type MatchWithPost,
+  type Message,
 } from "../lib/db";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,7 +21,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { X, Heart, Plus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { X, Heart, Plus, ArrowLeft, Send } from "lucide-react";
 
 export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [email, setEmail] = useState("");
@@ -27,7 +31,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [posts, setPosts] = useState<CollabPost[]>([]);
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
   const [matches, setMatches] = useState<MatchWithPost[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<MatchWithPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
   const [err, setErr] = useState("");
@@ -38,6 +41,14 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [newPostDescription, setNewPostDescription] = useState("");
   const [creatingPost, setCreatingPost] = useState(false);
   const [createPostError, setCreatePostError] = useState("");
+
+  // Chat state
+  const [chatMatch, setChatMatch] = useState<MatchWithPost | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   const loadUser = async () => {
     const { data: authRes, error: authErr } = await supabase.auth.getUser();
@@ -139,6 +150,37 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setShowCreatePost(false);
     setCreatingPost(false);
     await loadPosts();
+  };
+
+  const openChat = async (match: MatchWithPost) => {
+    setChatMatch(match);
+    setMessages([]);
+    setChatError("");
+    setMessagesLoading(true);
+
+    const { data, error } = await getMessages(match.id);
+    if (error) {
+      setChatError(error);
+    }
+    setMessages(data || []);
+    setMessagesLoading(false);
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMatch || !userId || !messageText.trim() || sending) return;
+
+    setChatError("");
+    setSending(true);
+    const { data, error } = await sendMessage(chatMatch.id, userId, messageText.trim());
+
+    if (error) {
+      setChatError(error);
+    } else if (data) {
+      setMessages((prev) => [...prev, data]);
+      setMessageText("");
+    }
+    setSending(false);
   };
 
   const signOut = async () => {
@@ -291,7 +333,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   <Card
                     key={match.id}
                     className="cursor-pointer hover:bg-zinc-900 transition-colors"
-                    onClick={() => setSelectedMatch(match)}
+                    onClick={() => openChat(match)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
@@ -328,23 +370,74 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         </Tabs>
       </div>
 
-      {/* Match detail dialog */}
-      <Dialog open={!!selectedMatch} onOpenChange={(open) => !open && setSelectedMatch(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedMatch?.other_post.title || "Match"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedMatch?.other_post.description || "You matched on this collaboration!"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-4 bg-zinc-900/50 rounded-lg min-h-[300px] flex items-center justify-center">
-            <div className="text-center opacity-70">
-              <p className="mb-2">Chat coming soon!</p>
-              <p className="text-sm">Messaging will be available in a future update.</p>
+      {/* Chat dialog */}
+      <Dialog open={!!chatMatch} onOpenChange={(open) => { if (!open) setChatMatch(null); }}>
+        <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0">
+          <div className="flex items-center gap-3 p-4 border-b border-zinc-800">
+            <Button variant="ghost" size="sm" onClick={() => setChatMatch(null)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <DialogTitle className="text-base truncate">
+                {chatMatch?.other_post.title || "Chat"}
+              </DialogTitle>
+              <DialogDescription className="text-xs truncate">
+                {chatMatch?.other_post.description || ""}
+              </DialogDescription>
             </div>
           </div>
+
+          <ScrollArea className="flex-1 px-4">
+            {messagesLoading ? (
+              <div className="flex items-center justify-center py-12 opacity-70">
+                Loading messages...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center py-12 opacity-50 text-sm">
+                No messages yet. Say hello!
+              </div>
+            ) : (
+              <div className="space-y-3 py-4">
+                {messages.map((msg) => {
+                  const isMe = msg.sender_id === userId;
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+                          isMe
+                            ? "bg-violet-600 text-white rounded-br-md"
+                            : "bg-zinc-800 text-white rounded-bl-md"
+                        }`}
+                      >
+                        <p>{msg.content}</p>
+                        <p className={`text-[10px] mt-1 ${isMe ? "text-violet-200" : "text-zinc-500"}`}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          {chatError && (
+            <div className="mx-4 mb-0 p-2 rounded-lg bg-red-900/20 border border-red-800 text-red-400 text-xs">
+              {chatError}
+            </div>
+          )}
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2 p-4 border-t border-zinc-800">
+            <Input
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1"
+              autoFocus
+            />
+            <Button type="submit" size="sm" disabled={sending || !messageText.trim()} className="bg-violet-600 hover:bg-violet-700">
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
 

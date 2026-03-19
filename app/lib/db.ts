@@ -36,6 +36,14 @@ export type MatchWithPost = Match & {
   other_post: CollabPost;
 };
 
+export type Message = {
+  id: string;
+  match_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+};
+
 // Database helpers
 
 /**
@@ -276,6 +284,60 @@ export async function getMatches(
     }
 
     return { data: enrichedMatches, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get messages for a match, ordered oldest-first.
+ */
+export async function getMessages(
+  matchId: string
+): Promise<{ data: Message[] | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("match_id", matchId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    return { data: (data as Message[]) || [], error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Send a message in a match.
+ */
+export async function sendMessage(
+  matchId: string,
+  senderId: string,
+  content: string
+): Promise<{ data: Message | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({ match_id: matchId, sender_id: senderId, content })
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    return { data: data as Message, error: null };
   } catch (err) {
     return {
       data: null,
