@@ -1,16 +1,23 @@
 # Melange
 
-A swipe-based matchmaking app for creative collaborators. Photographers, models, designers, and other creatives post collaboration proposals and swipe on each other's posts. Mutual right-swipes create a match.
+**Tinder for creative collaborations.** Post what you're working on, swipe on others' projects, match when the interest is mutual, and message to coordinate.
 
-## Current Features
+## How It Works
 
-- **Auth**: Email/password signup and login via Supabase Auth, with profile creation (name, role, skills, bio)
-- **Feed**: Swipeable card stack of collaboration posts from other users, excluding already-swiped posts
-- **Swipe & Match**: Left/right swipe on posts; mutual right-swipes trigger match creation with canonical user ordering
-- **Matches View**: List of matches enriched with the other user's post details, with a detail dialog
-- **Database**: Full Postgres schema with RLS policies enforcing ownership-based access control
+1. **Sign up** with your name, role (photographer, model, stylist, etc.), skills, and bio.
+2. **Create a post** describing the collaboration you're looking for.
+3. **Swipe** through other creatives' posts -- Like or Pass.
+4. **Match** when both of you like each other's posts.
+5. **Message** your match directly in the app to plan the collaboration.
 
-Not yet implemented: messaging, file uploads (profile pictures / work samples), post creation UI.
+## Features
+
+- **Auth** -- Email/password signup and login with profile creation (name, role, skills, bio).
+- **Post creation** -- Publish collaboration proposals visible to all other users.
+- **Swipe feed** -- Card stack of posts from other users, excluding your own and already-swiped posts.
+- **Mutual matching** -- Right-swipe on a post; if the post owner has also right-swiped on one of yours, a match is created.
+- **In-app messaging** -- Chat with your matches in a per-match conversation thread.
+- **Row Level Security** -- All data access enforced at the database level. Users can only read/write their own data.
 
 ## Tech Stack
 
@@ -18,70 +25,44 @@ Not yet implemented: messaging, file uploads (profile pictures / work samples), 
 |---|---|
 | Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript |
-| UI | React 19, Radix UI primitives, Tailwind CSS 4 |
-| Backend / Auth | Supabase (hosted Postgres + GoTrue auth + PostgREST API) |
-| Database | PostgreSQL via Supabase |
+| UI | React 19, Radix UI, Tailwind CSS 4 |
+| Auth & Database | Supabase (Postgres, GoTrue, PostgREST) |
 | Client | `@supabase/supabase-js` v2 |
 
-## Architecture
+No separate backend. The browser talks directly to Supabase's API, secured by Postgres RLS policies.
 
-```
-app/
-├── page.tsx                  # Entry point, renders AuthPage
-├── layout.tsx                # Root layout
-├── components/
-│   ├── AuthPage.tsx          # Login/signup forms, session gating
-│   └── MelangeApp.tsx        # Post-login app (feed, swipe, matches)
-├── lib/
-│   ├── supabaseClient.ts     # Singleton Supabase client (browser-side)
-│   └── db.ts                 # All database queries (posts, swipes, matches)
-components/ui/                # shadcn/ui components (Button, Card, Dialog, etc.)
-```
+## Run Locally
 
-There is no separate backend server. All data access goes directly from the browser to Supabase's PostgREST API, secured by Row Level Security policies.
-
-## Database Schema
-
-Five tables, all with RLS enabled:
-
-| Table | Purpose | Key Columns |
-|---|---|---|
-| `profiles` | User profile data | `user_id` (FK → auth.users), name, role, skills[], bio |
-| `collab_posts` | Collaboration proposals | `owner_id` (FK → auth.users), title, description, looking_for[], location, compensation, media_urls[] |
-| `swipes` | Swipe actions | `swiper_id`, `post_id`, direction (left/right). Unique on (swiper_id, post_id) |
-| `matches` | Mutual swipe matches | `user1_id`, `user2_id`, `post1_id`, `post2_id`. Unique on (user1_id, user2_id) |
-| `messages` | Chat messages (stub) | `match_id`, `sender_id`, content |
-
-Schema SQL is in `supabase_schema.sql`. Run it in the Supabase SQL Editor to set up tables and RLS policies.
-
-## Local Setup
+Prerequisites: Node.js 18+, a [Supabase](https://supabase.com) project.
 
 ```bash
 git clone <repo-url> && cd melange
 npm install
-cp .env.local.example .env.local   # then fill in your Supabase credentials
-npm run dev                         # starts at http://localhost:3000
 ```
 
-Prerequisites: Node.js 18+, a Supabase project with the schema applied.
-
-## Environment Variables
-
-Create `.env.local` in the repo root:
+Create `.env.local` in the project root:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...  # JWT anon key from Supabase Dashboard → Settings → API
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
-Both variables use the `NEXT_PUBLIC_` prefix so they are inlined into the client bundle at build time. The anon key must be the JWT format (starts with `eyJ`), not the newer `sb_publishable_` format.
+Get both values from your Supabase Dashboard under **Settings > API**. The anon key must be the JWT format (starts with `eyJ`).
 
-## Future Roadmap
+Apply the database schema by pasting the contents of `supabase_schema.sql` into your Supabase SQL Editor and running it.
 
-- [ ] Post creation UI (currently posts are inserted via SQL or debug buttons)
-- [ ] Real-time messaging between matched users (schema exists, UI does not)
-- [ ] Profile picture and work sample uploads via Supabase Storage
-- [ ] Profile editing
-- [ ] Push notifications for new matches
-- [ ] Search/filter posts by role, location, skills
-- [ ] Clean up debug logging in `db.ts` and `AuthPage.tsx`
+Then start the dev server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Known Limitations
+
+- **No real-time updates** -- Messages and matches load on open/refresh, not via live subscriptions.
+- **No file uploads** -- Profile pictures, work samples, and media on posts are not yet supported.
+- **No profile editing** -- Profile data is set at signup and cannot be changed afterward.
+- **No notifications** -- New matches and messages are only visible when you navigate to the relevant tab.
+- **Text-only posts** -- Posts have a title and description but no images or tags yet.
