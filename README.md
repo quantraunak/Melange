@@ -2,6 +2,13 @@
 
 **Tinder for creative collaborations.** Post what you're working on, swipe on others' projects, match when the interest is mutual, and message to coordinate.
 
+## Screenshots
+
+| Sign Up | Feed | Chat |
+|---|---|---|
+| ![Auth](public/screenshots/auth.png) | ![Feed](public/screenshots/feed.png) | ![Chat](public/screenshots/chat.png) |
+| User signup and profile creation | Swipe-based collaboration interface | Real-time messaging between matched users |
+
 ## How It Works
 
 1. **Sign up** with your name, role (photographer, model, stylist, etc.), skills, and bio.
