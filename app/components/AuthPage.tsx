@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { supabase, supabaseUrl } from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,22 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import MelangeApp from "./MelangeApp";
-
-type SignupForm = {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: string;
-  skills: string;
-  bio: string;
-  currentProject: string;
-  profilePicture: File | null;
-  workSamples: File[];
-};
 
 export default function AuthPage() {
   const [session, setSession] = useState<any>(null);
@@ -35,7 +21,7 @@ export default function AuthPage() {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
-  const [signupForm, setSignupForm] = useState<SignupForm>({
+  const [signupForm, setSignupForm] = useState({
     name: "",
     email: "",
     password: "",
@@ -44,8 +30,6 @@ export default function AuthPage() {
     skills: "",
     bio: "",
     currentProject: "",
-    profilePicture: null,
-    workSamples: [],
   });
 
   useEffect(() => {
@@ -70,23 +54,6 @@ export default function AuthPage() {
     if (error) alert(error.message);
   };
 
-  // TODO: remove after signup is working
-  const handleHealthCheck = async () => {
-    const url = `${supabaseUrl}/auth/v1/health`;
-    console.log("[health-check] fetching:", url);
-    try {
-      const res = await fetch(url, {
-        headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-      });
-      const body = await res.text();
-      console.log("[health-check] status:", res.status, "body:", body);
-      alert(`Health: ${res.status} - ${body}`);
-    } catch (err: any) {
-      console.error("[health-check] FAILED:", err);
-      alert(`Health check FAILED: ${err.message}`);
-    }
-  };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignupError(null);
@@ -96,19 +63,11 @@ export default function AuthPage() {
       return;
     }
 
-    // TODO: remove diagnostic logging after signup is working
-    console.log("[signup] supabaseUrl:", supabaseUrl);
-    console.log("[signup] hasAnonKey:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    console.log("[signup] calling supabase.auth.signUp...");
-
     try {
       const { data, error } = await supabase.auth.signUp({
         email: signupForm.email,
         password: signupForm.password,
       });
-
-      console.log("[signup] data:", JSON.stringify(data, null, 2));
-      console.log("[signup] error:", error);
 
       if (error) {
         setSignupError(error.message);
@@ -140,7 +99,6 @@ export default function AuthPage() {
         setSignupError(`Profile insert failed: ${profileErr.message}`);
       }
     } catch (err: any) {
-      console.error("[signup] unexpected exception:", err);
       setSignupError(`Unexpected error: ${err.message}`);
     }
   };
@@ -148,20 +106,6 @@ export default function AuthPage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
-  };
-
-  const handleFileUpload = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    field: "profilePicture" | "workSamples"
-  ) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    if (field === "profilePicture") {
-      setSignupForm({ ...signupForm, profilePicture: files[0] });
-    } else {
-      setSignupForm({ ...signupForm, workSamples: [...signupForm.workSamples, ...Array.from(files)] });
-    }
   };
 
   const Logo = () => (
@@ -240,25 +184,6 @@ export default function AuthPage() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage
-                      src={signupForm.profilePicture ? URL.createObjectURL(signupForm.profilePicture) : undefined}
-                    />
-                    <AvatarFallback>Upload</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Label htmlFor="profile-picture">Profile Picture</Label>
-                    <Input
-                      id="profile-picture"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, "profilePicture")}
-                      className="text-sm"
-                    />
-                  </div>
-                </div>
-
                 <div>
                   <Label htmlFor="signup-name">Name</Label>
                   <Input
@@ -349,31 +274,6 @@ export default function AuthPage() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="work-samples">Work Samples</Label>
-                  <Input
-                    id="work-samples"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleFileUpload(e, "workSamples")}
-                    className="text-sm"
-                  />
-                </div>
-
-                {signupForm.workSamples.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {signupForm.workSamples.map((file, index) => (
-                      <img
-                        key={index}
-                        src={URL.createObjectURL(file)}
-                        alt={`Work sample ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-md"
-                      />
-                    ))}
-                  </div>
-                )}
-
                 {signupError && (
                   <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
                     {signupError}
@@ -382,33 +282,6 @@ export default function AuthPage() {
 
                 <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
                   Sign Up
-                </Button>
-
-                {/* TODO: remove debug buttons after signup is working */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full text-xs"
-                  onClick={handleHealthCheck}
-                >
-                  Debug: Ping Supabase Health
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full text-xs"
-                  onClick={async () => {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    const { data, error } = await supabase.from("collab_posts").insert({
-                      owner_id: user?.id,
-                      title: "Test Collaboration",
-                      description: "Looking for collaborators to build a startup.",
-                    });
-                    console.log("[test-post] data:", data, "error:", error);
-                    alert(error ? `Insert failed: ${error.message}` : "Test post created!");
-                  }}
-                >
-                  Debug: Create Test Post
                 </Button>
               </form>
             </TabsContent>

@@ -132,9 +132,12 @@ CREATE POLICY "Users can delete their own collab_posts"
 
 -- ---- swipes ---------------------------------------------------
 
-CREATE POLICY "Users can view their own swipes"
+CREATE POLICY "Users can view their own swipes and swipes on their posts"
   ON public.swipes FOR SELECT
-  USING (auth.uid() = swiper_id);
+  USING (
+    auth.uid() = swiper_id
+    OR post_id IN (SELECT id FROM public.collab_posts WHERE owner_id = auth.uid())
+  );
 
 CREATE POLICY "Users can insert their own swipes"
   ON public.swipes FOR INSERT

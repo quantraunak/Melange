@@ -39,26 +39,41 @@ export type MatchWithPost = Match & {
 // Database helpers
 
 /**
- * Get all collab posts that the current user hasn't swiped on yet
+ * Create a new collaboration post.
+ */
+export async function createPost(
+  userId: string,
+  title: string,
+  description: string
+): Promise<{ data: CollabPost | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("collab_posts")
+      .insert({ owner_id: userId, title, description })
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    return { data: data as CollabPost, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get all collab posts that the current user hasn't swiped on yet.
  */
 export async function getUnswipedPosts(userId: string): Promise<{
   data: CollabPost[] | null;
   error: string | null;
 }> {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getUnswipedPosts:enter',message:'enter',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
-    console.log("[getUnswipedPosts] Fetching posts for user", { userId });
-    
-    // First, check if we can query posts at all (test RLS)
-    const { data: allPosts, error: allPostsError } = await supabase
-      .from("collab_posts")
-      .select("*");
-    
-    console.log("[getUnswipedPosts] All posts in DB (RLS test)", { count: allPosts?.length || 0, error: allPostsError });
-    
-    // Get all posts excluding the user's own posts
     const { data: posts, error: postsError } = await supabase
       .from("collab_posts")
       .select("*")
@@ -66,41 +81,24 @@ export async function getUnswipedPosts(userId: string): Promise<{
       .order("created_at", { ascending: false });
 
     if (postsError) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getUnswipedPosts:postsError',message:'postsError',data:{message:postsError.message,code:postsError.code,details:postsError.details},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
-      console.error("[getUnswipedPosts] Error fetching posts", { postsError, code: postsError.code, message: postsError.message, details: postsError.details, hint: postsError.hint });
       return { data: null, error: postsError.message };
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getUnswipedPosts:postsFetched',message:'postsFetched',data:{count:posts?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
-    console.log("[getUnswipedPosts] Found posts (excluding own)", { count: posts?.length || 0, posts: posts?.map(p => ({ id: p.id, title: p.title, owner_id: p.owner_id })) });
-
-    // Get all swipes by this user
     const { data: swipes, error: swipesError } = await supabase
       .from("swipes")
       .select("post_id")
       .eq("swiper_id", userId);
 
     if (swipesError) {
-      console.error("[getUnswipedPosts] Error fetching swipes", { swipesError });
       return { data: null, error: swipesError.message };
     }
 
     const swipedPostIds = new Set(swipes?.map((s) => s.post_id) || []);
-    console.log("[getUnswipedPosts] User has swiped on", { count: swipedPostIds.size, postIds: Array.from(swipedPostIds) });
 
-    // Filter out posts that have been swiped
     const unswipedPosts = (posts || []).filter(
       (post) => !swipedPostIds.has(post.id)
     );
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getUnswipedPosts:return',message:'return',data:{unswipedCount:unswipedPosts.length,swipedCount:swipedPostIds.size},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
-    console.log("[getUnswipedPosts] Returning unswiped posts", { count: unswipedPosts.length, posts: unswipedPosts });
     return { data: unswipedPosts, error: null };
   } catch (err) {
     return {
@@ -111,7 +109,7 @@ export async function getUnswipedPosts(userId: string): Promise<{
 }
 
 /**
- * Record a swipe (left or right)
+ * Record a swipe (left or right).
  */
 export async function recordSwipe(
   swiperId: string,
@@ -138,16 +136,13 @@ export async function recordSwipe(
 }
 
 /**
- * Check if a swipe right creates a match and create it if so
+ * Check if a right-swipe creates a mutual match, and create it if so.
  */
 export async function checkAndCreateMatch(
   swiperId: string,
   postId: string
 ): Promise<{ match: Match | null; error: string | null }> {
   try {
-    console.log("[checkAndCreateMatch] Starting match check", { swiperId, postId });
-    
-    // Get the post that was swiped on
     const { data: swipedPost, error: postError } = await supabase
       .from("collab_posts")
       .select("id, owner_id, title, description, looking_for, location, compensation, media_urls, is_active, created_at")
@@ -155,26 +150,22 @@ export async function checkAndCreateMatch(
       .single();
 
     if (postError || !swipedPost) {
-      console.error("[checkAndCreateMatch] Post not found", { postError, postId });
       return { match: null, error: postError?.message || "Post not found" };
     }
 
     const postOwnerId = swipedPost.owner_id;
-    console.log("[checkAndCreateMatch] Post found", { postOwnerId, swiperId, postTitle: swipedPost.title });
 
-    // Check if the post owner has swiped right on any of the swiper's posts
     const { data: swiperPosts, error: swiperPostsError } = await supabase
       .from("collab_posts")
       .select("id")
       .eq("owner_id", swiperId);
 
     if (swiperPostsError || !swiperPosts?.length) {
-      return { match: null, error: null }; // No match, but not an error
+      return { match: null, error: null };
     }
 
     const swiperPostIds = swiperPosts.map((p) => p.id);
 
-    // Check if post owner has swiped right on any of swiper's posts
     const { data: reciprocalSwipe, error: swipeError } = await supabase
       .from("swipes")
       .select("*")
@@ -185,28 +176,19 @@ export async function checkAndCreateMatch(
       .maybeSingle();
 
     if (swipeError) {
-      console.error("[checkAndCreateMatch] Error checking reciprocal swipe", { swipeError });
       return { match: null, error: swipeError.message };
     }
 
     if (!reciprocalSwipe) {
-      console.log("[checkAndCreateMatch] No reciprocal swipe found yet", { postOwnerId, swiperPostIds });
-      return { match: null, error: null }; // No match yet
+      return { match: null, error: null };
     }
 
-    console.log("[checkAndCreateMatch] Reciprocal swipe found! Creating match", { reciprocalSwipe });
-
-    // Match found! Create match record with canonical ordering
-    // user1_id = LEAST(swiperId, postOwnerId), user2_id = GREATEST(...)
-    // Same ordering for posts to maintain consistency
+    // Canonical ordering so the unique constraint works both ways
     const user1Id = swiperId < postOwnerId ? swiperId : postOwnerId;
     const user2Id = swiperId < postOwnerId ? postOwnerId : swiperId;
     const post1Id = swiperId < postOwnerId ? postId : reciprocalSwipe.post_id;
     const post2Id = swiperId < postOwnerId ? reciprocalSwipe.post_id : postId;
 
-    // Try to insert the match. If it already exists (unique constraint violation),
-    // fetch the existing match. This provides idempotent behavior equivalent to
-    // ON CONFLICT DO NOTHING.
     const { data: newMatch, error: insertError } = await supabase
       .from("matches")
       .insert({
@@ -218,20 +200,12 @@ export async function checkAndCreateMatch(
       .select()
       .single();
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:checkAndCreateMatch:insertResult',message:'insertResult',data:{hasMatch:!!newMatch,insertError:insertError?.message||null,code:insertError?.code||null},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
-
-    // If insert succeeded, return the new match
     if (newMatch && !insertError) {
-      console.log("[checkAndCreateMatch] Match created successfully!", { match: newMatch });
       return { match: newMatch as Match, error: null };
     }
 
-    // If insert failed due to unique constraint (match already exists), fetch it
-    // Check if error is a unique constraint violation (code 23505 or contains "duplicate")
+    // Duplicate match -- fetch the existing one
     if (insertError && (insertError.code === "23505" || insertError.message.includes("duplicate") || insertError.message.includes("unique"))) {
-      console.log("[checkAndCreateMatch] Match already exists, fetching existing match", { user1Id, user2Id });
       const { data: existingMatch, error: fetchError } = await supabase
         .from("matches")
         .select("*")
@@ -240,16 +214,12 @@ export async function checkAndCreateMatch(
         .single();
 
       if (fetchError) {
-        console.error("[checkAndCreateMatch] Error fetching existing match", { fetchError });
         return { match: null, error: fetchError.message };
       }
 
-      console.log("[checkAndCreateMatch] Existing match found", { match: existingMatch });
       return { match: existingMatch as Match, error: null };
     }
 
-    // Some other error occurred
-    console.error("[checkAndCreateMatch] Error creating match", { insertError });
     return { match: null, error: insertError?.message || "Failed to create match" };
   } catch (err) {
     return {
@@ -260,17 +230,12 @@ export async function checkAndCreateMatch(
 }
 
 /**
- * Get all matches for the current user
+ * Get all matches for the current user, enriched with the other user's post.
  */
 export async function getMatches(
   userId: string
 ): Promise<{ data: MatchWithPost[] | null; error: string | null }> {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getMatches:enter',message:'enter',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
-    console.log("[getMatches] Fetching matches for user", { userId });
-    
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*")
@@ -278,23 +243,13 @@ export async function getMatches(
       .order("created_at", { ascending: false });
 
     if (matchesError) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getMatches:matchesError',message:'matchesError',data:{message:matchesError.message,code:matchesError.code,details:matchesError.details},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
-      console.error("[getMatches] Error fetching matches", { matchesError });
       return { data: null, error: matchesError.message };
     }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/lib/db.ts:getMatches:matchesFetched',message:'matchesFetched',data:{count:matches?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
-    console.log("[getMatches] Found matches", { count: matches?.length || 0, matches });
 
     if (!matches || matches.length === 0) {
       return { data: [], error: null };
     }
 
-    // Enrich matches with the other user's post
     const enrichedMatches: MatchWithPost[] = [];
 
     for (const match of matches) {
@@ -303,8 +258,6 @@ export async function getMatches(
       const otherPostId =
         match.user1_id === userId ? match.post2_id : match.post1_id;
 
-      console.log("[getMatches] Fetching post for match", { matchId: match.id, otherPostId, otherUserId });
-
       const { data: otherPost, error: postError } = await supabase
         .from("collab_posts")
         .select("*")
@@ -312,11 +265,8 @@ export async function getMatches(
         .single();
 
       if (postError || !otherPost) {
-        console.error("[getMatches] Error fetching post for match:", { postError, otherPostId, matchId: match.id });
         continue;
       }
-
-      console.log("[getMatches] Successfully enriched match", { matchId: match.id, postTitle: otherPost.title });
 
       enrichedMatches.push({
         ...match,
@@ -325,7 +275,6 @@ export async function getMatches(
       });
     }
 
-    console.log("[getMatches] Returning enriched matches", { count: enrichedMatches.length });
     return { data: enrichedMatches, error: null };
   } catch (err) {
     return {
@@ -334,4 +283,3 @@ export async function getMatches(
     };
   }
 }
-

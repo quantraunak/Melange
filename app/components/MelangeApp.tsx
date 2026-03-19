@@ -7,6 +7,7 @@ import {
   recordSwipe,
   checkAndCreateMatch,
   getMatches,
+  createPost,
   type CollabPost,
   type MatchWithPost,
 } from "../lib/db";
@@ -14,7 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { X, Heart } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { X, Heart, Plus } from "lucide-react";
 
 export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [email, setEmail] = useState("");
@@ -27,6 +31,13 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
   const [err, setErr] = useState("");
+
+  // Create Post dialog state
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostTitle, setNewPostTitle] = useState("");
+  const [newPostDescription, setNewPostDescription] = useState("");
+  const [creatingPost, setCreatingPost] = useState(false);
+  const [createPostError, setCreatePostError] = useState("");
 
   const loadUser = async () => {
     const { data: authRes, error: authErr } = await supabase.auth.getUser();
@@ -58,29 +69,17 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   };
 
   const loadMatches = async () => {
-    if (!userId) {
-      console.log("[loadMatches] No userId, skipping");
-      return;
-    }
+    if (!userId) return;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/components/MelangeApp.tsx:loadMatches:enter',message:'enter',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H5'})}).catch(()=>{});
-    // #endregion
-    console.log("[loadMatches] Loading matches for user", { userId });
     setErr("");
 
     const { data, error } = await getMatches(userId);
 
     if (error) {
-      console.error("[loadMatches] Error loading matches", { error });
       setErr(error);
       return;
     }
 
-    console.log("[loadMatches] Matches loaded", { count: data?.length || 0, matches: data });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ec9eebc2-ca68-40df-aa35-444f92e47d89',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/components/MelangeApp.tsx:loadMatches:return',message:'return',data:{count:data?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H5'})}).catch(()=>{});
-    // #endregion
     setMatches(data || []);
   };
 
@@ -93,7 +92,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setSwiping(true);
     setErr("");
 
-    // Record the swipe
     const { error: swipeError } = await recordSwipe(userId, currentPost.id, direction);
 
     if (swipeError) {
@@ -102,33 +100,45 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       return;
     }
 
-    // If swiped right, check for match
     if (direction === "right") {
-      console.log("[handleSwipe] Swiped right, checking for match", { userId, postId: currentPost.id, postTitle: currentPost.title });
       const { match, error: matchError } = await checkAndCreateMatch(userId, currentPost.id);
 
       if (matchError) {
-        console.error("[handleSwipe] Match check error", { matchError });
         setErr(matchError);
       } else if (match) {
-        console.log("[handleSwipe] Match created! Reloading matches...", { match });
-        // Match created! Reload matches
         await loadMatches();
-        console.log("[handleSwipe] Matches reloaded");
-      } else {
-        console.log("[handleSwipe] No match yet (waiting for reciprocal swipe)");
       }
     }
 
-    // Move to next post
     if (currentPostIndex < posts.length - 1) {
       setCurrentPostIndex(currentPostIndex + 1);
     } else {
-      // No more posts, reload
       await loadPosts();
     }
 
     setSwiping(false);
+  };
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+
+    setCreatingPost(true);
+    setCreatePostError("");
+
+    const { error } = await createPost(userId, newPostTitle.trim(), newPostDescription.trim());
+
+    if (error) {
+      setCreatePostError(error);
+      setCreatingPost(false);
+      return;
+    }
+
+    setNewPostTitle("");
+    setNewPostDescription("");
+    setShowCreatePost(false);
+    setCreatingPost(false);
+    await loadPosts();
   };
 
   const signOut = async () => {
@@ -159,10 +169,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     <div className="min-h-screen bg-black text-white">
       <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-zinc-800">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <div className="opacity-70 text-sm">Logged in as {email || "(unknown)"}</div>
-            {userId && <div className="opacity-50 text-xs mt-1">User ID: {userId}</div>}
-          </div>
+          <div className="opacity-70 text-sm">Logged in as {email || "(unknown)"}</div>
           <Button onClick={signOut} variant="outline" size="sm">
             Sign out
           </Button>
@@ -179,6 +186,13 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           </TabsList>
 
           <TabsContent value="connect" className="mt-6">
+            <div className="flex justify-center mb-6">
+              <Button onClick={() => setShowCreatePost(true)} className="bg-violet-600 hover:bg-violet-700">
+                <Plus className="mr-2 h-4 w-4" />
+                New Post
+              </Button>
+            </div>
+
             {err && (
               <div className="mb-4 p-3 rounded-lg bg-red-900/20 border border-red-800 text-red-400 text-sm">
                 Error: {err}
@@ -191,7 +205,10 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               </div>
             ) : !currentPost ? (
               <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-                <div className="opacity-70 mb-4">No more posts to swipe on!</div>
+                <div className="opacity-70 mb-4">
+                  <p className="mb-2">No posts to swipe on yet.</p>
+                  <p className="text-sm">Create a post so others can find you!</p>
+                </div>
                 <Button onClick={loadPosts} variant="outline">
                   Refresh
                 </Button>
@@ -223,7 +240,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                     <div className="text-xs opacity-50">
                       {posts.length - currentPostIndex - 1} posts remaining
                     </div>
-                    <div className="text-xs opacity-30 mt-1">owner_id: {currentPost.owner_id}</div>
                   </CardContent>
                 </Card>
 
@@ -259,11 +275,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               </div>
             )}
 
-            {loading ? (
-              <div className="flex items-center justify-center min-h-[400px]">
-                <div className="opacity-70">Loading matches...</div>
-              </div>
-            ) : matches.length === 0 ? (
+            {matches.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
                 <div className="opacity-70 mb-4">
                   <p className="mb-2">No matches yet.</p>
@@ -272,9 +284,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <Button onClick={loadMatches} variant="outline" size="sm">
                   Refresh Matches
                 </Button>
-                <div className="mt-4 text-xs opacity-50">
-                  Check console (F12) for debug logs
-                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -287,8 +296,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
                         {(() => {
-                          // Handle both old schema (media_url) and new schema (media_urls)
-                          const img = match.other_post.media_urls?.[0] || (match.other_post as any).media_url;
+                          const img = match.other_post.media_urls?.[0];
                           return img ? (
                             <div className="w-16 h-16 rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
                               <img
@@ -320,23 +328,70 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         </Tabs>
       </div>
 
-      {/* Chat Dialog */}
+      {/* Match detail dialog */}
       <Dialog open={!!selectedMatch} onOpenChange={(open) => !open && setSelectedMatch(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              {selectedMatch?.other_post.title || "Chat"}
+              {selectedMatch?.other_post.title || "Match"}
             </DialogTitle>
             <DialogDescription>
-              {selectedMatch?.other_post.description || "Start a conversation"}
+              {selectedMatch?.other_post.description || "You matched on this collaboration!"}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4 bg-zinc-900/50 rounded-lg min-h-[300px] flex items-center justify-center">
             <div className="text-center opacity-70">
               <p className="mb-2">Chat coming soon!</p>
-              <p className="text-sm">This is a placeholder for the messaging feature.</p>
+              <p className="text-sm">Messaging will be available in a future update.</p>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Post dialog */}
+      <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Collaboration Post</DialogTitle>
+            <DialogDescription>
+              Describe what you're looking for. Other creatives will see this in their feed.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreatePost} className="space-y-4">
+            <div>
+              <Label htmlFor="post-title">Title</Label>
+              <Input
+                id="post-title"
+                value={newPostTitle}
+                onChange={(e) => setNewPostTitle(e.target.value)}
+                placeholder="e.g., Looking for a photographer for portfolio shoot"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="post-description">Description</Label>
+              <Textarea
+                id="post-description"
+                value={newPostDescription}
+                onChange={(e) => setNewPostDescription(e.target.value)}
+                placeholder="Describe the collaboration, style, timeline, etc."
+                rows={4}
+                required
+              />
+            </div>
+            {createPostError && (
+              <p className="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-md p-2">
+                {createPostError}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={creatingPost || !newPostTitle.trim() || !newPostDescription.trim()}
+              className="w-full bg-violet-600 hover:bg-violet-700"
+            >
+              {creatingPost ? "Creating..." : "Create Post"}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
