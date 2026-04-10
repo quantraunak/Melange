@@ -44,6 +44,18 @@ export type Message = {
   created_at: string;
 };
 
+export type Profile = {
+  id: string;
+  user_id: string;
+  name: string;
+  role: string | null;
+  bio: string | null;
+  current_project: string | null;
+  skills: string[] | null;
+  avatar_url: string | null;
+  created_at: string;
+};
+
 // Database helpers
 
 /**
@@ -341,6 +353,57 @@ export async function sendMessage(
   } catch (err) {
     return {
       data: null,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get the current user's profile.
+ */
+export async function getProfile(
+  userId: string
+): Promise<{ data: Profile | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    return { data: data as Profile, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Update the current user's profile.
+ */
+export async function updateProfile(
+  userId: string,
+  updates: { name?: string; role?: string; bio?: string; current_project?: string; skills?: string[] }
+): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("user_id", userId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err) {
+    return {
       error: err instanceof Error ? err.message : "Unknown error",
     };
   }
