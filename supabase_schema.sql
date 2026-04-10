@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_matches_user1_id ON public.matches(user1_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user2_id ON public.matches(user2_id);
 
 -- ===================
--- 5. messages  (stub for future chat)
+-- 5. messages
 -- ===================
 CREATE TABLE IF NOT EXISTS public.messages (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -175,4 +175,28 @@ CREATE POLICY "Users can send messages in their matches"
         AND (matches.user1_id = auth.uid() OR matches.user2_id = auth.uid())
     )
   );
+
+-- ============================================================
+-- Storage: media bucket for avatars and post images
+-- ============================================================
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public read access on media"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'media');
+
+CREATE POLICY "Authenticated users can upload to media"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Users can update their own media"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'media' AND auth.uid()::text = (storage.foldername(name))[2]);
+
+CREATE POLICY "Users can delete their own media"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'media' AND auth.uid()::text = (storage.foldername(name))[2]);
 
