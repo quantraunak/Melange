@@ -4,13 +4,6 @@
 
 A creative collaboration platform where artists, photographers, models, and other creatives find each other. Create a profile, post what you're working on, swipe through others' projects, match when the interest is mutual, and message to plan the collaboration.
 
-## Screenshots
-
-| Sign Up | Feed | Chat |
-|---|---|---|
-| ![Auth](./public/screenshots/auth.png) | ![Feed](./public/screenshots/feed.png) | ![Chat](./public/screenshots/chat.png) |
-| Profile creation with role and skills | Swipe-based post discovery with search | Realtime messaging between matches |
-
 ## How It Works
 
 1. **Sign up** with your name, role, skills, and bio.
@@ -106,6 +99,7 @@ app/
   layout.tsx           # Root layout
   page.tsx             # Entry point
 components/ui/         # shadcn/ui primitives
+supabase/              # Supabase CLI config (local dev)
 supabase_schema.sql    # Canonical database + storage schema
 ```
 
