@@ -14,6 +14,16 @@ export type CollabPost = {
   created_at: string;
 };
 
+export type CreatorInfo = {
+  name: string;
+  role: string | null;
+  avatar_url: string | null;
+};
+
+export type PostWithCreator = CollabPost & {
+  creator: CreatorInfo;
+};
+
 export type Swipe = {
   id: string;
   swiper_id: string;
@@ -34,6 +44,8 @@ export type Match = {
 export type MatchWithPost = Match & {
   other_user_id: string;
   other_post: CollabPost;
+  other_creator: CreatorInfo;
+  last_message: Message | null;
 };
 
 export type Message = {
@@ -56,20 +68,80 @@ export type Profile = {
   created_at: string;
 };
 
+// Helpers
+
+const UNKNOWN_CREATOR: CreatorInfo = { name: "Unknown", role: null, avatar_url: null };
+
+async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo>> {
+  const map = new Map<string, CreatorInfo>();
+  if (userIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("user_id, name, role, avatar_url")
+    .in("user_id", userIds);
+
+  for (const p of data || []) {
+    map.set(p.user_id, { name: p.name, role: p.role, avatar_url: p.avatar_url });
+  }
+  return map;
+}
+
 // Database helpers
 
 /**
- * Create a new collaboration post.
+ * Upload a file to Supabase Storage and return its public URL.
+ * Bucket "media" must exist with public read access.
+ */
+export async function uploadFile(
+  userId: string,
+  folder: "avatars" | "posts",
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${folder}/${userId}/${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("media")
+      .upload(path, file, { upsert: true });
+
+    if (error) {
+      return { url: null, error: error.message };
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("media")
+      .getPublicUrl(path);
+
+    return { url: urlData.publicUrl, error: null };
+  } catch (err) {
+    return {
+      url: null,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Create a new collaboration post with all metadata fields.
  */
 export async function createPost(
   userId: string,
   title: string,
-  description: string
+  description: string,
+  opts?: { looking_for?: string[]; location?: string; compensation?: string; media_urls?: string[] }
 ): Promise<{ data: CollabPost | null; error: string | null }> {
   try {
+    const row: Record<string, unknown> = { owner_id: userId, title, description };
+    if (opts?.looking_for?.length) row.looking_for = opts.looking_for;
+    if (opts?.location) row.location = opts.location;
+    if (opts?.compensation) row.compensation = opts.compensation;
+    if (opts?.media_urls?.length) row.media_urls = opts.media_urls;
+
     const { data, error } = await supabase
       .from("collab_posts")
-      .insert({ owner_id: userId, title, description })
+      .insert(row)
       .select()
       .single();
 
@@ -87,10 +159,11 @@ export async function createPost(
 }
 
 /**
- * Get all collab posts that the current user hasn't swiped on yet.
+ * Get all collab posts that the current user hasn't swiped on yet,
+ * enriched with the creator's profile info.
  */
 export async function getUnswipedPosts(userId: string): Promise<{
-  data: CollabPost[] | null;
+  data: PostWithCreator[] | null;
   error: string | null;
 }> {
   try {
@@ -114,12 +187,17 @@ export async function getUnswipedPosts(userId: string): Promise<{
     }
 
     const swipedPostIds = new Set(swipes?.map((s) => s.post_id) || []);
+    const unswipedPosts = (posts || []).filter((post) => !swipedPostIds.has(post.id));
 
-    const unswipedPosts = (posts || []).filter(
-      (post) => !swipedPostIds.has(post.id)
-    );
+    const ownerIds = [...new Set(unswipedPosts.map((p) => p.owner_id))];
+    const creators = await fetchCreators(ownerIds);
 
-    return { data: unswipedPosts, error: null };
+    const enriched: PostWithCreator[] = unswipedPosts.map((post) => ({
+      ...(post as CollabPost),
+      creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
+    }));
+
+    return { data: enriched, error: null };
   } catch (err) {
     return {
       data: null,
@@ -203,7 +281,6 @@ export async function checkAndCreateMatch(
       return { match: null, error: null };
     }
 
-    // Canonical ordering so the unique constraint works both ways
     const user1Id = swiperId < postOwnerId ? swiperId : postOwnerId;
     const user2Id = swiperId < postOwnerId ? postOwnerId : swiperId;
     const post1Id = swiperId < postOwnerId ? postId : reciprocalSwipe.post_id;
@@ -224,7 +301,6 @@ export async function checkAndCreateMatch(
       return { match: newMatch as Match, error: null };
     }
 
-    // Duplicate match -- fetch the existing one
     if (insertError && (insertError.code === "23505" || insertError.message.includes("duplicate") || insertError.message.includes("unique"))) {
       const { data: existingMatch, error: fetchError } = await supabase
         .from("matches")
@@ -250,7 +326,7 @@ export async function checkAndCreateMatch(
 }
 
 /**
- * Get all matches for the current user, enriched with the other user's post.
+ * Get all matches for the current user, enriched with the other user's post and profile.
  */
 export async function getMatches(
   userId: string
@@ -270,29 +346,57 @@ export async function getMatches(
       return { data: [], error: null };
     }
 
-    const enrichedMatches: MatchWithPost[] = [];
-
+    const partials: { match: typeof matches[0]; otherUserId: string; otherPostId: string }[] = [];
     for (const match of matches) {
-      const otherUserId =
-        match.user1_id === userId ? match.user2_id : match.user1_id;
-      const otherPostId =
-        match.user1_id === userId ? match.post2_id : match.post1_id;
+      partials.push({
+        match,
+        otherUserId: match.user1_id === userId ? match.user2_id : match.user1_id,
+        otherPostId: match.user1_id === userId ? match.post2_id : match.post1_id,
+      });
+    }
 
-      const { data: otherPost, error: postError } = await supabase
-        .from("collab_posts")
-        .select("*")
-        .eq("id", otherPostId)
-        .single();
+    const postIds = partials.map((p) => p.otherPostId);
+    const { data: postsData } = await supabase
+      .from("collab_posts")
+      .select("*")
+      .in("id", postIds);
+    const postsMap = new Map((postsData || []).map((p) => [p.id, p as CollabPost]));
 
-      if (postError || !otherPost) {
-        continue;
-      }
+    const creatorIds = [...new Set(partials.map((p) => p.otherUserId))];
+    const creators = await fetchCreators(creatorIds);
+
+    const enrichedMatches: MatchWithPost[] = [];
+    for (const { match, otherUserId, otherPostId } of partials) {
+      const otherPost = postsMap.get(otherPostId);
+      if (!otherPost) continue;
 
       enrichedMatches.push({
         ...match,
         other_user_id: otherUserId,
-        other_post: otherPost as CollabPost,
+        other_post: otherPost,
+        other_creator: creators.get(otherUserId) || UNKNOWN_CREATOR,
+        last_message: null,
       });
+    }
+
+    // Batch-fetch the latest message per match
+    const matchIds = enrichedMatches.map((m) => m.id);
+    if (matchIds.length > 0) {
+      const { data: recentMsgs } = await supabase
+        .from("messages")
+        .select("*")
+        .in("match_id", matchIds)
+        .order("created_at", { ascending: false });
+
+      const latestByMatch = new Map<string, Message>();
+      for (const msg of (recentMsgs || []) as Message[]) {
+        if (!latestByMatch.has(msg.match_id)) {
+          latestByMatch.set(msg.match_id, msg);
+        }
+      }
+      for (const m of enrichedMatches) {
+        m.last_message = latestByMatch.get(m.id) || null;
+      }
     }
 
     return { data: enrichedMatches, error: null };
@@ -389,7 +493,7 @@ export async function getProfile(
  */
 export async function updateProfile(
   userId: string,
-  updates: { name?: string; role?: string; bio?: string; current_project?: string; skills?: string[] }
+  updates: { name?: string; role?: string; bio?: string; current_project?: string; skills?: string[]; avatar_url?: string }
 ): Promise<{ error: string | null }> {
   try {
     const { error } = await supabase

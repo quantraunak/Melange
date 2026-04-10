@@ -18,6 +18,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("login");
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
@@ -47,11 +48,12 @@ export default function AuthPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     const { error } = await supabase.auth.signInWithPassword({
       email: loginForm.email,
       password: loginForm.password,
     });
-    if (error) alert(error.message);
+    if (error) setLoginError(error.message);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -176,6 +178,12 @@ export default function AuthPage() {
                     required
                   />
                 </div>
+                {loginError && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+                    {loginError}
+                  </p>
+                )}
+
                 <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
                   Login
                 </Button>

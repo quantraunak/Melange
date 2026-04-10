@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
   getUnswipedPosts,
@@ -12,95 +12,107 @@ import {
   createPost,
   getProfile,
   updateProfile,
-  type CollabPost,
+  uploadFile,
+  type PostWithCreator,
   type MatchWithPost,
   type Message,
   type Profile,
+  type CreatorInfo,
 } from "../lib/db";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   X,
   Heart,
   Plus,
   ArrowLeft,
   Send,
-  Search,
   Info,
   MapPin,
-  Briefcase,
   DollarSign,
   Users,
-  ChevronRight,
-  Camera,
-  Star,
   LogOut,
+  Camera,
+  ImagePlus,
+  Loader2,
+  Search,
 } from "lucide-react";
 
-// -- Demo data for Explore tab (no backend) --
-const DEMO_IDEAS = [
-  {
-    id: "d1",
-    title: "Street Photography Walk",
-    preview: "Looking for photographers to join a weekend street photography session in downtown area.",
-    creator: "Alex, Photographer",
-  },
-  {
-    id: "d2",
-    title: "Fashion Lookbook Shoot",
-    preview: "Assembling a team for a spring fashion lookbook. Need models, MUA, and stylist.",
-    creator: "Emma, Project Manager",
-  },
-  {
-    id: "d3",
-    title: "Music Video Production",
-    preview: "Indie band seeking creative director and videographer for upcoming single release.",
-    creator: "Jordan, Musician",
-  },
-];
+type Tab = "connect" | "messages" | "profile";
 
-const DEMO_EVENTS = [
-  {
-    id: "e1",
-    title: "NYC Creative Meetup",
-    preview: "Monthly gathering for creatives in the NYC area. Networking, portfolio reviews, and collaboration.",
-    creator: "Melange Community",
-  },
-  {
-    id: "e2",
-    title: "LA Photo Walk - March",
-    preview: "Join us for a golden hour photo walk through Arts District. All skill levels welcome.",
-    creator: "LA Creatives Group",
-  },
-];
+const LAST_READ_KEY = "melange_last_read";
 
-type Tab = "connect" | "explore" | "messages" | "profile";
+function getLastReadMap(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(LAST_READ_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function markMatchRead(matchId: string) {
+  const reads = getLastReadMap();
+  reads[matchId] = new Date().toISOString();
+  localStorage.setItem(LAST_READ_KEY, JSON.stringify(reads));
+}
+
+function isMatchUnread(match: MatchWithPost, userId: string): boolean {
+  if (!match.last_message) return false;
+  if (match.last_message.sender_id === userId) return false;
+  const lastRead = getLastReadMap()[match.id];
+  if (!lastRead) return true;
+  return match.last_message.created_at > lastRead;
+}
+
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function Avatar({ creator, size = "md" }: { creator: CreatorInfo; size?: "sm" | "md" | "lg" }) {
+  const dims = size === "sm" ? "w-8 h-8 text-xs" : size === "lg" ? "w-14 h-14 text-lg" : "w-10 h-10 text-sm";
+  if (creator.avatar_url) {
+    return <img src={creator.avatar_url} alt={creator.name} className={`${dims} rounded-full object-cover flex-shrink-0`} />;
+  }
+  return (
+    <div className={`${dims} rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center justify-center flex-shrink-0`}>
+      {creator.name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
 
 export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
-  const [email, setEmail] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("connect");
 
   // Connect
-  const [posts, setPosts] = useState<CollabPost[]>([]);
+  const [posts, setPosts] = useState<PostWithCreator[]>([]);
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
-  const [err, setErr] = useState("");
-  const [detailPost, setDetailPost] = useState<CollabPost | null>(null);
+  const [connectErr, setConnectErr] = useState("");
+  const [detailPost, setDetailPost] = useState<PostWithCreator | null>(null);
+  const [connectSearch, setConnectSearch] = useState("");
 
   // Create Post
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostDescription, setNewPostDescription] = useState("");
+  const [newPostLookingFor, setNewPostLookingFor] = useState("");
+  const [newPostLocation, setNewPostLocation] = useState("");
+  const [newPostCompensation, setNewPostCompensation] = useState("");
   const [creatingPost, setCreatingPost] = useState(false);
   const [createPostError, setCreatePostError] = useState("");
 
   // Messages
   const [matches, setMatches] = useState<MatchWithPost[]>([]);
+  const [matchErr, setMatchErr] = useState("");
   const [chatMatch, setChatMatch] = useState<MatchWithPost | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -108,40 +120,43 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState("");
 
-  // Explore
-  const [exploreToggle, setExploreToggle] = useState<"ideas" | "events">("ideas");
-
   // Profile
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [profileForm, setProfileForm] = useState({ name: "", role: "", bio: "", currentProject: "", skills: "", instagram: "", linkedin: "" });
+  const [profileForm, setProfileForm] = useState({ name: "", role: "", bio: "", currentProject: "", skills: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Post image upload
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const postImageInputRef = useRef<HTMLInputElement>(null);
 
   // --- Data loading ---
 
   const loadUser = async () => {
     const { data: authRes, error: authErr } = await supabase.auth.getUser();
-    if (authErr) { setErr(authErr.message); return; }
-    setEmail(authRes?.user?.email ?? "");
+    if (authErr) { setConnectErr(authErr.message); return; }
     setUserId(authRes?.user?.id ?? null);
   };
 
   const loadPosts = async () => {
     if (!userId) return;
-    setErr(""); setLoading(true);
+    setConnectErr(""); setLoading(true);
     const { data, error } = await getUnswipedPosts(userId);
-    if (error) { setErr(error); setLoading(false); return; }
+    if (error) { setConnectErr(error); setLoading(false); return; }
     setPosts(data || []); setCurrentPostIndex(0); setLoading(false);
   };
 
-  const loadMatches = async () => {
+  const loadMatches = useCallback(async () => {
     if (!userId) return;
     const { data, error } = await getMatches(userId);
-    if (error) { setErr(error); return; }
+    if (error) { setMatchErr(error); return; }
     setMatches(data || []);
-  };
+  }, [userId]);
 
   const loadProfile = async () => {
     if (!userId) return;
@@ -154,27 +169,43 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         bio: data.bio || "",
         currentProject: data.current_project || "",
         skills: data.skills?.join(", ") || "",
-        instagram: "",
-        linkedin: "",
       });
     }
   };
 
+  // --- Derived state ---
+
+  const visiblePosts = (() => {
+    if (!connectSearch.trim()) return posts;
+    const q = connectSearch.toLowerCase();
+    return posts.filter((post) =>
+      post.title.toLowerCase().includes(q) ||
+      (post.description?.toLowerCase().includes(q) ?? false) ||
+      (post.location?.toLowerCase().includes(q) ?? false) ||
+      (post.compensation?.toLowerCase().includes(q) ?? false) ||
+      (post.looking_for?.some((lf) => lf.toLowerCase().includes(q)) ?? false) ||
+      post.creator.name.toLowerCase().includes(q) ||
+      (post.creator.role?.toLowerCase().includes(q) ?? false)
+    );
+  })();
+
+  const unreadCount = userId ? matches.filter((m) => isMatchUnread(m, userId)).length : 0;
+
   // --- Handlers ---
 
   const handleSwipe = async (direction: "left" | "right") => {
-    if (!userId || swiping || posts.length === 0) return;
-    const currentPost = posts[currentPostIndex];
-    if (!currentPost) return;
-    setSwiping(true); setErr("");
-    const { error: swipeError } = await recordSwipe(userId, currentPost.id, direction);
-    if (swipeError) { setErr(swipeError); setSwiping(false); return; }
+    if (!userId || swiping || visiblePosts.length === 0) return;
+    const post = visiblePosts[currentPostIndex];
+    if (!post) return;
+    setSwiping(true); setConnectErr("");
+    const { error: swipeError } = await recordSwipe(userId, post.id, direction);
+    if (swipeError) { setConnectErr(swipeError); setSwiping(false); return; }
     if (direction === "right") {
-      const { match, error: matchError } = await checkAndCreateMatch(userId, currentPost.id);
-      if (matchError) setErr(matchError);
+      const { match, error: matchError } = await checkAndCreateMatch(userId, post.id);
+      if (matchError) setConnectErr(matchError);
       else if (match) await loadMatches();
     }
-    if (currentPostIndex < posts.length - 1) setCurrentPostIndex(currentPostIndex + 1);
+    if (currentPostIndex < visiblePosts.length - 1) setCurrentPostIndex(currentPostIndex + 1);
     else await loadPosts();
     setSwiping(false);
   };
@@ -183,13 +214,35 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     e.preventDefault();
     if (!userId) return;
     setCreatingPost(true); setCreatePostError("");
-    const { error } = await createPost(userId, newPostTitle.trim(), newPostDescription.trim());
+
+    const lookingFor = newPostLookingFor.split(",").map((s) => s.trim()).filter(Boolean);
+
+    let mediaUrls: string[] | undefined;
+    if (postImageFile) {
+      const { url, error: uploadErr } = await uploadFile(userId, "posts", postImageFile);
+      if (uploadErr || !url) {
+        setCreatePostError(uploadErr || "Image upload failed");
+        setCreatingPost(false);
+        return;
+      }
+      mediaUrls = [url];
+    }
+
+    const { error } = await createPost(userId, newPostTitle.trim(), newPostDescription.trim(), {
+      looking_for: lookingFor.length ? lookingFor : undefined,
+      location: newPostLocation.trim() || undefined,
+      compensation: newPostCompensation.trim() || undefined,
+      media_urls: mediaUrls,
+    });
     if (error) { setCreatePostError(error); setCreatingPost(false); return; }
-    setNewPostTitle(""); setNewPostDescription(""); setShowCreatePost(false); setCreatingPost(false);
+    setNewPostTitle(""); setNewPostDescription(""); setNewPostLookingFor(""); setNewPostLocation(""); setNewPostCompensation("");
+    clearPostImage();
+    setShowCreatePost(false); setCreatingPost(false);
     await loadPosts();
   };
 
   const openChat = async (match: MatchWithPost) => {
+    markMatchRead(match.id);
     setChatMatch(match); setMessages([]); setChatError(""); setMessagesLoading(true);
     const { data, error } = await getMessages(match.id);
     if (error) setChatError(error);
@@ -223,6 +276,38 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     if (!error) await loadProfile();
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setUploadingAvatar(true); setProfileMsg("");
+    const { url, error: uploadErr } = await uploadFile(userId, "avatars", file);
+    if (uploadErr || !url) {
+      setProfileMsg(uploadErr || "Upload failed");
+      setUploadingAvatar(false);
+      return;
+    }
+    const { error: updateErr } = await updateProfile(userId, { avatar_url: url });
+    setUploadingAvatar(false);
+    if (updateErr) { setProfileMsg(updateErr); return; }
+    await loadProfile();
+    setProfileMsg("Avatar updated!");
+  };
+
+  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPostImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPostImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearPostImage = () => {
+    setPostImageFile(null);
+    setPostImagePreview(null);
+    if (postImageInputRef.current) postImageInputRef.current.value = "";
+  };
+
   const signOut = async () => { await supabase.auth.signOut(); onSignOut(); };
 
   // --- Effects ---
@@ -231,10 +316,57 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   useEffect(() => { if (userId) { loadPosts(); loadMatches(); loadProfile(); } }, [userId]);
   useEffect(() => { if (activeTab === "messages") loadMatches(); }, [activeTab]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { setCurrentPostIndex(0); }, [connectSearch]);
 
-  // --- Render helpers ---
+  // Realtime: new messages in active chat
+  useEffect(() => {
+    if (!chatMatch || !userId) return;
+    const channel = supabase
+      .channel(`chat:${chatMatch.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `match_id=eq.${chatMatch.id}`,
+      }, (payload) => {
+        const msg = payload.new as Message;
+        if (msg.sender_id !== userId) {
+          markMatchRead(chatMatch.id);
+          setMessages((prev) =>
+            prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+          );
+        }
+      })
+      .subscribe();
 
-  const currentPost = posts[currentPostIndex];
+    return () => { supabase.removeChannel(channel); };
+  }, [chatMatch?.id, userId]);
+
+  // Realtime: new matches for current user
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("my-matches")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "matches",
+        filter: `user1_id=eq.${userId}`,
+      }, () => { loadMatches(); })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "matches",
+        filter: `user2_id=eq.${userId}`,
+      }, () => { loadMatches(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
+  // --- Render ---
+
+  const currentPost = visiblePosts[currentPostIndex];
 
   const Logo = () => (
     <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -244,16 +376,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     </svg>
   );
 
-  const tabs: { key: Tab; label: string }[] = [
+  const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: "connect", label: "Connect" },
-    { key: "explore", label: "Explore" },
-    { key: "messages", label: `Messages${matches.length > 0 ? ` (${matches.length})` : ""}` },
+    { key: "messages", label: "Messages", badge: unreadCount },
     { key: "profile", label: "Profile" },
   ];
-
-  // ============================
-  // MAIN RENDER
-  // ============================
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-4 px-4">
@@ -282,13 +409,18 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
-                className={`flex-1 text-xs font-medium py-2 rounded-full transition-all ${
+                className={`flex-1 text-xs font-medium py-2 rounded-full transition-all relative ${
                   activeTab === t.key
                     ? "bg-white text-blue-700 shadow-sm"
                     : "text-white hover:text-blue-100"
                 }`}
               >
                 {t.label}
+                {t.badge && t.badge > 0 ? (
+                  <span className="absolute -top-1 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 shadow-sm">
+                    {t.badge > 9 ? "9+" : t.badge}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -300,38 +432,45 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           {/* ======================== CONNECT TAB ======================== */}
           {activeTab === "connect" && (
             <div className="pt-3">
-              {/* Search bar */}
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search job type, compensation, or location..."
-                  className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-                  readOnly
-                />
-              </div>
-
-              {/* New Post button */}
-              <div className="flex justify-end mb-3">
+              {/* Search + New Post */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <input
+                    value={connectSearch}
+                    onChange={(e) => setConnectSearch(e.target.value)}
+                    placeholder="Filter by role, location, skill..."
+                    className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                  />
+                  {connectSearch && (
+                    <button onClick={() => setConnectSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowCreatePost(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" /> New Post
                 </button>
               </div>
 
-              {err && (
-                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{err}</div>
+              {connectErr && (
+                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{connectErr}</div>
               )}
 
               {loading ? (
                 <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading posts...</div>
               ) : !currentPost ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-gray-500 mb-1">No posts to swipe on yet.</p>
-                  <p className="text-gray-400 text-sm mb-4">Create a post so others can find you!</p>
-                  <button onClick={loadPosts} className="text-sm text-blue-600 hover:underline">Refresh</button>
+                  <p className="text-gray-500 mb-1">{connectSearch ? "No posts match your filter." : "No posts to swipe on yet."}</p>
+                  <p className="text-gray-400 text-sm mb-4">{connectSearch ? "Try a different search term." : "Create a post so others can find you!"}</p>
+                  {connectSearch ? (
+                    <button onClick={() => setConnectSearch("")} className="text-sm text-blue-600 hover:underline">Clear filter</button>
+                  ) : (
+                    <button onClick={loadPosts} className="text-sm text-blue-600 hover:underline">Refresh</button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -351,28 +490,44 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                         <Info className="h-4 w-4 text-blue-600" />
                       </button>
                     </div>
+
                     {/* Card body */}
-                    <div className="p-4 space-y-1.5">
-                      <h3 className="font-semibold text-gray-900 text-base">{currentPost.title}</h3>
+                    <div className="p-4">
+                      {/* Creator row */}
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <Avatar creator={currentPost.creator} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{currentPost.creator.name}</p>
+                          {currentPost.creator.role && (
+                            <p className="text-xs text-gray-500 truncate">{currentPost.creator.role}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <h3 className="font-semibold text-gray-900 text-base mb-1">{currentPost.title}</h3>
                       {currentPost.description && (
-                        <p className="text-gray-500 text-sm line-clamp-2">{currentPost.description}</p>
+                        <p className="text-gray-500 text-sm line-clamp-2 mb-2">{currentPost.description}</p>
                       )}
-                      {currentPost.location && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                          <MapPin className="h-3 w-3" /> {currentPost.location}
-                        </div>
-                      )}
-                      {currentPost.looking_for && currentPost.looking_for.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                          <Users className="h-3 w-3" /> Looking for: {currentPost.looking_for.join(", ")}
-                        </div>
-                      )}
-                      {currentPost.compensation && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                          <DollarSign className="h-3 w-3" /> {currentPost.compensation}
-                        </div>
-                      )}
-                      <p className="text-[11px] text-gray-300 pt-1">{posts.length - currentPostIndex - 1} posts remaining</p>
+
+                      <div className="space-y-1">
+                        {currentPost.location && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <MapPin className="h-3 w-3 flex-shrink-0" /> {currentPost.location}
+                          </div>
+                        )}
+                        {currentPost.looking_for && currentPost.looking_for.length > 0 && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <Users className="h-3 w-3 flex-shrink-0" /> Looking for: {currentPost.looking_for.join(", ")}
+                          </div>
+                        )}
+                        {currentPost.compensation && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <DollarSign className="h-3 w-3 flex-shrink-0" /> {currentPost.compensation}
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-gray-300 mt-2">{visiblePosts.length - currentPostIndex - 1} posts remaining{connectSearch ? " (filtered)" : ""}</p>
                     </div>
                   </div>
 
@@ -398,79 +553,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
             </div>
           )}
 
-          {/* ======================== EXPLORE TAB ======================== */}
-          {activeTab === "explore" && (
-            <div className="pt-3">
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search ideas or events..."
-                  className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-                  readOnly
-                />
-              </div>
-
-              {/* Toggle */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setExploreToggle("ideas")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    exploreToggle === "ideas" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  Collaboration Ideas
-                </button>
-                <button
-                  onClick={() => setExploreToggle("events")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    exploreToggle === "events" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  Local Events
-                </button>
-              </div>
-
-              {/* Section header */}
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-800">
-                  {exploreToggle === "ideas" ? "Collaboration Ideas" : "Local Events"}
-                </h2>
-                <button className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
-                  <Plus className="h-3 w-3" /> New {exploreToggle === "ideas" ? "Idea" : "Event"}
-                </button>
-              </div>
-
-              {/* List */}
-              <div className="space-y-2.5">
-                {(exploreToggle === "ideas" ? DEMO_IDEAS : DEMO_EVENTS).map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3 hover:shadow-sm transition-shadow cursor-pointer">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Briefcase className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-semibold text-blue-700 truncate">{item.title}</h3>
-                      <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.preview}</p>
-                      <p className="text-[11px] text-purple-500 mt-0.5">{item.creator}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* ======================== MESSAGES TAB ======================== */}
           {activeTab === "messages" && (
             <div className="pt-3">
-              {/* Sub-tabs */}
-              <div className="flex gap-2 mb-4">
-                <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Messages</span>
-                <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Matches</span>
-              </div>
-
-              {err && (
-                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{err}</div>
+              {matchErr && (
+                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{matchErr}</div>
               )}
 
               {matches.length === 0 ? (
@@ -481,27 +568,46 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {matches.map((match) => (
-                    <div
-                      key={match.id}
-                      onClick={() => openChat(match)}
-                      className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3 hover:shadow-sm transition-shadow cursor-pointer"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-200 to-purple-200 flex items-center justify-center flex-shrink-0">
-                        <Users className="h-4 w-4 text-blue-600" />
+                  {matches.map((match) => {
+                    const unread = userId ? isMatchUnread(match, userId) : false;
+                    return (
+                      <div
+                        key={match.id}
+                        onClick={() => openChat(match)}
+                        className={`flex items-center gap-3 bg-white border rounded-xl p-3 hover:shadow-sm transition-shadow cursor-pointer ${
+                          unread ? "border-blue-300 bg-blue-50/40" : "border-gray-200"
+                        }`}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <Avatar creator={match.other_creator} size="md" />
+                          {unread && (
+                            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-blue-500 rounded-full border-2 border-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className={`text-sm truncate ${unread ? "font-bold text-gray-900" : "font-semibold text-gray-900"}`}>{match.other_creator.name}</h3>
+                            {match.other_creator.role && (
+                              <span className="text-[11px] text-gray-400 truncate">{match.other_creator.role}</span>
+                            )}
+                          </div>
+                          {match.last_message ? (
+                            <p className={`text-xs truncate ${unread ? "text-gray-700 font-medium" : "text-gray-500"}`}>
+                              {match.last_message.sender_id === userId ? "You: " : ""}
+                              {match.last_message.content}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-400 italic truncate">No messages yet — say hello!</p>
+                          )}
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {match.last_message
+                              ? formatTimeAgo(match.last_message.created_at)
+                              : `Matched ${new Date(match.created_at).toLocaleDateString()}`}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-gray-900 truncate">{match.other_post.title}</h3>
-                        {match.other_post.description && (
-                          <p className="text-xs text-gray-500 truncate">{match.other_post.description}</p>
-                        )}
-                        <p className="text-[11px] text-gray-400 mt-0.5">
-                          Matched {new Date(match.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -510,6 +616,32 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           {/* ======================== PROFILE TAB ======================== */}
           {activeTab === "profile" && (
             <div className="pt-3">
+              {/* Avatar with upload */}
+              {profile && (
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="relative group flex-shrink-0"
+                  >
+                    <Avatar creator={{ name: profile.name, role: profile.role, avatar_url: profile.avatar_url }} size="lg" />
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {uploadingAvatar
+                        ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+                        : <Camera className="h-5 w-5 text-white" />
+                      }
+                    </div>
+                  </button>
+                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  <div>
+                    <p className="font-semibold text-gray-900">{profile.name}</p>
+                    {profile.role && <p className="text-sm text-gray-500">{profile.role}</p>}
+                    <p className="text-[11px] text-gray-400 mt-0.5">Click avatar to change</p>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div>
                   <Label className="text-xs text-gray-500 mb-1">Name</Label>
@@ -530,30 +662,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <div>
                   <Label className="text-xs text-gray-500 mb-1">Current Project</Label>
                   <Input value={profileForm.currentProject} onChange={(e) => setProfileForm({ ...profileForm, currentProject: e.target.value })} className="rounded-xl" />
-                </div>
-
-                {/* Portfolio grid */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-2">Portfolio</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[...Array(6)].map((_, i) => (
-                      <div key={i} className="aspect-square bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-200">
-                        <Camera className="h-5 w-5 text-gray-300" />
-                      </div>
-                    ))}
-                  </div>
-                  <button type="button" className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                    <Plus className="h-3.5 w-3.5" /> Add Photo
-                  </button>
-                </div>
-
-                {/* Social media */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-2">Social Media</h3>
-                  <div className="space-y-2">
-                    <Input value={profileForm.instagram} onChange={(e) => setProfileForm({ ...profileForm, instagram: e.target.value })} placeholder="Instagram username" className="rounded-xl" />
-                    <Input value={profileForm.linkedin} onChange={(e) => setProfileForm({ ...profileForm, linkedin: e.target.value })} placeholder="LinkedIn profile URL" className="rounded-xl" />
-                  </div>
                 </div>
 
                 {profileMsg && (
@@ -592,40 +700,31 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   <div className="text-4xl opacity-20">🎨</div>
                 )}
               </div>
-              <div className="p-4 space-y-3 text-sm">
-                {detailPost.description && (
-                  <div><span className="font-medium text-gray-700">Description:</span> <span className="text-gray-500">{detailPost.description}</span></div>
-                )}
-                {detailPost.looking_for && detailPost.looking_for.length > 0 && (
-                  <div><span className="font-medium text-gray-700">Looking for:</span> <span className="text-gray-500">{detailPost.looking_for.join(", ")}</span></div>
-                )}
-                {detailPost.location && (
-                  <div><span className="font-medium text-gray-700">Location:</span> <span className="text-gray-500">{detailPost.location}</span></div>
-                )}
-                {detailPost.compensation && (
-                  <div><span className="font-medium text-gray-700">Compensation:</span> <span className="text-gray-500">{detailPost.compensation}</span></div>
-                )}
-                <div><span className="font-medium text-gray-700">Posted:</span> <span className="text-gray-500">{new Date(detailPost.created_at).toLocaleDateString()}</span></div>
-
-                {/* Reviews placeholder */}
-                <div className="pt-3 border-t border-gray-100">
-                  <h4 className="font-medium text-gray-700 mb-2">Reviews</h4>
-                  <div className="space-y-2">
-                    <div className="bg-gray-50 rounded-lg p-2.5">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-xs font-medium text-gray-700">Sarah M.</span>
-                        <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />)}</div>
-                      </div>
-                      <p className="text-xs text-gray-500">Great collaborator, very professional and creative!</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2.5">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-xs font-medium text-gray-700">Mike R.</span>
-                        <div className="flex">{[...Array(4)].map((_, i) => <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />)}<Star className="h-3 w-3 text-gray-300" /></div>
-                      </div>
-                      <p className="text-xs text-gray-500">Easy to work with and delivered on time.</p>
-                    </div>
+              <div className="p-4 space-y-4">
+                {/* Creator section */}
+                <div className="flex items-center gap-3">
+                  <Avatar creator={detailPost.creator} size="lg" />
+                  <div>
+                    <p className="font-semibold text-gray-900">{detailPost.creator.name}</p>
+                    {detailPost.creator.role && <p className="text-sm text-gray-500">{detailPost.creator.role}</p>}
                   </div>
+                </div>
+
+                {/* Post details */}
+                <div className="space-y-2.5 text-sm">
+                  {detailPost.description && (
+                    <div><span className="font-medium text-gray-700">Description:</span> <span className="text-gray-500">{detailPost.description}</span></div>
+                  )}
+                  {detailPost.looking_for && detailPost.looking_for.length > 0 && (
+                    <div><span className="font-medium text-gray-700">Looking for:</span> <span className="text-gray-500">{detailPost.looking_for.join(", ")}</span></div>
+                  )}
+                  {detailPost.location && (
+                    <div><span className="font-medium text-gray-700">Location:</span> <span className="text-gray-500">{detailPost.location}</span></div>
+                  )}
+                  {detailPost.compensation && (
+                    <div><span className="font-medium text-gray-700">Compensation:</span> <span className="text-gray-500">{detailPost.compensation}</span></div>
+                  )}
+                  <div><span className="font-medium text-gray-700">Posted:</span> <span className="text-gray-500">{new Date(detailPost.created_at).toLocaleDateString()}</span></div>
                 </div>
               </div>
             </div>
@@ -640,11 +739,16 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
             <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <div className="min-w-0 flex-1">
-              <DialogTitle className="text-sm font-semibold text-gray-900 truncate">{chatMatch?.other_post.title}</DialogTitle>
-              <DialogDescription className="text-[11px] text-gray-400 truncate">{chatMatch?.other_post.description || ""}</DialogDescription>
-            </div>
-            <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+            {chatMatch && (
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Avatar creator={chatMatch.other_creator} size="sm" />
+                <div className="min-w-0">
+                  <DialogTitle className="text-sm font-semibold text-gray-900 truncate">{chatMatch.other_creator.name}</DialogTitle>
+                  <DialogDescription className="text-[11px] text-gray-400 truncate">{chatMatch.other_post.title}</DialogDescription>
+                </div>
+              </div>
+            )}
+            <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600 ml-auto"><X className="h-4 w-4" /></button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3">
@@ -710,7 +814,45 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
             </div>
             <div>
               <Label className="text-xs text-gray-500 mb-1">Description</Label>
-              <Textarea value={newPostDescription} onChange={(e) => setNewPostDescription(e.target.value)} placeholder="Describe the collaboration..." rows={4} required className="rounded-xl" />
+              <Textarea value={newPostDescription} onChange={(e) => setNewPostDescription(e.target.value)} placeholder="Describe the collaboration, style, timeline, etc." rows={3} required className="rounded-xl" />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500 mb-1">Looking for (comma-separated)</Label>
+              <Input value={newPostLookingFor} onChange={(e) => setNewPostLookingFor(e.target.value)} placeholder="e.g., Photographer, Model, MUA" className="rounded-xl" />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500 mb-1">Location</Label>
+              <Input value={newPostLocation} onChange={(e) => setNewPostLocation(e.target.value)} placeholder="e.g., New York, NY" className="rounded-xl" />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500 mb-1">Compensation</Label>
+              <Input value={newPostCompensation} onChange={(e) => setNewPostCompensation(e.target.value)} placeholder="e.g., TFP, $200/hr, Revenue share" className="rounded-xl" />
+            </div>
+            {/* Image upload */}
+            <div>
+              <Label className="text-xs text-gray-500 mb-1">Image (optional)</Label>
+              {postImagePreview ? (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                  <img src={postImagePreview} alt="Preview" className="w-full h-32 object-cover" />
+                  <button
+                    type="button"
+                    onClick={clearPostImage}
+                    className="absolute top-2 right-2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => postImageInputRef.current?.click()}
+                  className="w-full h-20 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+                >
+                  <ImagePlus className="h-5 w-5" />
+                  <span className="text-xs font-medium">Add an image</span>
+                </button>
+              )}
+              <input ref={postImageInputRef} type="file" accept="image/*" className="hidden" onChange={handlePostImageSelect} />
             </div>
             {createPostError && (
               <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">{createPostError}</p>
