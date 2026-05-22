@@ -2,40 +2,25 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-
 import MelangeApp from "./MelangeApp";
 
-function Logo() {
-  return (
-    <svg className="h-16 w-16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#7C3AED" strokeWidth="2" />
-      <path
-        d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z"
-        fill="#BFDBFE"
-        stroke="#7C3AED"
-        strokeWidth="2"
-      />
-      <circle cx="50" cy="50" r="10" fill="#7C3AED" />
-    </svg>
-  );
-}
-
+/**
+ * AuthPage — editorial split-screen landing + auth.
+ *
+ * Left rail: serif headline, value prop, social proof.
+ * Right rail: a single quiet card that toggles between sign-in and sign-up.
+ * On mobile, the left rail collapses to a slim hero above the card.
+ */
 export default function AuthPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState("login");
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [submitting, setSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
@@ -69,11 +54,13 @@ export default function AuthPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    setSubmitting(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: loginForm.email,
       password: loginForm.password,
     });
     if (error) setLoginError(error.message);
+    setSubmitting(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -81,15 +68,15 @@ export default function AuthPage() {
     setSignupError(null);
 
     if (signupForm.password !== signupForm.confirmPassword) {
-      setSignupError("Passwords do not match");
+      setSignupError("Passwords do not match.");
       return;
     }
-
     if (!acceptedTerms) {
       setSignupError("Please accept the Terms and Privacy Policy to continue.");
       return;
     }
 
+    setSubmitting(true);
     try {
       const { data, error } = await supabase.auth.signUp({
         email: signupForm.email,
@@ -98,12 +85,16 @@ export default function AuthPage() {
 
       if (error) {
         setSignupError(error.message);
+        setSubmitting(false);
         return;
       }
 
       const userId = data.user?.id;
       if (!userId) {
-        setSignupError("Signup succeeded but no user ID returned. Check your email for a confirmation link.");
+        setSignupError(
+          "Signup succeeded — check your email for a confirmation link before logging in."
+        );
+        setSubmitting(false);
         return;
       }
 
@@ -123,11 +114,13 @@ export default function AuthPage() {
       });
 
       if (profileErr) {
-        setSignupError(`Profile insert failed: ${profileErr.message}`);
+        setSignupError(`Profile setup failed: ${profileErr.message}`);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setSignupError(`Unexpected error: ${message}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -137,161 +130,191 @@ export default function AuthPage() {
   };
 
   if (loading) return null;
-
-  if (session) {
-    return <MelangeApp onSignOut={handleSignOut} />;
-  }
+  if (session) return <MelangeApp onSignOut={handleSignOut} />;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-[500px] bg-white shadow-lg rounded-xl overflow-hidden">
-        <CardHeader className="bg-blue-900 text-white p-4 flex items-center">
-          <Logo />
-          <div className="ml-4">
-            <CardTitle className="text-3xl font-bold italic transform -skew-x-6">
-              <span
-                style={{
-                  WebkitTextStroke: "2px #A78BFA",
-                  paintOrder: "stroke fill",
-                }}
-              >
-                Melange
-              </span>
-            </CardTitle>
-            <p className="text-sm text-blue-200 mt-1">Creative Collaborations</p>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col">
+      {/* ======================== Top brand bar ======================== */}
+      <header className="px-6 lg:px-10 py-5 flex items-center justify-between">
+        <Wordmark />
+        <div className="hidden sm:flex items-center gap-6 text-[13px] text-[var(--ink-2)]">
+          <Link href="#how" className="hover:text-[var(--ink)] transition-colors">
+            How it works
+          </Link>
+          <Link href="/terms" className="hover:text-[var(--ink)] transition-colors">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">
+            Privacy
+          </Link>
+        </div>
+      </header>
+
+      {/* ======================== Hero + Auth split ======================== */}
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 px-6 lg:px-16 pb-16 pt-4 lg:pt-12 max-w-[1280px] mx-auto w-full">
+        {/* Left — editorial copy */}
+        <section className="flex flex-col justify-center">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)] mb-5">
+            For creatives, by creatives
+          </p>
+          <h1 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.02] tracking-[-0.02em] text-[var(--ink)]">
+            Find the people you{" "}
+            <em className="font-display italic text-[var(--accent)]">actually</em>{" "}
+            want to make work with.
+          </h1>
+          <p className="mt-6 text-[17px] leading-relaxed text-[var(--ink-2)] max-w-[52ch]">
+            Melange is a swipe-and-match app for photographers, models, MUAs,
+            stylists, and designers — plus a feed of local events, open calls,
+            and photo walks so collaborations turn into actual shoots.
+          </p>
+
+          <div className="mt-10 flex items-center gap-8 text-[13px] text-[var(--ink-2)]">
+            <Stat number="1×" label="Card. One creator at a time." />
+            <span className="h-6 w-px bg-[var(--line)]" />
+            <Stat number="2×" label="Way match — both swipe right." />
+            <span className="h-6 w-px bg-[var(--line)]" />
+            <Stat number="0" label="Boosts. No pay-to-play." />
           </div>
-        </CardHeader>
 
-        <CardContent className="p-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
+          <div id="how" className="mt-12 hidden lg:grid grid-cols-3 gap-5 max-w-[640px]">
+            <HowStep n="01" title="Post your idea" body="A shoot concept, an open call, a vibe. With reference images." />
+            <HowStep n="02" title="Swipe on others" body="See people in your city who want to make the same kind of work." />
+            <HowStep n="03" title="Match & chat" body="Mutual right-swipes unlock DMs. RSVP to events. Make the thing." />
+          </div>
+        </section>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    required
-                  />
-                </div>
-                {loginError && (
-                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
-                    {loginError}
-                  </p>
-                )}
+        {/* Right — auth card */}
+        <section className="flex items-start lg:items-center justify-center">
+          <div className="w-full max-w-[440px] melange-card p-7 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display text-2xl tracking-tight">
+                {mode === "login" ? "Welcome back." : "Make a Melange account."}
+              </h2>
+            </div>
 
-                <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
-                  Login
-                </Button>
+            <div
+              role="tablist"
+              aria-label="Authentication"
+              className="flex items-center gap-6 border-b border-[var(--line)] mb-6"
+            >
+              <TabButton active={mode === "login"} onClick={() => setMode("login")}>
+                Sign in
+              </TabButton>
+              <TabButton active={mode === "signup"} onClick={() => setMode("signup")}>
+                Create account
+              </TabButton>
+            </div>
+
+            {mode === "login" ? (
+              <form onSubmit={handleLogin} className="space-y-4" key="login-form">
+                <Field
+                  label="Email"
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(v) => setLoginForm({ ...loginForm, email: v })}
+                  autoComplete="email"
+                  required
+                />
+                <Field
+                  label="Password"
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(v) => setLoginForm({ ...loginForm, password: v })}
+                  autoComplete="current-password"
+                  required
+                />
+                {loginError ? <ErrorBox>{loginError}</ErrorBox> : null}
+                <PrimaryButton type="submit" loading={submitting}>
+                  Sign in
+                </PrimaryButton>
+                <p className="text-[12px] text-center text-[var(--ink-3)]">
+                  New here?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className="text-[var(--ink)] underline underline-offset-2 hover:text-[var(--accent)]"
+                  >
+                    Make an account
+                  </button>
+                </p>
               </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div>
-                  <Label htmlFor="signup-name">Name</Label>
-                  <Input
-                    id="signup-name"
-                    value={signupForm.name}
-                    onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={signupForm.email}
-                    onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
+            ) : (
+              <form onSubmit={handleSignup} className="space-y-4" key="signup-form">
+                <Field
+                  label="Name"
+                  value={signupForm.name}
+                  onChange={(v) => setSignupForm({ ...signupForm, name: v })}
+                  autoComplete="name"
+                  required
+                />
+                <Field
+                  label="Email"
+                  type="email"
+                  value={signupForm.email}
+                  onChange={(v) => setSignupForm({ ...signupForm, email: v })}
+                  autoComplete="email"
+                  required
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field
+                    label="Password"
                     type="password"
                     value={signupForm.password}
-                    onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
+                    onChange={(v) => setSignupForm({ ...signupForm, password: v })}
+                    autoComplete="new-password"
                     required
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                  <Input
-                    id="signup-confirm-password"
+                  <Field
+                    label="Confirm"
                     type="password"
                     value={signupForm.confirmPassword}
-                    onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
+                    onChange={(v) => setSignupForm({ ...signupForm, confirmPassword: v })}
+                    autoComplete="new-password"
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="signup-role">Role</Label>
-                  <Select value={signupForm.role} onValueChange={(value) => setSignupForm({ ...signupForm, role: value })}>
-                    <SelectTrigger id="signup-role">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="photographer">Photographer</SelectItem>
-                      <SelectItem value="model">Model</SelectItem>
-                      <SelectItem value="makeup-artist">Makeup Artist</SelectItem>
-                      <SelectItem value="stylist">Stylist</SelectItem>
-                      <SelectItem value="designer">Designer</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FieldLabel htmlFor="signup-role">What you do</FieldLabel>
+                  <select
+                    id="signup-role"
+                    value={signupForm.role}
+                    onChange={(e) => setSignupForm({ ...signupForm, role: e.target.value })}
+                    className="melange-input w-full appearance-none bg-[var(--surface)]"
+                  >
+                    <option value="">Pick one…</option>
+                    <option value="photographer">Photographer</option>
+                    <option value="model">Model</option>
+                    <option value="makeup-artist">Makeup artist</option>
+                    <option value="stylist">Stylist</option>
+                    <option value="designer">Designer</option>
+                    <option value="other">Something else</option>
+                  </select>
                 </div>
 
-                <div>
-                  <Label htmlFor="signup-skills">Skills (comma-separated)</Label>
-                  <Input
-                    id="signup-skills"
-                    value={signupForm.skills}
-                    onChange={(e) => setSignupForm({ ...signupForm, skills: e.target.value })}
-                    placeholder="e.g., Portrait Photography, Lighting, Posing"
-                  />
-                </div>
+                <Field
+                  label="Skills (comma-separated)"
+                  value={signupForm.skills}
+                  onChange={(v) => setSignupForm({ ...signupForm, skills: v })}
+                  placeholder="Portrait, 35mm film, editorial lighting"
+                />
+
+                <Field
+                  label="What are you making right now?"
+                  value={signupForm.currentProject}
+                  onChange={(v) => setSignupForm({ ...signupForm, currentProject: v })}
+                  placeholder="An archival zine, weekly portrait series, etc."
+                />
 
                 <div>
-                  <Label htmlFor="signup-current-project">Current Project</Label>
-                  <Input
-                    id="signup-current-project"
-                    value={signupForm.currentProject}
-                    onChange={(e) => setSignupForm({ ...signupForm, currentProject: e.target.value })}
-                    placeholder="What are you working on right now?"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="signup-bio">Bio</Label>
-                  <Textarea
+                  <FieldLabel htmlFor="signup-bio">Bio</FieldLabel>
+                  <textarea
                     id="signup-bio"
+                    rows={3}
                     value={signupForm.bio}
                     onChange={(e) => setSignupForm({ ...signupForm, bio: e.target.value })}
-                    placeholder="Tell us about yourself and your work..."
+                    placeholder="Tell us about your taste and what you want to make."
+                    className="melange-input w-full resize-none"
                   />
                 </div>
 
@@ -299,50 +322,192 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setAcceptedTerms((v) => !v)}
-                    className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                      acceptedTerms ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
+                    className={`mt-0.5 w-[18px] h-[18px] rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
+                      acceptedTerms
+                        ? "bg-[var(--ink)] border-[var(--ink)]"
+                        : "bg-[var(--surface)] border-[var(--line)] hover:border-[var(--ink-3)]"
                     }`}
                     aria-checked={acceptedTerms}
                     role="checkbox"
                   >
-                    {acceptedTerms ? <Check className="h-2.5 w-2.5 text-white" /> : null}
+                    {acceptedTerms ? <Check className="h-3 w-3 text-white" /> : null}
                   </button>
-                  <span className="text-xs text-gray-600 leading-snug">
-                    I&apos;m at least 18 years old and I agree to the{" "}
-                    <Link href="/terms" target="_blank" className="text-blue-700 font-semibold hover:underline">
+                  <span className="text-[12px] text-[var(--ink-2)] leading-snug">
+                    I&apos;m at least 18 and I agree to the{" "}
+                    <Link href="/terms" target="_blank" className="text-[var(--ink)] underline underline-offset-2">
                       Terms
                     </Link>{" "}
                     and{" "}
-                    <Link href="/privacy" target="_blank" className="text-blue-700 font-semibold hover:underline">
+                    <Link href="/privacy" target="_blank" className="text-[var(--ink)] underline underline-offset-2">
                       Privacy Policy
                     </Link>
                     .
                   </span>
                 </label>
 
-                {signupError && (
-                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
-                    {signupError}
-                  </p>
-                )}
+                {signupError ? <ErrorBox>{signupError}</ErrorBox> : null}
 
-                <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
-                  Sign Up
-                </Button>
+                <PrimaryButton type="submit" loading={submitting}>
+                  Create account
+                </PrimaryButton>
 
-                <p className="text-[11px] text-gray-400 text-center">
+                <p className="text-[11px] text-center text-[var(--ink-3)]">
                   By signing up, you also agree to follow the Melange community rules.
-                  See the{" "}
-                  <Link href="/terms" target="_blank" className="text-gray-500 hover:text-gray-700 underline">
-                    Terms
-                  </Link>{" "}
-                  for details.
                 </p>
               </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            )}
+          </div>
+        </section>
+      </main>
+
+      {/* ======================== Footer ======================== */}
+      <footer className="px-6 lg:px-10 py-6 border-t border-[var(--line)] text-[12px] text-[var(--ink-3)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p>© {new Date().getFullYear()} Melange. Made for creatives.</p>
+        <div className="flex items-center gap-5">
+          <Link href="/terms" className="hover:text-[var(--ink)] transition-colors">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">
+            Privacy
+          </Link>
+        </div>
+      </footer>
     </div>
+  );
+}
+
+// ============================================================
+// Local atoms
+// ============================================================
+
+function Wordmark() {
+  return (
+    <Link href="/" className="font-display text-[26px] tracking-tight text-[var(--ink)] leading-none">
+      melange<span className="text-[var(--accent)]">.</span>
+    </Link>
+  );
+}
+
+function Stat({ number, label }: { number: string; label: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="font-display text-2xl text-[var(--ink)]">{number}</span>
+      <span className="text-[12px] text-[var(--ink-2)] max-w-[16ch] leading-snug">{label}</span>
+    </div>
+  );
+}
+
+function HowStep({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <div className="border-t border-[var(--line)] pt-4">
+      <span className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)]">{n}</span>
+      <h3 className="font-display text-[18px] mt-1 mb-1.5 text-[var(--ink)]">{title}</h3>
+      <p className="text-[13px] text-[var(--ink-2)] leading-snug">{body}</p>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`relative pb-3 text-[14px] font-medium transition-colors ${
+        active ? "text-[var(--ink)]" : "text-[var(--ink-3)] hover:text-[var(--ink-2)]"
+      }`}
+    >
+      {children}
+      {active ? (
+        <span className="absolute -bottom-px left-0 right-0 h-[2px] bg-[var(--ink)]" />
+      ) : null}
+    </button>
+  );
+}
+
+function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="block text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] mb-1.5"
+    >
+      {children}
+    </label>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  required,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  autoComplete?: string;
+}) {
+  const id = `field-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+  return (
+    <div>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        autoComplete={autoComplete}
+        className="melange-input w-full"
+      />
+    </div>
+  );
+}
+
+function PrimaryButton({
+  type = "button",
+  loading,
+  children,
+  onClick,
+}: {
+  type?: "button" | "submit";
+  loading?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={loading}
+      className="w-full h-11 inline-flex items-center justify-center gap-2 bg-[var(--ink)] text-[var(--bg)] rounded-[var(--radius-lg)] text-[14px] font-medium tracking-tight hover:opacity-90 disabled:opacity-50 transition-opacity"
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      {children}
+    </button>
+  );
+}
+
+function ErrorBox({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[12px] text-[var(--destructive)] bg-[color-mix(in_oklab,var(--destructive)_10%,var(--surface))] border border-[color-mix(in_oklab,var(--destructive)_30%,var(--line))] rounded-[var(--radius-md)] p-2.5">
+      {children}
+    </p>
   );
 }

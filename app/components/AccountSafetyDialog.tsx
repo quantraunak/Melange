@@ -7,10 +7,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   AlertTriangle,
   ChevronLeft,
+  ChevronRight,
   Loader2,
   ShieldOff,
   Trash2,
@@ -39,8 +39,7 @@ export default function AccountSafetyDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-[460px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl">
-        {/* Mount key on `open` so a fresh open always starts on the menu view. */}
+      <DialogContent className="max-w-[480px] max-h-[88vh] overflow-y-auto p-0 rounded-[var(--radius-xl)] border-[var(--line)] bg-[var(--surface)]">
         {open ? (
           <SafetyInner
             userId={userId}
@@ -63,18 +62,33 @@ function SafetyInner({
   onAccountDeleted: () => void;
 }) {
   const [view, setView] = useState<View>("menu");
+
+  const headerTitle = view === "menu" ? "Account & safety" : view === "blocked" ? "Blocked users" : "Delete account";
+  const headerKicker = view === "menu" ? "Settings" : view === "blocked" ? "Manage" : "Permanent";
+
   return (
     <>
-      <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+      <div className="px-5 py-4 border-b border-[var(--line)] flex items-center gap-3 sticky top-0 bg-[var(--surface)] z-10">
         {view !== "menu" ? (
-          <button onClick={() => setView("menu")} className="text-gray-400 hover:text-gray-600" aria-label="Back">
-            <ChevronLeft className="h-5 w-5" />
+          <button
+            onClick={() => setView("menu")}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)]"
+            aria-label="Back"
+          >
+            <ChevronLeft className="h-4 w-4" />
           </button>
         ) : null}
-        <DialogTitle className="flex-1 text-base font-semibold text-gray-900">
-          {view === "menu" ? "Account & safety" : view === "blocked" ? "Blocked users" : "Delete account"}
-        </DialogTitle>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+        <div className="flex-1">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-3)] font-medium">{headerKicker}</p>
+          <DialogTitle className="font-display text-[20px] tracking-tight text-[var(--ink)] mt-0.5">
+            {headerTitle}
+          </DialogTitle>
+        </div>
+        <button
+          onClick={onClose}
+          className="h-8 w-8 rounded-full flex items-center justify-center text-[var(--ink-3)] hover:bg-[var(--secondary)]"
+          aria-label="Close"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -93,15 +107,15 @@ function SafetyInner({
 
 function Menu({ onPick }: { onPick: (v: View) => void }) {
   return (
-    <div className="p-4 space-y-2">
+    <div className="p-5 space-y-2">
       <MenuRow
-        icon={<ShieldOff className="h-4 w-4 text-gray-500" />}
+        icon={<ShieldOff className="h-4 w-4" />}
         label="Blocked users"
         sublabel="Review and unblock people you've blocked."
         onClick={() => onPick("blocked")}
       />
       <MenuRow
-        icon={<Trash2 className="h-4 w-4 text-red-600" />}
+        icon={<Trash2 className="h-4 w-4" />}
         label="Delete account"
         sublabel="Permanently remove your profile, posts, and messages."
         onClick={() => onPick("delete")}
@@ -127,15 +141,28 @@ function MenuRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left flex items-start gap-3 p-3 rounded-xl border ${
-        danger ? "border-red-200 hover:bg-red-50" : "border-gray-200 hover:bg-gray-50"
-      } transition-colors`}
+      className={`w-full text-left flex items-center gap-3 p-4 rounded-[var(--radius-lg)] border transition-colors ${
+        danger
+          ? "border-[var(--line)] hover:bg-[color-mix(in_oklab,var(--destructive)_6%,var(--surface))]"
+          : "border-[var(--line)] hover:bg-[var(--secondary)]"
+      }`}
     >
-      <span className="mt-0.5">{icon}</span>
-      <span className="flex-1">
-        <span className={`block text-sm font-semibold ${danger ? "text-red-600" : "text-gray-900"}`}>{label}</span>
-        <span className="block text-xs text-gray-500 mt-0.5">{sublabel}</span>
+      <span
+        className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+          danger
+            ? "bg-[color-mix(in_oklab,var(--destructive)_10%,var(--surface))] text-[var(--destructive)]"
+            : "bg-[var(--secondary)] text-[var(--ink-2)]"
+        }`}
+      >
+        {icon}
       </span>
+      <span className="flex-1 min-w-0">
+        <span className={`block font-display text-[15px] tracking-tight ${danger ? "text-[var(--destructive)]" : "text-[var(--ink)]"}`}>
+          {label}
+        </span>
+        <span className="block text-[12px] text-[var(--ink-3)] mt-0.5">{sublabel}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 text-[var(--ink-3)]" />
     </button>
   );
 }
@@ -168,43 +195,54 @@ function BlockedList({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center text-gray-400 text-sm">
+      <div className="p-12 flex items-center justify-center text-[var(--ink-3)] text-[13px]">
         <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-5 space-y-3">
       {error ? (
-        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">{error}</p>
+        <p className="text-[12px] text-[var(--destructive)] bg-[color-mix(in_oklab,var(--destructive)_8%,var(--surface))] border border-[color-mix(in_oklab,var(--destructive)_25%,var(--line))] rounded-[var(--radius-md)] p-2.5">
+          {error}
+        </p>
       ) : null}
 
       {list.length === 0 ? (
-        <p className="text-sm text-gray-500 py-8 text-center">You haven&apos;t blocked anyone.</p>
+        <div className="py-12 text-center">
+          <p className="font-display text-[18px] tracking-tight text-[var(--ink)]">No one blocked.</p>
+          <p className="text-[13px] text-[var(--ink-3)] mt-1">You haven&apos;t blocked anyone.</p>
+        </div>
       ) : (
-        list.map((u) => (
-          <div key={u.user_id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl">
-            {u.avatar_url ? (
-              <img src={u.avatar_url} alt={u.name} className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center justify-center">
-                {u.name.charAt(0).toUpperCase()}
+        <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+          {list.map((u) => (
+            <li key={u.user_id} className="flex items-center gap-3 py-3">
+              {u.avatar_url ? (
+                <img
+                  src={u.avatar_url}
+                  alt={u.name}
+                  className="w-12 h-12 rounded-full object-cover ring-1 ring-[var(--line)]"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-[var(--secondary)] text-[var(--ink)] font-display font-medium flex items-center justify-center ring-1 ring-[var(--line)]">
+                  {u.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[15px] tracking-tight text-[var(--ink)] truncate">{u.name}</p>
+                {u.role ? <p className="text-[12px] text-[var(--ink-3)] truncate">{u.role}</p> : null}
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
-              {u.role ? <p className="text-xs text-gray-500 truncate">{u.role}</p> : null}
-            </div>
-            <button
-              onClick={() => unblock(u)}
-              disabled={busyId === u.user_id}
-              className="px-3 py-1.5 border border-gray-200 rounded-full text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {busyId === u.user_id ? "…" : "Unblock"}
-            </button>
-          </div>
-        ))
+              <button
+                onClick={() => unblock(u)}
+                disabled={busyId === u.user_id}
+                className="h-9 px-3 border border-[var(--line)] rounded-full text-[12px] font-medium text-[var(--ink)] hover:bg-[var(--secondary)] disabled:opacity-50 transition-colors"
+              >
+                {busyId === u.user_id ? "…" : "Unblock"}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -233,12 +271,12 @@ function DeleteAccount({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3 items-start">
-        <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+    <div className="p-5 space-y-4">
+      <div className="bg-[color-mix(in_oklab,var(--destructive)_6%,var(--surface))] border border-[color-mix(in_oklab,var(--destructive)_25%,var(--line))] rounded-[var(--radius-lg)] p-4 flex gap-3 items-start">
+        <AlertTriangle className="h-5 w-5 text-[var(--destructive)] flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-red-700">This cannot be undone.</h3>
-          <p className="text-xs text-red-700/90 leading-snug">
+          <h3 className="font-display text-[16px] tracking-tight text-[var(--destructive)]">This cannot be undone.</h3>
+          <p className="text-[12px] text-[var(--destructive)]/85 leading-snug">
             Deleting your account removes your profile, posts, swipes, matches, messages, and uploaded media permanently.
             You&apos;ll be signed out immediately.
           </p>
@@ -246,26 +284,32 @@ function DeleteAccount({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className="text-xs text-gray-500 mb-1 block">
-          Type <span className="font-semibold text-gray-700">{CONFIRM_WORD}</span> to confirm
+        <label
+          htmlFor="confirm-word"
+          className="block text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] mb-1.5"
+        >
+          Type <span className="text-[var(--ink)] font-semibold">{CONFIRM_WORD}</span> to confirm
         </label>
-        <Input
+        <input
+          id="confirm-word"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={CONFIRM_WORD}
-          className="rounded-xl"
+          className="melange-input w-full"
           autoCapitalize="characters"
         />
       </div>
 
       {error ? (
-        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">{error}</p>
+        <p className="text-[12px] text-[var(--destructive)] bg-[color-mix(in_oklab,var(--destructive)_8%,var(--surface))] border border-[color-mix(in_oklab,var(--destructive)_25%,var(--line))] rounded-[var(--radius-md)] p-2.5">
+          {error}
+        </p>
       ) : null}
 
       <button
         onClick={submit}
         disabled={busy}
-        className="w-full py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full h-11 inline-flex items-center justify-center gap-2 bg-[var(--destructive)] text-white rounded-[var(--radius-lg)] text-[14px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {busy ? "Deleting…" : "Delete my account"}

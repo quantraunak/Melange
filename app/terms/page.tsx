@@ -8,23 +8,34 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-blue-900 text-white py-6 px-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic" style={{ WebkitTextStroke: "1px #A78BFA", paintOrder: "stroke fill" }}>
-            Melange
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col">
+      <header className="border-b border-[var(--line)]">
+        <div className="max-w-[820px] mx-auto px-6 py-5 flex items-center justify-between">
+          <Link
+            href="/"
+            className="font-display text-[24px] tracking-tight text-[var(--ink)] leading-none"
+          >
+            melange<span className="text-[var(--accent)]">.</span>
           </Link>
-          <Link href="/" className="text-sm text-blue-200 hover:text-white">
+          <Link
+            href="/"
+            className="text-[13px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors"
+          >
             Back to app
           </Link>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-sm text-gray-500 mb-8">Last updated: May 2026</p>
+      <main className="flex-1 max-w-[720px] mx-auto px-6 py-14 w-full">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-3)] font-medium mb-3">
+          Legal
+        </p>
+        <h1 className="font-display text-[44px] sm:text-[56px] leading-[1.04] tracking-tight text-[var(--ink)]">
+          Terms of Service
+        </h1>
+        <p className="text-[13px] text-[var(--ink-3)] mt-3 mb-12">Last updated: May 2026</p>
 
-        <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed space-y-6">
+        <div className="space-y-10 text-[15px] leading-relaxed text-[var(--ink-2)]">
           <p>Welcome to Melange. By creating an account or using the app, you agree to these Terms.</p>
 
           <Section title="Eligibility">
@@ -43,15 +54,15 @@ export default function TermsPage() {
               This is a creative collaboration app. The following are <strong>not allowed</strong> and will get
               your account suspended or removed:
             </p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Harassment, threats, hate speech, or targeted abuse of other users</li>
-              <li>Sexually explicit, violent, or graphic content</li>
-              <li>Spam, scams, off-topic promotions, or pyramid schemes</li>
-              <li>Impersonating another person or organization</li>
-              <li>Posting content you don&rsquo;t have the right to share (e.g. someone else&rsquo;s photos without permission)</li>
-              <li>Soliciting payment for sexual content or services</li>
-              <li>Any illegal activity</li>
-            </ul>
+            <Bullets>
+              <li>Harassment, threats, hate speech, or targeted abuse of other users.</li>
+              <li>Sexually explicit, violent, or graphic content.</li>
+              <li>Spam, scams, off-topic promotions, or pyramid schemes.</li>
+              <li>Impersonating another person or organization.</li>
+              <li>Posting content you don&rsquo;t have the right to share (e.g. someone else&rsquo;s photos without permission).</li>
+              <li>Soliciting payment for sexual content or services.</li>
+              <li>Any illegal activity.</li>
+            </Bullets>
           </Section>
 
           <Section title="User-generated content">
@@ -95,18 +106,20 @@ export default function TermsPage() {
 
           <Section title="Contact">
             <p>
-              <a href="mailto:support@melange.app" className="text-blue-700 underline">support@melange.app</a>
+              <a href="mailto:support@melange.app" className="text-[var(--ink)] underline underline-offset-2">
+                support@melange.app
+              </a>
             </p>
           </Section>
         </div>
       </main>
 
-      <footer className="border-t border-gray-100 py-6 px-4 mt-12">
-        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-gray-500">
-          <span>© 2026 Melange</span>
-          <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-gray-700">Privacy</Link>
-            <Link href="/" className="hover:text-gray-700">Back to app</Link>
+      <footer className="border-t border-[var(--line)] py-6 px-6 mt-12">
+        <div className="max-w-[820px] mx-auto flex items-center justify-between text-[12px] text-[var(--ink-3)]">
+          <span>© {new Date().getFullYear()} Melange</span>
+          <div className="flex gap-5">
+            <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">Privacy</Link>
+            <Link href="/" className="hover:text-[var(--ink)] transition-colors">Back to app</Link>
           </div>
         </div>
       </footer>
@@ -117,8 +130,16 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+      <h2 className="font-display text-[24px] tracking-tight text-[var(--ink)]">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function Bullets({ children }: { children: React.ReactNode }) {
+  return (
+    <ul className="list-disc pl-6 space-y-1.5 marker:text-[var(--ink-3)]">
+      {children}
+    </ul>
   );
 }

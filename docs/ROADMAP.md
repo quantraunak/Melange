@@ -6,6 +6,24 @@ Last updated: 2026-05-22
 
 ---
 
+## Phase 0.5 — Design system (SHIPPED)
+
+Before any new feature work, we rebuilt the visual layer so the product
+reads as a tool for people with taste rather than a generic connecting app.
+
+- [x] Custom design tokens (palette, type, radii, elevation) — see `docs/DESIGN.md`
+- [x] Editorial typography: Fraunces (display serif) + Inter (UI)
+- [x] Drop the "phone-in-a-card" framing; full-bleed layout with sticky chrome
+- [x] Replace pill tab bar with underlined-active editorial nav
+- [x] Single accent color (warm coral) used only for matches/likes/RSVPs
+- [x] Rebuilt swipe card (4:5 image, serif title, large circular like/pass)
+- [x] Rebuilt events list (editorial day-grouped cards)
+- [x] Rebuilt chat (iMessage-style bubbles with ink-on-bg sender, surface-on-bg receiver)
+- [x] Rebuilt auth/landing as editorial split-screen with serif hero
+- [x] Rebuilt legal pages (`/privacy`, `/terms`) to match
+
+---
+
 ## Phase 0 — MVP (shipped)
 
 The matching layer. Done.

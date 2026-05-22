@@ -26,9 +26,6 @@ import {
   type PostWithCreator,
   type Profile,
 } from "../lib/db";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -68,13 +65,15 @@ import PortfolioLightbox from "./PortfolioLightbox";
 
 type Tab = "connect" | "events" | "messages" | "profile";
 
-function Logo() {
+// ============================================================
+// Atoms — small, reused, themed against Melange tokens
+// ============================================================
+
+function Wordmark() {
   return (
-    <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#4338ca" strokeWidth="2" />
-      <path d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z" fill="#BFDBFE" stroke="#4338ca" strokeWidth="2" />
-      <circle cx="50" cy="50" r="10" fill="#4338ca" />
-    </svg>
+    <span className="font-display text-[22px] leading-none tracking-tight text-[var(--ink)]">
+      melange<span className="text-[var(--accent)]">.</span>
+    </span>
   );
 }
 
@@ -101,24 +100,91 @@ function Avatar({
     size === "sm"
       ? "w-8 h-8 text-xs"
       : size === "lg"
-      ? "w-14 h-14 text-lg"
+      ? "w-16 h-16 text-xl"
       : size === "xl"
-      ? "w-20 h-20 text-2xl"
+      ? "w-24 h-24 text-3xl"
       : "w-10 h-10 text-sm";
+
   if (creator.avatar_url) {
-    return <img src={creator.avatar_url} alt={creator.name} className={`${dims} rounded-full object-cover flex-shrink-0`} />;
+    return (
+      <img
+        src={creator.avatar_url}
+        alt={creator.name}
+        className={`${dims} rounded-full object-cover flex-shrink-0 ring-1 ring-[var(--line)]`}
+      />
+    );
   }
   return (
-    <div className={`${dims} rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center justify-center flex-shrink-0`}>
+    <div
+      className={`${dims} rounded-full bg-[var(--secondary)] text-[var(--ink)] font-display font-medium flex items-center justify-center flex-shrink-0 ring-1 ring-[var(--line)]`}
+    >
       {creator.name.charAt(0).toUpperCase()}
     </div>
   );
 }
 
-/**
- * Editor for the signed-in user's portfolio.
- * Renders a responsive 3-column grid with a per-tile management menu.
- */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-3)] font-medium">
+      {children}
+    </p>
+  );
+}
+
+function MetaRow({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-[13px] text-[var(--ink-2)]">
+      <span className="text-[var(--ink-3)] flex-shrink-0">{icon}</span>
+      <span className="truncate">{children}</span>
+    </div>
+  );
+}
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[var(--secondary)] text-[12px] text-[var(--ink-2)] tracking-tight">
+      {children}
+    </span>
+  );
+}
+
+// Inputs — opinionated, replace shadcn for the auth-app interior
+
+function MInput({
+  className = "",
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={`melange-input w-full ${className}`} />;
+}
+
+function MTextarea({
+  className = "",
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={`melange-input w-full resize-none ${className}`} />;
+}
+
+function MFieldLabel({
+  children,
+  htmlFor,
+}: {
+  children: React.ReactNode;
+  htmlFor?: string;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="block text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] mb-1.5"
+    >
+      {children}
+    </label>
+  );
+}
+
+// ============================================================
+// Portfolio sub-components — themed
+// ============================================================
+
 function PortfolioEditor({
   urls,
   busy,
@@ -137,21 +203,23 @@ function PortfolioEditor({
   onView: (idx: number) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const canAdd = urls.length < 9;
+  const canAdd = urls.length < PORTFOLIO_MAX_IMAGES;
   return (
-    <div className="pb-4 border-b border-gray-100">
-      <div className="flex items-center justify-between mb-2">
+    <div>
+      <div className="flex items-end justify-between mb-3">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Portfolio</h2>
-          <p className="text-[11px] text-gray-400">Your visual identity. Up to 9 images.</p>
+          <h2 className="font-display text-[20px] tracking-tight text-[var(--ink)]">Portfolio</h2>
+          <p className="text-[12px] text-[var(--ink-3)] mt-0.5">
+            Show your work. Up to {PORTFOLIO_MAX_IMAGES} images.
+          </p>
         </div>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={!canAdd || busy}
-          className="text-xs font-medium px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 border border-[var(--line)] rounded-full text-[var(--ink)] hover:bg-[var(--secondary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          <Plus className="h-3 w-3" /> Add
+          <Plus className="h-3 w-3" /> Add image
         </button>
         <input
           ref={inputRef}
@@ -168,18 +236,18 @@ function PortfolioEditor({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="w-full py-6 border-2 border-dashed border-gray-200 rounded-xl text-center text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+          className="w-full py-10 border border-dashed border-[var(--line)] rounded-[var(--radius-lg)] text-center text-[var(--ink-3)] hover:border-[var(--ink-3)] hover:text-[var(--ink-2)] transition-colors"
         >
-          <ImagePlus className="h-5 w-5 mx-auto mb-1.5" />
-          <p className="text-xs font-medium">Show your best work</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">Tap to add images</p>
+          <ImagePlus className="h-5 w-5 mx-auto mb-2" />
+          <p className="text-[13px] font-medium text-[var(--ink-2)]">Show your best work</p>
+          <p className="text-[12px] text-[var(--ink-3)] mt-0.5">Tap to add images</p>
         </button>
       ) : (
         <div className="grid grid-cols-3 gap-1.5">
           {urls.map((url, idx) => (
             <div
               key={`${url}-${idx}`}
-              className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group"
+              className="relative aspect-square rounded-[var(--radius-md)] overflow-hidden bg-[var(--secondary)] group"
             >
               <button
                 type="button"
@@ -193,7 +261,7 @@ function PortfolioEditor({
                 type="button"
                 onClick={() => onRemove(idx)}
                 disabled={busy}
-                className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/65 backdrop-blur rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
                 aria-label="Remove"
               >
                 <X className="h-3 w-3" />
@@ -203,7 +271,7 @@ function PortfolioEditor({
                   type="button"
                   onClick={() => onReorder(idx, -1)}
                   disabled={busy}
-                  className="absolute bottom-1 left-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                  className="absolute bottom-1.5 left-1.5 w-6 h-6 bg-black/65 backdrop-blur rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
                   aria-label="Move left"
                 >
                   <ChevronLeft className="h-3 w-3" />
@@ -214,7 +282,7 @@ function PortfolioEditor({
                   type="button"
                   onClick={() => onReorder(idx, 1)}
                   disabled={busy}
-                  className="absolute bottom-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                  className="absolute bottom-1.5 right-1.5 w-6 h-6 bg-black/65 backdrop-blur rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
                   aria-label="Move right"
                 >
                   <ChevronRight className="h-3 w-3" />
@@ -225,17 +293,11 @@ function PortfolioEditor({
         </div>
       )}
 
-      {error ? (
-        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2 mt-2">{error}</p>
-      ) : null}
+      {error ? <ErrorMessage>{error}</ErrorMessage> : null}
     </div>
   );
 }
 
-/**
- * Read-only horizontal strip of a creator's portfolio.
- * Renders below the post card on the swipe feed.
- */
 function PortfolioStrip({
   urls,
   name,
@@ -247,8 +309,8 @@ function PortfolioStrip({
 }) {
   if (!urls?.length) return null;
   return (
-    <div className="px-4 pb-3 pt-1 border-t border-gray-100">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+    <div className="px-5 pb-4 pt-3 border-t border-[var(--line)]">
+      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--ink-3)] mb-2.5">
         More from {name}
       </p>
       <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1" style={{ scrollbarWidth: "thin" }}>
@@ -257,7 +319,7 @@ function PortfolioStrip({
             key={`${u}-${i}`}
             type="button"
             onClick={() => onOpen(i)}
-            className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
+            className="flex-shrink-0 w-16 h-16 rounded-[var(--radius-md)] overflow-hidden bg-[var(--secondary)] hover:opacity-85 transition-opacity"
             aria-label={`View portfolio image ${i + 1}`}
           >
             <img src={u} alt="" className="w-full h-full object-cover" />
@@ -268,9 +330,6 @@ function PortfolioStrip({
   );
 }
 
-/**
- * Full read-only portfolio grid for the post detail dialog.
- */
 function PortfolioGrid({
   urls,
   onOpen,
@@ -286,7 +345,7 @@ function PortfolioGrid({
           key={`${u}-${i}`}
           type="button"
           onClick={() => onOpen(i)}
-          className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 hover:opacity-90 transition-opacity"
+          className="aspect-square rounded-[var(--radius-md)] overflow-hidden bg-[var(--secondary)] hover:opacity-85 transition-opacity"
         >
           <img src={u} alt="" className="w-full h-full object-cover" />
         </button>
@@ -295,40 +354,53 @@ function PortfolioGrid({
   );
 }
 
-/** Simple swipable image gallery for cards / detail / chat. */
-function ImageGallery({ urls, height = "h-48" }: { urls: string[]; height?: string }) {
+// ============================================================
+// Image gallery — clean, full-bleed, dot pagination
+// ============================================================
+
+function ImageGallery({
+  urls,
+  aspect = "aspect-[4/5]",
+}: {
+  urls: string[];
+  aspect?: string;
+}) {
   const [idx, setIdx] = useState(0);
   if (urls.length === 0) {
     return (
-      <div className={`${height} bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 flex items-center justify-center`}>
-        <div className="text-4xl opacity-20">🎨</div>
+      <div className={`${aspect} bg-[var(--secondary)] flex items-center justify-center`}>
+        <span className="font-display italic text-[var(--ink-3)] text-sm tracking-tight">
+          no images yet
+        </span>
       </div>
     );
   }
   return (
-    <div className={`relative ${height} bg-gray-100 overflow-hidden`}>
+    <div className={`relative ${aspect} bg-[var(--secondary)] overflow-hidden`}>
       <img src={urls[idx]} alt="" className="w-full h-full object-cover" />
       {urls.length > 1 ? (
         <>
           <button
             onClick={() => setIdx((i) => (i === 0 ? urls.length - 1 : i - 1))}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/85 hover:bg-white flex items-center justify-center shadow-sm"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 hover:bg-white backdrop-blur flex items-center justify-center shadow-sm"
             aria-label="Previous image"
           >
-            <ChevronLeft className="h-4 w-4 text-gray-700" />
+            <ChevronLeft className="h-4 w-4 text-[var(--ink)]" />
           </button>
           <button
             onClick={() => setIdx((i) => (i === urls.length - 1 ? 0 : i + 1))}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/85 hover:bg-white flex items-center justify-center shadow-sm"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 hover:bg-white backdrop-blur flex items-center justify-center shadow-sm"
             aria-label="Next image"
           >
-            <ChevronRight className="h-4 w-4 text-gray-700" />
+            <ChevronRight className="h-4 w-4 text-[var(--ink)]" />
           </button>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
             {urls.map((_, i) => (
               <span
                 key={i}
-                className={`w-1.5 h-1.5 rounded-full ${i === idx ? "bg-white" : "bg-white/45"}`}
+                className={`h-1 rounded-full transition-all ${
+                  i === idx ? "bg-white w-6" : "bg-white/55 w-1.5"
+                }`}
               />
             ))}
           </div>
@@ -337,6 +409,66 @@ function ImageGallery({ urls, height = "h-48" }: { urls: string[]; height?: stri
     </div>
   );
 }
+
+function ErrorMessage({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[12px] text-[var(--destructive)] bg-[color-mix(in_oklab,var(--destructive)_8%,var(--surface))] border border-[color-mix(in_oklab,var(--destructive)_25%,var(--line))] rounded-[var(--radius-md)] p-2.5 mt-3">
+      {children}
+    </p>
+  );
+}
+
+function PrimaryButton({
+  type = "button",
+  loading,
+  disabled,
+  onClick,
+  children,
+  className = "",
+}: {
+  type?: "button" | "submit";
+  loading?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={`h-11 inline-flex items-center justify-center gap-2 bg-[var(--ink)] text-[var(--bg)] rounded-[var(--radius-lg)] text-[14px] font-medium tracking-tight px-4 hover:opacity-90 disabled:opacity-50 transition-opacity ${className}`}
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({
+  onClick,
+  children,
+  className = "",
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[13px] font-medium text-[var(--ink)] hover:bg-[var(--secondary)] transition-colors ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ============================================================
+// Root app
+// ============================================================
 
 export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [userId, setUserId] = useState<string | null>(null);
@@ -391,18 +523,15 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showAccountSafety, setShowAccountSafety] = useState(false);
 
-  // Portfolio state — owns the editing UI for your own portfolio + busy flags.
   const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [portfolioError, setPortfolioError] = useState("");
 
-  // Lightbox state — generic viewer for any creator's portfolio.
   const [lightbox, setLightbox] = useState<{
     urls: string[];
     index: number;
     creatorName?: string;
   } | null>(null);
 
-  // Report dialog
   const [reportTarget, setReportTarget] = useState<{
     kind: "user" | "post" | "message";
     id: string;
@@ -488,7 +617,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       if (matchError) setConnectErr(matchError);
       else if (match) {
         await loadMatches();
-        setMatchToast(`You matched with ${post.creator.name}!`);
+        setMatchToast(`You matched with ${post.creator.name}.`);
         setTimeout(() => setMatchToast(null), 2800);
       }
     }
@@ -596,7 +725,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       skills: skills.length ? skills : undefined,
     });
     setSavingProfile(false);
-    setProfileMsg(error ? error : "Profile saved!");
+    setProfileMsg(error ? error : "Profile saved.");
     if (!error) await loadProfile();
   };
 
@@ -614,7 +743,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setUploadingAvatar(false);
     if (updateErr) { setProfileMsg(updateErr); return; }
     await loadProfile();
-    setProfileMsg("Avatar updated!");
+    setProfileMsg("Avatar updated.");
   };
 
   const handlePortfolioAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -712,7 +841,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCurrentPostIndex(0); }, [connectSearch]);
 
-  // Realtime: new messages in active chat
   useEffect(() => {
     if (!chatMatch || !userId) return;
     const matchId = chatMatch.id;
@@ -735,10 +863,8 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-    // chatMatch.id is referenced via optional chaining; depend on chatMatch itself.
   }, [chatMatch, userId]);
 
-  // Realtime: new matches and messages list updates
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
@@ -786,302 +912,368 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-4 px-4">
-      <div className="w-full max-w-[500px] bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[90vh]">
-
-        {/* Brand header */}
-        <div className="bg-blue-900 text-white px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Logo />
-            <div>
-              <h1 className="text-xl font-bold italic -skew-x-3" style={{ WebkitTextStroke: "1px #818cf8", paintOrder: "stroke fill" }}>
-                Melange
-              </h1>
-              <p className="text-[11px] text-blue-200 -mt-0.5">Creative Collaborations</p>
-            </div>
-          </div>
-          <button onClick={signOut} className="text-blue-200 hover:text-white transition-colors" title="Sign out">
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Tab navigation */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="bg-blue-600 rounded-full p-1 flex">
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className={`flex-1 text-xs font-medium py-2 rounded-full transition-all relative ${
-                  activeTab === t.key
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-white hover:text-blue-100"
-                }`}
-              >
-                {t.label}
-                {t.badge && t.badge > 0 ? (
-                  <span className="absolute -top-1 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 shadow-sm">
-                    {t.badge > 9 ? "9+" : t.badge}
-                  </span>
-                ) : null}
-              </button>
-            ))}
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col">
+      {/* ============================================================
+          Sticky top chrome — header + tab bar
+          ============================================================ */}
+      <header className="sticky top-0 z-20 bg-[color-mix(in_oklab,var(--bg)_92%,transparent)] backdrop-blur-md border-b border-[var(--line)]">
+        <div className="max-w-[640px] mx-auto px-5 h-14 flex items-center justify-between">
+          <Wordmark />
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setActiveTab("profile")}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)] transition-colors"
+              aria-label="Profile"
+              title="Profile"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+            <button
+              onClick={signOut}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)] transition-colors"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
-        {/* Match toast */}
-        {matchToast ? (
-          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-full bg-green-500 text-white text-xs font-semibold flex items-center gap-2 shadow-sm">
-            <Heart className="h-3.5 w-3.5 fill-white" />
-            {matchToast}
-          </div>
-        ) : null}
-
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-
-          {/* ======================== CONNECT TAB ======================== */}
-          {activeTab === "connect" && (
-            <div className="pt-3">
-              {/* Search + New Post */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                  <input
-                    value={connectSearch}
-                    onChange={(e) => setConnectSearch(e.target.value)}
-                    placeholder="Filter by role, location, skill..."
-                    className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-                  />
-                  {connectSearch && (
-                    <button onClick={() => setConnectSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+        <nav className="max-w-[640px] mx-auto px-5">
+          <div className="flex items-center gap-6 -mb-px">
+            {tabs.map((t) => {
+              const active = activeTab === t.key;
+              return (
                 <button
-                  onClick={() => setShowCreatePost(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`relative pb-3 pt-1 text-[14px] font-medium transition-colors flex items-center gap-1.5 ${
+                    active ? "text-[var(--ink)]" : "text-[var(--ink-3)] hover:text-[var(--ink-2)]"
+                  }`}
                 >
-                  <Plus className="h-3.5 w-3.5" /> New Post
+                  {t.label}
+                  {t.badge && t.badge > 0 ? (
+                    <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold px-1.5">
+                      {t.badge > 9 ? "9+" : t.badge}
+                    </span>
+                  ) : null}
+                  {active ? (
+                    <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-[var(--ink)] rounded-full" />
+                  ) : null}
                 </button>
+              );
+            })}
+          </div>
+        </nav>
+      </header>
+
+      {/* Match toast — subtle floating ribbon, accent border */}
+      {matchToast ? (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 px-4 py-2.5 rounded-full bg-[var(--ink)] text-[var(--bg)] text-[13px] font-medium flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <Heart className="h-3.5 w-3.5 fill-[var(--accent)] text-[var(--accent)]" />
+          {matchToast}
+        </div>
+      ) : null}
+
+      {/* ============================================================
+          Main content
+          ============================================================ */}
+      <main className="flex-1 w-full max-w-[640px] mx-auto px-5 pt-6 pb-16">
+        {/* ======================== CONNECT TAB ======================== */}
+        {activeTab === "connect" && (
+          <div>
+            {/* Section header */}
+            <div className="flex items-end justify-between mb-5">
+              <div>
+                <SectionLabel>Today</SectionLabel>
+                <h1 className="font-display text-[28px] sm:text-[32px] tracking-tight text-[var(--ink)] mt-0.5">
+                  Find your next collab.
+                </h1>
               </div>
+              <PrimaryButton onClick={() => setShowCreatePost(true)} className="hidden sm:inline-flex">
+                <Plus className="h-4 w-4" /> New post
+              </PrimaryButton>
+            </div>
 
-              {connectErr && (
-                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{connectErr}</div>
+            {/* Search */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-3)]" />
+              <input
+                value={connectSearch}
+                onChange={(e) => setConnectSearch(e.target.value)}
+                placeholder="Filter by role, location, skill…"
+                className="w-full pl-10 pr-10 h-11 text-[14px] bg-[var(--surface)] border border-[var(--line)] rounded-full focus:outline-none focus:border-[var(--ink)] transition-colors"
+              />
+              {connectSearch && (
+                <button
+                  onClick={() => setConnectSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-3)] hover:text-[var(--ink)] h-7 w-7 flex items-center justify-center rounded-full"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               )}
+            </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading posts...</div>
-              ) : !currentPost ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-gray-500 mb-1">{connectSearch ? "No posts match your filter." : "No posts to swipe on yet."}</p>
-                  <p className="text-gray-400 text-sm mb-4">{connectSearch ? "Try a different search term." : "Create a post so others can find you!"}</p>
-                  {connectSearch ? (
-                    <button onClick={() => setConnectSearch("")} className="text-sm text-blue-600 hover:underline">Clear filter</button>
-                  ) : (
-                    <button onClick={loadPosts} className="text-sm text-blue-600 hover:underline">Refresh</button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  {/* Post card */}
-                  <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-4">
-                    <div className="relative">
-                      <ImageGallery urls={currentPost.media_urls ?? []} />
+            <div className="sm:hidden mb-5">
+              <PrimaryButton onClick={() => setShowCreatePost(true)} className="w-full">
+                <Plus className="h-4 w-4" /> New collaboration post
+              </PrimaryButton>
+            </div>
+
+            {connectErr && <ErrorMessage>{connectErr}</ErrorMessage>}
+
+            {loading ? (
+              <div className="flex items-center justify-center py-24 text-[var(--ink-3)] text-[14px]">
+                Loading posts…
+              </div>
+            ) : !currentPost ? (
+              <EmptyState
+                title={connectSearch ? "Nothing matches." : "All caught up."}
+                body={
+                  connectSearch
+                    ? "Try a different search term, or clear your filter."
+                    : "Come back later — or create a post so others find you."
+                }
+                actionLabel={connectSearch ? "Clear filter" : "Refresh"}
+                onAction={connectSearch ? () => setConnectSearch("") : loadPosts}
+              />
+            ) : (
+              <>
+                {/* Post card */}
+                <article className="melange-card overflow-hidden">
+                  <div className="relative">
+                    <ImageGallery urls={currentPost.media_urls ?? []} aspect="aspect-[4/5]" />
+                    <button
+                      onClick={() => setDetailPost(currentPost)}
+                      className="absolute top-3 right-3 h-9 w-9 bg-white/85 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-sm"
+                      aria-label="Post details"
+                    >
+                      <Info className="h-4 w-4 text-[var(--ink)]" />
+                    </button>
+                  </div>
+
+                  <div className="p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Avatar creator={currentPost.creator} size="md" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-display text-[16px] tracking-tight text-[var(--ink)] truncate">
+                          {currentPost.creator.name}
+                        </p>
+                        {currentPost.creator.role && (
+                          <p className="text-[12px] text-[var(--ink-3)] truncate">{currentPost.creator.role}</p>
+                        )}
+                      </div>
                       <button
-                        onClick={() => setDetailPost(currentPost)}
-                        className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
-                        aria-label="Post details"
+                        onClick={() =>
+                          setReportTarget({
+                            kind: "post",
+                            id: currentPost.id,
+                            label: currentPost.title,
+                          })
+                        }
+                        className="text-[var(--ink-3)] hover:text-[var(--destructive)] transition-colors p-1.5"
+                        title="Report post"
+                        aria-label="Report post"
                       >
-                        <Info className="h-4 w-4 text-blue-600" />
+                        <Flag className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <div className="p-4">
-                      <div className="flex items-center gap-2.5 mb-3">
-                        <Avatar creator={currentPost.creator} size="md" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{currentPost.creator.name}</p>
-                          {currentPost.creator.role && (
-                            <p className="text-xs text-gray-500 truncate">{currentPost.creator.role}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() =>
-                            setReportTarget({
-                              kind: "post",
-                              id: currentPost.id,
-                              label: currentPost.title,
-                            })
-                          }
-                          className="text-gray-300 hover:text-red-500 transition-colors"
-                          title="Report post"
-                          aria-label="Report post"
-                        >
-                          <Flag className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                    <h3 className="font-display text-[22px] leading-tight tracking-tight text-[var(--ink)] mb-2">
+                      {currentPost.title}
+                    </h3>
+                    {currentPost.description && (
+                      <p className="text-[14px] text-[var(--ink-2)] leading-relaxed mb-4 line-clamp-3">
+                        {currentPost.description}
+                      </p>
+                    )}
 
-                      <h3 className="font-semibold text-gray-900 text-base mb-1">{currentPost.title}</h3>
-                      {currentPost.description && (
-                        <p className="text-gray-500 text-sm line-clamp-2 mb-2">{currentPost.description}</p>
+                    <div className="space-y-1.5">
+                      {currentPost.location && (
+                        <MetaRow icon={<MapPin className="h-3.5 w-3.5" />}>
+                          {currentPost.location}
+                        </MetaRow>
                       )}
-
-                      <div className="space-y-1">
-                        {currentPost.location && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                            <MapPin className="h-3 w-3 flex-shrink-0" /> {currentPost.location}
-                          </div>
-                        )}
-                        {currentPost.looking_for && currentPost.looking_for.length > 0 && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                            <Users className="h-3 w-3 flex-shrink-0" /> Looking for: {currentPost.looking_for.join(", ")}
-                          </div>
-                        )}
-                        {currentPost.compensation && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                            <DollarSign className="h-3 w-3 flex-shrink-0" /> {currentPost.compensation}
-                          </div>
-                        )}
-                      </div>
-
-                      <p className="text-[11px] text-gray-300 mt-2">{visiblePosts.length - currentPostIndex - 1} posts remaining{connectSearch ? " (filtered)" : ""}</p>
+                      {currentPost.looking_for && currentPost.looking_for.length > 0 && (
+                        <MetaRow icon={<Users className="h-3.5 w-3.5" />}>
+                          Looking for {currentPost.looking_for.join(", ")}
+                        </MetaRow>
+                      )}
+                      {currentPost.compensation && (
+                        <MetaRow icon={<DollarSign className="h-3.5 w-3.5" />}>
+                          {currentPost.compensation}
+                        </MetaRow>
+                      )}
                     </div>
 
-                    {currentPost.creator.portfolio_urls && currentPost.creator.portfolio_urls.length > 0 ? (
-                      <PortfolioStrip
-                        urls={currentPost.creator.portfolio_urls}
-                        name={currentPost.creator.name}
-                        onOpen={(idx) =>
-                          setLightbox({
-                            urls: currentPost.creator.portfolio_urls ?? [],
-                            index: idx,
-                            creatorName: currentPost.creator.name,
-                          })
-                        }
-                      />
-                    ) : null}
+                    <p className="text-[11px] text-[var(--ink-3)] mt-4 tracking-tight">
+                      {visiblePosts.length - currentPostIndex - 1} more {visiblePosts.length - currentPostIndex - 1 === 1 ? "post" : "posts"} ahead
+                      {connectSearch ? " (filtered)" : ""}
+                    </p>
                   </div>
 
-                  {/* Swipe buttons */}
-                  <div className="flex justify-center gap-4 mb-2">
-                    <button
-                      onClick={() => handleSwipe("left")}
-                      disabled={swiping}
-                      className="flex items-center gap-2 px-6 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                    >
-                      <X className="h-4 w-4" /> Pass
-                    </button>
-                    <button
-                      onClick={() => handleSwipe("right")}
-                      disabled={swiping}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-green-500 text-white rounded-full text-sm font-medium hover:bg-green-600 disabled:opacity-50 transition-colors"
-                    >
-                      <Heart className="h-4 w-4" /> Like
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+                  {currentPost.creator.portfolio_urls && currentPost.creator.portfolio_urls.length > 0 ? (
+                    <PortfolioStrip
+                      urls={currentPost.creator.portfolio_urls}
+                      name={currentPost.creator.name}
+                      onOpen={(idx) =>
+                        setLightbox({
+                          urls: currentPost.creator.portfolio_urls ?? [],
+                          index: idx,
+                          creatorName: currentPost.creator.name,
+                        })
+                      }
+                    />
+                  ) : null}
+                </article>
 
-          {/* ======================== EVENTS TAB ======================== */}
-          {activeTab === "events" && userId && (
-            <EventsView userId={userId} />
-          )}
-
-          {/* ======================== MESSAGES TAB ======================== */}
-          {activeTab === "messages" && (
-            <div className="pt-3">
-              {matchErr && (
-                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{matchErr}</div>
-              )}
-
-              {matches.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-gray-500 mb-1">No matches yet.</p>
-                  <p className="text-gray-400 text-sm mb-4">Start swiping to find collaborators!</p>
-                  <button onClick={loadMatches} className="text-sm text-blue-600 hover:underline">Refresh</button>
+                {/* Swipe controls — large circular icons, accent on like */}
+                <div className="flex items-center justify-center gap-5 mt-6 mb-2">
+                  <button
+                    onClick={() => handleSwipe("left")}
+                    disabled={swiping}
+                    aria-label="Pass"
+                    className="h-14 w-14 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)] hover:scale-[1.02] active:scale-95 disabled:opacity-50 transition-all shadow-[0_2px_8px_rgba(20,20,18,0.05)]"
+                  >
+                    <X className="h-5 w-5" strokeWidth={2.2} />
+                  </button>
+                  <button
+                    onClick={() => setDetailPost(currentPost)}
+                    aria-label="More info"
+                    className="h-12 w-12 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)] transition-colors"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleSwipe("right")}
+                    disabled={swiping}
+                    aria-label="Like"
+                    className="h-14 w-14 rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:scale-[1.04] active:scale-95 disabled:opacity-50 transition-all shadow-[0_4px_14px_rgba(229,90,76,0.35)]"
+                  >
+                    <Heart className="h-5 w-5 fill-white" />
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {matches.map((match) => {
-                    const unread = userId ? isMatchUnread(match, userId) : false;
-                    return (
-                      <div
-                        key={match.id}
+                <p className="text-[11px] text-center text-[var(--ink-3)] uppercase tracking-[0.16em] mt-1">
+                  Pass · Details · Like
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ======================== EVENTS TAB ======================== */}
+        {activeTab === "events" && userId && (
+          <EventsView userId={userId} />
+        )}
+
+        {/* ======================== MESSAGES TAB ======================== */}
+        {activeTab === "messages" && (
+          <div>
+            <div className="mb-5">
+              <SectionLabel>Conversations</SectionLabel>
+              <h1 className="font-display text-[28px] sm:text-[32px] tracking-tight text-[var(--ink)] mt-0.5">
+                Your matches.
+              </h1>
+            </div>
+
+            {matchErr && <ErrorMessage>{matchErr}</ErrorMessage>}
+
+            {matches.length === 0 ? (
+              <EmptyState
+                title="No matches yet."
+                body="When you and someone else both swipe right, you'll meet here."
+                actionLabel="Refresh"
+                onAction={loadMatches}
+              />
+            ) : (
+              <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+                {matches.map((match) => {
+                  const unread = userId ? isMatchUnread(match, userId) : false;
+                  return (
+                    <li key={match.id}>
+                      <button
                         onClick={() => openChat(match)}
-                        className={`flex items-center gap-3 bg-white border rounded-xl p-3 hover:shadow-sm transition-shadow cursor-pointer ${
-                          unread ? "border-blue-300 bg-blue-50/40" : "border-gray-200"
-                        }`}
+                        className="w-full flex items-center gap-4 py-4 px-1 text-left hover:bg-[var(--secondary)]/40 transition-colors"
                       >
                         <div className="relative flex-shrink-0">
-                          <Avatar creator={match.other_creator} size="md" />
+                          <Avatar creator={match.other_creator} size="lg" />
                           {unread && (
-                            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-blue-500 rounded-full border-2 border-white" />
+                            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[var(--accent)] rounded-full ring-2 ring-[var(--bg)]" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`text-sm truncate ${unread ? "font-bold text-gray-900" : "font-semibold text-gray-900"}`}>{match.other_creator.name}</h3>
-                            {match.other_creator.role && (
-                              <span className="text-[11px] text-gray-400 truncate">{match.other_creator.role}</span>
-                            )}
+                          <div className="flex items-baseline justify-between gap-2">
+                            <h3 className={`font-display text-[17px] tracking-tight text-[var(--ink)] truncate ${unread ? "font-semibold" : ""}`}>
+                              {match.other_creator.name}
+                            </h3>
+                            <span className="text-[11px] text-[var(--ink-3)] flex-shrink-0">
+                              {match.last_message
+                                ? formatTimeAgo(match.last_message.created_at)
+                                : new Date(match.created_at).toLocaleDateString()}
+                            </span>
                           </div>
+                          {match.other_creator.role && (
+                            <p className="text-[11px] text-[var(--ink-3)] uppercase tracking-[0.12em] mt-0.5">
+                              {match.other_creator.role}
+                            </p>
+                          )}
                           {match.last_message ? (
-                            <p className={`text-xs truncate ${unread ? "text-gray-700 font-medium" : "text-gray-500"}`}>
+                            <p className={`text-[13px] truncate mt-1 ${unread ? "text-[var(--ink)] font-medium" : "text-[var(--ink-2)]"}`}>
                               {match.last_message.sender_id === userId ? "You: " : ""}
                               {match.last_message.content}
                             </p>
                           ) : (
-                            <p className="text-xs text-gray-400 italic truncate">No messages yet — say hello!</p>
+                            <p className="text-[13px] text-[var(--ink-3)] italic mt-1 truncate">
+                              You matched on “{match.other_post.title}”. Say hi.
+                            </p>
                           )}
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {match.last_message
-                              ? formatTimeAgo(match.last_message.created_at)
-                              : `Matched ${new Date(match.created_at).toLocaleDateString()}`}
-                          </p>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
-          {/* ======================== PROFILE TAB ======================== */}
-          {activeTab === "profile" && (
-            <div className="pt-3 space-y-5">
-              {/* Avatar + identity */}
-              {profile && (
-                <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    className="relative group flex-shrink-0"
-                  >
-                    <Avatar creator={{ name: profile.name, role: profile.role, avatar_url: profile.avatar_url }} size="lg" />
-                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      {uploadingAvatar
-                        ? <Loader2 className="h-5 w-5 text-white animate-spin" />
-                        : <Camera className="h-5 w-5 text-white" />
-                      }
-                    </div>
-                  </button>
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{profile.name}</p>
-                    {profile.role && <p className="text-sm text-gray-500 truncate">{profile.role}</p>}
-                    <p className="text-[11px] text-gray-400 mt-0.5">Click avatar to change</p>
+        {/* ======================== PROFILE TAB ======================== */}
+        {activeTab === "profile" && (
+          <div className="space-y-10">
+            {/* Identity hero */}
+            {profile && (
+              <section className="flex items-center gap-5">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="relative group flex-shrink-0"
+                >
+                  <Avatar creator={{ name: profile.name, role: profile.role, avatar_url: profile.avatar_url }} size="xl" />
+                  <div className="absolute inset-0 rounded-full bg-black/45 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    {uploadingAvatar
+                      ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+                      : <Camera className="h-5 w-5 text-white" />
+                    }
                   </div>
+                </button>
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                <div className="flex-1 min-w-0">
+                  <SectionLabel>Your profile</SectionLabel>
+                  <h1 className="font-display text-[28px] tracking-tight text-[var(--ink)] truncate mt-0.5">
+                    {profile.name}
+                  </h1>
+                  {profile.role && (
+                    <p className="text-[14px] text-[var(--ink-2)] mt-0.5">{profile.role}</p>
+                  )}
                 </div>
-              )}
+              </section>
+            )}
 
-              {/* Portfolio gallery */}
-              {profile && userId ? (
+            {/* Portfolio */}
+            {profile && userId ? (
+              <section className="pt-2">
                 <PortfolioEditor
                   urls={profile.portfolio_urls ?? []}
                   busy={portfolioBusy}
@@ -1097,125 +1289,152 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                     })
                   }
                 />
-              ) : null}
+              </section>
+            ) : null}
 
-              {/* Profile form */}
+            {/* Profile form */}
+            <section className="border-t border-[var(--line)] pt-8">
+              <div className="mb-5">
+                <h2 className="font-display text-[20px] tracking-tight text-[var(--ink)]">About you</h2>
+                <p className="text-[12px] text-[var(--ink-3)] mt-1">
+                  This is what other creatives see.
+                </p>
+              </div>
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1">Name</Label>
-                  <Input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} className="rounded-xl" />
+                  <MFieldLabel htmlFor="prof-name">Name</MFieldLabel>
+                  <MInput id="prof-name" value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1">Role</Label>
-                  <Input value={profileForm.role} onChange={(e) => setProfileForm({ ...profileForm, role: e.target.value })} placeholder="e.g., Photographer" className="rounded-xl" />
+                  <MFieldLabel htmlFor="prof-role">Role</MFieldLabel>
+                  <MInput id="prof-role" value={profileForm.role} onChange={(e) => setProfileForm({ ...profileForm, role: e.target.value })} placeholder="e.g. Photographer" />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1">Skills (comma-separated)</Label>
-                  <Input value={profileForm.skills} onChange={(e) => setProfileForm({ ...profileForm, skills: e.target.value })} placeholder="e.g., Portrait Photography, Lighting" className="rounded-xl" />
+                  <MFieldLabel htmlFor="prof-skills">Skills</MFieldLabel>
+                  <MInput
+                    id="prof-skills"
+                    value={profileForm.skills}
+                    onChange={(e) => setProfileForm({ ...profileForm, skills: e.target.value })}
+                    placeholder="Portrait, 35mm film, editorial lighting"
+                  />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1">Bio</Label>
-                  <Textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} rows={3} className="rounded-xl" />
+                  <MFieldLabel htmlFor="prof-bio">Bio</MFieldLabel>
+                  <MTextarea id="prof-bio" rows={3} value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} placeholder="What's your taste? What kind of work do you want to make?" />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1">Current Project</Label>
-                  <Input value={profileForm.currentProject} onChange={(e) => setProfileForm({ ...profileForm, currentProject: e.target.value })} className="rounded-xl" />
+                  <MFieldLabel htmlFor="prof-project">Working on right now</MFieldLabel>
+                  <MInput id="prof-project" value={profileForm.currentProject} onChange={(e) => setProfileForm({ ...profileForm, currentProject: e.target.value })} placeholder="An archival zine, a weekly portrait series, …" />
                 </div>
 
                 {profileMsg && (
-                  <p className={`text-xs rounded-xl p-2 ${profileMsg.includes("saved") || profileMsg.includes("updated") ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                  <p
+                    className={`text-[12px] rounded-[var(--radius-md)] p-2.5 border ${
+                      profileMsg.includes("saved") || profileMsg.includes("updated")
+                        ? "bg-[color-mix(in_oklab,var(--success)_8%,var(--surface))] text-[var(--success)] border-[color-mix(in_oklab,var(--success)_25%,var(--line))]"
+                        : "bg-[color-mix(in_oklab,var(--destructive)_8%,var(--surface))] text-[var(--destructive)] border-[color-mix(in_oklab,var(--destructive)_25%,var(--line))]"
+                    }`}
+                  >
                     {profileMsg}
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={savingProfile}
-                  className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {savingProfile ? "Saving..." : "Save Profile"}
-                </button>
+                <PrimaryButton type="submit" loading={savingProfile} className="w-full">
+                  {savingProfile ? "Saving…" : "Save profile"}
+                </PrimaryButton>
               </form>
+            </section>
 
-              {/* Your posts */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-semibold text-gray-900">Your posts</h2>
-                  <button
-                    onClick={() => setShowCreatePost(true)}
-                    className="text-xs font-medium text-blue-700 hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="h-3 w-3" /> New
-                  </button>
+            {/* Your posts */}
+            <section className="border-t border-[var(--line)] pt-8">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="font-display text-[20px] tracking-tight text-[var(--ink)]">Your posts</h2>
+                  <p className="text-[12px] text-[var(--ink-3)] mt-1">
+                    {myPosts.length === 0 ? "Start by posting a collab you're looking for." : `${myPosts.length} ${myPosts.length === 1 ? "post" : "posts"}`}
+                  </p>
                 </div>
-                {myPosts.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">You haven&apos;t created a post yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {myPosts.map((p) => (
+                <GhostButton onClick={() => setShowCreatePost(true)}>
+                  <Plus className="h-3.5 w-3.5" /> New
+                </GhostButton>
+              </div>
+              {myPosts.length === 0 ? (
+                <p className="text-[13px] text-[var(--ink-3)] italic">You haven&apos;t created a post yet.</p>
+              ) : (
+                <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+                  {myPosts.map((p) => (
+                    <li key={p.id}>
                       <button
-                        key={p.id}
                         onClick={() => setEditingPost(p)}
-                        className="w-full text-left flex items-center gap-3 p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                        className="w-full text-left flex items-center gap-3 py-3 px-1 hover:bg-[var(--secondary)]/40 transition-colors"
                       >
                         {p.media_urls?.[0] ? (
-                          <img src={p.media_urls[0]} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
+                          <img src={p.media_urls[0]} alt="" className="w-12 h-12 rounded-[var(--radius-md)] object-cover flex-shrink-0 ring-1 ring-[var(--line)]" />
                         ) : (
-                          <div className="w-10 h-10 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-500">
+                          <div className="w-12 h-12 rounded-[var(--radius-md)] bg-[var(--secondary)] flex items-center justify-center flex-shrink-0 text-[var(--ink-3)]">
                             <Pencil className="h-4 w-4" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{p.title}</p>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="font-display text-[15px] tracking-tight text-[var(--ink)] truncate">{p.title}</p>
+                          <p className="text-[11px] text-[var(--ink-3)] mt-0.5">
                             {new Date(p.created_at).toLocaleDateString()}
                             {p.is_active ? "" : " · inactive"}
                           </p>
                         </div>
-                        <Pencil className="h-3.5 w-3.5 text-gray-300" />
+                        <Pencil className="h-3.5 w-3.5 text-[var(--ink-3)]" />
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
-              {/* Account & safety */}
-              <div className="pt-4 border-t border-gray-100">
-                <button
-                  onClick={() => setShowAccountSafety(true)}
-                  className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  <Shield className="h-4 w-4 text-gray-500" />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold text-gray-900">Account &amp; safety</p>
-                    <p className="text-[11px] text-gray-400">Blocked users, delete account</p>
-                  </div>
-                  <Settings className="h-4 w-4 text-gray-300" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+            {/* Account & safety */}
+            <section className="border-t border-[var(--line)] pt-8">
+              <button
+                onClick={() => setShowAccountSafety(true)}
+                className="w-full flex items-center gap-4 p-4 border border-[var(--line)] rounded-[var(--radius-lg)] hover:bg-[var(--secondary)]/50 transition-colors"
+              >
+                <div className="h-10 w-10 rounded-full bg-[var(--secondary)] flex items-center justify-center text-[var(--ink-2)]">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-display text-[15px] tracking-tight text-[var(--ink)]">Account &amp; safety</p>
+                  <p className="text-[12px] text-[var(--ink-3)] mt-0.5">Blocked users, delete account</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[var(--ink-3)]" />
+              </button>
+            </section>
+          </div>
+        )}
+      </main>
 
-      {/* ======================== DETAIL MODAL ======================== */}
+      {/* ============================================================
+          Detail dialog
+          ============================================================ */}
       <Dialog open={!!detailPost} onOpenChange={(open) => { if (!open) setDetailPost(null); }}>
-        <DialogContent className="max-w-[440px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl">
-          <div className="p-4 flex items-center justify-between border-b border-gray-100">
-            <DialogTitle className="text-base font-semibold text-gray-900">{detailPost?.title}</DialogTitle>
-            <button onClick={() => setDetailPost(null)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+        <DialogContent className="max-w-[480px] max-h-[88vh] overflow-y-auto p-0 rounded-[var(--radius-xl)] border-[var(--line)] bg-[var(--surface)]">
+          <div className="px-5 py-4 flex items-center justify-between border-b border-[var(--line)] sticky top-0 bg-[var(--surface)] z-10">
+            <DialogTitle className="font-display text-[18px] tracking-tight text-[var(--ink)] truncate">{detailPost?.title}</DialogTitle>
+            <button
+              onClick={() => setDetailPost(null)}
+              className="text-[var(--ink-3)] hover:text-[var(--ink)] h-8 w-8 rounded-full flex items-center justify-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
           <DialogDescription className="sr-only">Post details</DialogDescription>
           {detailPost && (
             <div>
-              <ImageGallery urls={detailPost.media_urls ?? []} height="h-56" />
+              <ImageGallery urls={detailPost.media_urls ?? []} aspect="aspect-[4/5]" />
 
-              <div className="p-4 space-y-4">
+              <div className="p-5 space-y-5">
                 <div className="flex items-center gap-3">
                   <Avatar creator={detailPost.creator} size="lg" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{detailPost.creator.name}</p>
-                    {detailPost.creator.role && <p className="text-sm text-gray-500 truncate">{detailPost.creator.role}</p>}
+                    <p className="font-display text-[18px] tracking-tight text-[var(--ink)] truncate">{detailPost.creator.name}</p>
+                    {detailPost.creator.role && <p className="text-[13px] text-[var(--ink-2)] truncate">{detailPost.creator.role}</p>}
                   </div>
                   {userId && detailPost.owner_id !== userId ? (
                     <button
@@ -1226,44 +1445,64 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                           label: detailPost.title,
                         })
                       }
-                      className="flex items-center gap-1 px-2 py-1 border border-red-200 rounded-full text-xs font-medium text-red-600 hover:bg-red-50"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-[var(--line)] rounded-full text-[11px] font-medium text-[var(--ink-2)] hover:border-[var(--destructive)] hover:text-[var(--destructive)] transition-colors"
                     >
                       <Flag className="h-3 w-3" /> Report
                     </button>
                   ) : null}
                 </div>
 
-                <div className="space-y-2.5 text-sm">
+                <div className="space-y-3">
                   {detailPost.description && (
-                    <div><span className="font-medium text-gray-700">Description:</span> <span className="text-gray-500">{detailPost.description}</span></div>
+                    <div>
+                      <SectionLabel>Description</SectionLabel>
+                      <p className="text-[14px] text-[var(--ink-2)] leading-relaxed mt-1.5">{detailPost.description}</p>
+                    </div>
                   )}
                   {detailPost.looking_for && detailPost.looking_for.length > 0 && (
-                    <div><span className="font-medium text-gray-700">Looking for:</span> <span className="text-gray-500">{detailPost.looking_for.join(", ")}</span></div>
+                    <div>
+                      <SectionLabel>Looking for</SectionLabel>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {detailPost.looking_for.map((lf) => (
+                          <Chip key={lf}>{lf}</Chip>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {detailPost.location && (
-                    <div><span className="font-medium text-gray-700">Location:</span> <span className="text-gray-500">{detailPost.location}</span></div>
-                  )}
-                  {detailPost.compensation && (
-                    <div><span className="font-medium text-gray-700">Compensation:</span> <span className="text-gray-500">{detailPost.compensation}</span></div>
-                  )}
-                  <div><span className="font-medium text-gray-700">Posted:</span> <span className="text-gray-500">{new Date(detailPost.created_at).toLocaleDateString()}</span></div>
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    {detailPost.location && (
+                      <div>
+                        <SectionLabel>Location</SectionLabel>
+                        <p className="text-[13px] text-[var(--ink-2)] mt-1.5">{detailPost.location}</p>
+                      </div>
+                    )}
+                    {detailPost.compensation && (
+                      <div>
+                        <SectionLabel>Compensation</SectionLabel>
+                        <p className="text-[13px] text-[var(--ink-2)] mt-1.5">{detailPost.compensation}</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[var(--ink-3)] pt-1">
+                    Posted {new Date(detailPost.created_at).toLocaleDateString()}
+                  </p>
                 </div>
 
                 {detailPost.creator.portfolio_urls && detailPost.creator.portfolio_urls.length > 0 ? (
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                      More from {detailPost.creator.name}
-                    </h3>
-                    <PortfolioGrid
-                      urls={detailPost.creator.portfolio_urls}
-                      onOpen={(idx) =>
-                        setLightbox({
-                          urls: detailPost.creator.portfolio_urls ?? [],
-                          index: idx,
-                          creatorName: detailPost.creator.name,
-                        })
-                      }
-                    />
+                  <div className="pt-2 border-t border-[var(--line)]">
+                    <SectionLabel>More from {detailPost.creator.name}</SectionLabel>
+                    <div className="mt-3">
+                      <PortfolioGrid
+                        urls={detailPost.creator.portfolio_urls}
+                        onOpen={(idx) =>
+                          setLightbox({
+                            urls: detailPost.creator.portfolio_urls ?? [],
+                            index: idx,
+                            creatorName: detailPost.creator.name,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -1272,32 +1511,41 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         </DialogContent>
       </Dialog>
 
-      {/* ======================== CHAT DIALOG ======================== */}
+      {/* ============================================================
+          Chat dialog
+          ============================================================ */}
       <Dialog open={!!chatMatch} onOpenChange={(open) => { if (!open) { setChatMatch(null); setChatMenuOpen(false); } }}>
-        <DialogContent className="max-w-[440px] h-[80vh] flex flex-col p-0 rounded-2xl">
-          <div className="flex items-center gap-3 p-3 border-b border-gray-100">
-            <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600">
+        <DialogContent className="max-w-[480px] h-[85vh] flex flex-col p-0 rounded-[var(--radius-xl)] border-[var(--line)] bg-[var(--surface)] overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--line)]">
+            <button
+              onClick={() => setChatMatch(null)}
+              className="h-8 w-8 rounded-full flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)]"
+            >
               <ArrowLeft className="h-4 w-4" />
             </button>
             {chatMatch && (
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <Avatar creator={chatMatch.other_creator} size="sm" />
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Avatar creator={chatMatch.other_creator} size="md" />
                 <div className="min-w-0">
-                  <DialogTitle className="text-sm font-semibold text-gray-900 truncate">{chatMatch.other_creator.name}</DialogTitle>
-                  <DialogDescription className="text-[11px] text-gray-400 truncate">{chatMatch.other_post.title}</DialogDescription>
+                  <DialogTitle className="font-display text-[15px] tracking-tight text-[var(--ink)] truncate leading-tight">
+                    {chatMatch.other_creator.name}
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-[var(--ink-3)] truncate">
+                    {chatMatch.other_post.title}
+                  </DialogDescription>
                 </div>
               </div>
             )}
             <div className="ml-auto relative">
               <button
                 onClick={() => setChatMenuOpen((o) => !o)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="h-8 w-8 rounded-full flex items-center justify-center text-[var(--ink-2)] hover:bg-[var(--secondary)]"
                 aria-label="Conversation options"
               >
                 <MoreVertical className="h-4 w-4" />
               </button>
               {chatMenuOpen && chatMatch ? (
-                <div className="absolute right-0 top-9 z-30 w-44 bg-white border border-gray-200 rounded-xl shadow-md py-1">
+                <div className="absolute right-0 top-10 z-30 w-48 melange-card py-1.5">
                   <button
                     onClick={() => {
                       setChatMenuOpen(false);
@@ -1307,40 +1555,55 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                         label: chatMatch.other_creator.name,
                       });
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--ink-2)] hover:bg-[var(--secondary)]"
                   >
-                    <Flag className="h-3.5 w-3.5 text-red-500" /> Report user
+                    <Flag className="h-3.5 w-3.5" /> Report user
                   </button>
                   <button
                     onClick={confirmBlock}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--destructive)] hover:bg-[color-mix(in_oklab,var(--destructive)_8%,var(--surface))]"
                   >
                     <AlertTriangle className="h-3.5 w-3.5" /> Block user
                   </button>
                 </div>
               ) : null}
             </div>
-            <button onClick={() => { setChatMatch(null); setChatMenuOpen(false); }} className="text-gray-400 hover:text-gray-600">
-              <X className="h-4 w-4" />
-            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3" onClick={() => setChatMenuOpen(false)}>
+          <div className="flex-1 overflow-y-auto px-4 py-4 bg-[var(--bg)]" onClick={() => setChatMenuOpen(false)}>
             {messagesLoading ? (
-              <div className="flex items-center justify-center py-12 text-gray-400 text-sm">Loading messages...</div>
+              <div className="flex items-center justify-center py-16 text-[var(--ink-3)] text-[14px]">
+                Loading messages…
+              </div>
             ) : messages.length === 0 ? (
-              <div className="flex items-center justify-center py-12 text-gray-400 text-sm">No messages yet. Say hello!</div>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="font-display text-[18px] tracking-tight text-[var(--ink)]">Say hello.</p>
+                <p className="text-[13px] text-[var(--ink-3)] mt-1">
+                  You matched on “{chatMatch?.other_post.title}”.
+                </p>
+              </div>
             ) : (
-              <div className="space-y-3">
-                {messages.map((msg) => {
+              <div className="space-y-2">
+                {messages.map((msg, i) => {
                   const isMe = msg.sender_id === userId;
+                  const prev = messages[i - 1];
+                  const showAvatar = !isMe && (!prev || prev.sender_id !== msg.sender_id);
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
-                        isMe ? "bg-violet-500 text-white rounded-br-md" : "bg-gray-100 text-gray-800 rounded-bl-md"
-                      }`}>
-                        <p>{msg.content}</p>
-                        <p className={`text-[10px] mt-1 ${isMe ? "text-violet-200" : "text-gray-400"}`}>
+                    <div key={msg.id} className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
+                      {!isMe && chatMatch ? (
+                        <div className={showAvatar ? "" : "invisible"}>
+                          <Avatar creator={chatMatch.other_creator} size="sm" />
+                        </div>
+                      ) : null}
+                      <div
+                        className={`max-w-[72%] px-4 py-2.5 text-[14px] leading-snug ${
+                          isMe
+                            ? "bg-[var(--ink)] text-[var(--bg)] rounded-[18px] rounded-br-[6px]"
+                            : "bg-[var(--surface)] text-[var(--ink)] rounded-[18px] rounded-bl-[6px] border border-[var(--line)]"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        <p className={`text-[10px] mt-1 ${isMe ? "text-white/55" : "text-[var(--ink-3)]"}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
@@ -1353,20 +1616,23 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           </div>
 
           {chatError && (
-            <div className="mx-4 p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs">{chatError}</div>
+            <div className="mx-4 mb-2">
+              <ErrorMessage>{chatError}</ErrorMessage>
+            </div>
           )}
-          <form onSubmit={handleSendMessage} className="flex items-center gap-2 p-3 border-t border-gray-100">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2 p-3 border-t border-[var(--line)] bg-[var(--surface)]">
             <input
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+              placeholder="Type a message…"
+              className="flex-1 px-4 h-10 text-[14px] bg-[var(--bg)] border border-[var(--line)] rounded-full focus:outline-none focus:border-[var(--ink)] transition-colors"
               autoFocus
             />
             <button
               type="submit"
               disabled={sending || !messageText.trim()}
-              className="w-9 h-9 flex items-center justify-center bg-violet-500 text-white rounded-full hover:bg-violet-600 disabled:opacity-40 transition-colors"
+              className="h-10 w-10 flex items-center justify-center bg-[var(--ink)] text-[var(--bg)] rounded-full hover:opacity-90 disabled:opacity-40 transition-opacity"
+              aria-label="Send"
             >
               <Send className="h-4 w-4" />
             </button>
@@ -1374,7 +1640,9 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         </DialogContent>
       </Dialog>
 
-      {/* ======================== CREATE POST DIALOG ======================== */}
+      {/* ============================================================
+          Create Post dialog
+          ============================================================ */}
       <Dialog
         open={showCreatePost}
         onOpenChange={(open) => {
@@ -1384,44 +1652,77 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           }
         }}
       >
-        <DialogContent className="max-w-[440px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
-          <div className="p-4 border-b border-gray-100">
-            <DialogTitle className="text-base font-semibold text-gray-900">New Collaboration Post</DialogTitle>
-            <DialogDescription className="text-xs text-gray-400 mt-0.5">
-              Describe what you&apos;re looking for. Others will see this in their feed.
+        <DialogContent className="max-w-[480px] max-h-[90vh] overflow-y-auto p-0 rounded-[var(--radius-xl)] border-[var(--line)] bg-[var(--surface)]">
+          <div className="px-5 py-4 border-b border-[var(--line)] sticky top-0 bg-[var(--surface)] z-10">
+            <SectionLabel>New post</SectionLabel>
+            <DialogTitle className="font-display text-[22px] tracking-tight text-[var(--ink)] mt-0.5">
+              Start a collaboration.
+            </DialogTitle>
+            <DialogDescription className="text-[12px] text-[var(--ink-3)] mt-1">
+              Describe what you&apos;re looking to make. Others will see this in their feed.
             </DialogDescription>
           </div>
-          <form onSubmit={handleCreatePost} className="p-4 space-y-3">
+          <form onSubmit={handleCreatePost} className="p-5 space-y-4">
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Title</Label>
-              <Input value={newPostTitle} onChange={(e) => setNewPostTitle(e.target.value)} placeholder="e.g., Looking for a photographer" required className="rounded-xl" />
+              <MFieldLabel htmlFor="np-title">Title</MFieldLabel>
+              <MInput
+                id="np-title"
+                value={newPostTitle}
+                onChange={(e) => setNewPostTitle(e.target.value)}
+                placeholder="Editorial portrait series, soft natural light"
+                required
+              />
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Description</Label>
-              <Textarea value={newPostDescription} onChange={(e) => setNewPostDescription(e.target.value)} placeholder="Describe the collaboration, style, timeline, etc." rows={3} required className="rounded-xl" />
+              <MFieldLabel htmlFor="np-desc">Description</MFieldLabel>
+              <MTextarea
+                id="np-desc"
+                rows={3}
+                value={newPostDescription}
+                onChange={(e) => setNewPostDescription(e.target.value)}
+                placeholder="What's the concept, the style, the timeline?"
+                required
+              />
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Looking for (comma-separated)</Label>
-              <Input value={newPostLookingFor} onChange={(e) => setNewPostLookingFor(e.target.value)} placeholder="e.g., Photographer, Model, MUA" className="rounded-xl" />
+              <MFieldLabel htmlFor="np-lf">Looking for</MFieldLabel>
+              <MInput
+                id="np-lf"
+                value={newPostLookingFor}
+                onChange={(e) => setNewPostLookingFor(e.target.value)}
+                placeholder="Photographer, model, MUA — comma separated"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <MFieldLabel htmlFor="np-loc">Location</MFieldLabel>
+                <MInput
+                  id="np-loc"
+                  value={newPostLocation}
+                  onChange={(e) => setNewPostLocation(e.target.value)}
+                  placeholder="Brooklyn, NY"
+                />
+              </div>
+              <div>
+                <MFieldLabel htmlFor="np-comp">Compensation</MFieldLabel>
+                <MInput
+                  id="np-comp"
+                  value={newPostCompensation}
+                  onChange={(e) => setNewPostCompensation(e.target.value)}
+                  placeholder="TFP, $200/hr, rev share"
+                />
+              </div>
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Location</Label>
-              <Input value={newPostLocation} onChange={(e) => setNewPostLocation(e.target.value)} placeholder="e.g., New York, NY" className="rounded-xl" />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500 mb-1">Compensation</Label>
-              <Input value={newPostCompensation} onChange={(e) => setNewPostCompensation(e.target.value)} placeholder="e.g., TFP, $200/hr, Revenue share" className="rounded-xl" />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500 mb-1">Images (up to 5)</Label>
+              <MFieldLabel>Reference images (up to 5)</MFieldLabel>
               <div className="flex flex-wrap gap-2">
                 {newPostImages.map((img, idx) => (
-                  <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200">
+                  <div key={idx} className="relative w-20 h-20 rounded-[var(--radius-md)] overflow-hidden ring-1 ring-[var(--line)]">
                     <img src={img.previewUrl} alt="" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removeNewPostImage(idx)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-black/55 rounded-full flex items-center justify-center text-white"
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/65 backdrop-blur rounded-full flex items-center justify-center text-white"
                       aria-label="Remove image"
                     >
                       <X className="h-3 w-3" />
@@ -1432,10 +1733,10 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   <button
                     type="button"
                     onClick={() => newPostImagesInputRef.current?.click()}
-                    className="w-20 h-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+                    className="w-20 h-20 border border-dashed border-[var(--line)] rounded-[var(--radius-md)] flex flex-col items-center justify-center gap-1 text-[var(--ink-3)] hover:border-[var(--ink-3)] hover:text-[var(--ink-2)] transition-colors"
                   >
                     <ImagePlus className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Add</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Add</span>
                   </button>
                 ) : null}
               </div>
@@ -1448,22 +1749,22 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 onChange={handlePostImageSelect}
               />
             </div>
-            {createPostError && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">{createPostError}</p>
-            )}
-            <button
+            {createPostError && <ErrorMessage>{createPostError}</ErrorMessage>}
+            <PrimaryButton
               type="submit"
-              disabled={creatingPost || !newPostTitle.trim() || !newPostDescription.trim()}
-              className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              loading={creatingPost}
+              disabled={!newPostTitle.trim() || !newPostDescription.trim()}
+              className="w-full"
             >
-              {creatingPost ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {creatingPost ? "Creating..." : "Create Post"}
-            </button>
+              {creatingPost ? "Posting…" : "Publish post"}
+            </PrimaryButton>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ======================== EDIT POST ======================== */}
+      {/* ============================================================
+          Auxiliary dialogs (delegated to their own files)
+          ============================================================ */}
       {userId ? (
         <EditPostDialog
           userId={userId}
@@ -1474,7 +1775,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         />
       ) : null}
 
-      {/* ======================== ACCOUNT & SAFETY ======================== */}
       {userId ? (
         <AccountSafetyDialog
           userId={userId}
@@ -1487,7 +1787,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         />
       ) : null}
 
-      {/* ======================== REPORT ======================== */}
       {userId ? (
         <ReportDialog
           reporterId={userId}
@@ -1496,7 +1795,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         />
       ) : null}
 
-      {/* ======================== PORTFOLIO LIGHTBOX ======================== */}
       <PortfolioLightbox
         open={!!lightbox && lightbox.urls.length > 0}
         urls={lightbox?.urls ?? []}
@@ -1504,6 +1802,37 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         creatorName={lightbox?.creatorName}
         onClose={() => setLightbox(null)}
       />
+    </div>
+  );
+}
+
+// ============================================================
+// Empty state
+// ============================================================
+
+function EmptyState({
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <h3 className="font-display text-[24px] tracking-tight text-[var(--ink)]">{title}</h3>
+      <p className="text-[14px] text-[var(--ink-2)] mt-2 max-w-[36ch]">{body}</p>
+      {actionLabel && onAction ? (
+        <button
+          onClick={onAction}
+          className="mt-5 text-[13px] text-[var(--ink)] underline underline-offset-4 hover:text-[var(--accent)]"
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

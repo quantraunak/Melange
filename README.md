@@ -4,7 +4,7 @@
 
 **Where creative people find their next collaboration.** Photo walks. Open calls. Mutual swipes that lead to real shoots. The middle ground between Instagram and LinkedIn — built for the way creative work actually happens.
 
-> 📖 **Product strategy + roadmap + architecture live in [`/docs`](./docs/).** Read [`STRATEGY.md`](./docs/STRATEGY.md) first if you want to understand the bet.
+> 📖 **Product strategy + roadmap + design + architecture live in [`/docs`](./docs/).** Read [`STRATEGY.md`](./docs/STRATEGY.md) first to understand the bet, then [`DESIGN.md`](./docs/DESIGN.md) for the visual language.
 
 This repo contains:
 
@@ -28,6 +28,7 @@ Both apps talk to the same Supabase project: same accounts, same posts, same mat
 
 ### Shipped (web + iOS, full parity)
 
+- **Editorial design system** — see [`docs/DESIGN.md`](./docs/DESIGN.md). Fraunces + Inter, warm palette, image-content-forward.
 - Email/password auth with persistent sessions and Terms / 18+ acceptance
 - Full profile editing (name, role, skills, bio, current project, avatar)
 - **Posts** with title, description, looking-for tags, location, compensation, and **up to 5 images**
@@ -38,6 +39,7 @@ Both apps talk to the same Supabase project: same accounts, same posts, same mat
 - **Block & report** for users, posts, and messages (App Store UGC compliance)
 - **In-app account deletion** for App Store 5.1.1(v) compliance
 - **Events** — host or RSVP to photo walks, open calls, gallery openings, workshops, meetups, exhibitions. Filter by city. *(Phase 1 — strategic bet, see [`docs/STRATEGY.md`](./docs/STRATEGY.md))*
+- **Portfolio gallery** — up to 9 portfolio images per profile, shown as "More from {creator}" strip below swipe cards and full grid in post detail; fullscreen lightbox with keyboard navigation. *(Web shipped; iOS parity next)*
 - Privacy policy and Terms of Service pages (rendered statically)
 - Row-level security on every table
 
@@ -51,7 +53,7 @@ Both apps talk to the same Supabase project: same accounts, same posts, same mat
 ### Coming next (see [`docs/ROADMAP.md`](./docs/ROADMAP.md))
 
 - Vibe tags for aesthetic-driven matching
-- Portfolio gallery on profiles (the 9-grid is the resume)
+- Portfolio gallery on iOS (web shipped)
 - Two-sided reviews after collabs
 - Travel mode ("I'm in NYC next week")
 - Shoot Diary (post your collab outputs for organic growth)
@@ -97,9 +99,10 @@ melange/
 ├── scripts/                     # Ops scripts — read secrets from env only
 │   ├── apply_migration.mjs      # Apply a SQL file via the Management API
 │   └── wipe_users.mjs           # Wipe all users + data (dev only)
-├── docs/                        # Strategy, roadmap, metrics, architecture
+├── docs/                        # Strategy, roadmap, design, metrics, architecture
 │   ├── STRATEGY.md              # The bet we are making and why
 │   ├── ROADMAP.md               # What we're shipping when
+│   ├── DESIGN.md                # Visual language, tokens, components
 │   ├── METRICS.md               # How we measure success
 │   └── ARCHITECTURE.md          # Codebase guide for future contributors
 ├── PRIVACY.md, TERMS.md         # Source for /privacy and /terms pages
