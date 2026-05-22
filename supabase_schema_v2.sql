@@ -170,8 +170,11 @@ $$;
 GRANT EXECUTE ON FUNCTION public.delete_account() TO authenticated;
 
 -- ============================================================
--- updated_at trigger for collab_posts (so edits update timestamp)
+-- updated_at column + trigger for collab_posts (so edits update timestamp)
 -- ============================================================
+
+ALTER TABLE public.collab_posts
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 CREATE OR REPLACE FUNCTION public.touch_updated_at()
 RETURNS trigger
