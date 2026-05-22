@@ -13,8 +13,10 @@ import {
   getUnswipedPosts,
   isMatchUnread,
   markMatchRead,
+  PORTFOLIO_MAX_IMAGES,
   recordSwipe,
   sendMessage,
+  updatePortfolio,
   updateProfile,
   uploadFile,
   type CollabPost,
@@ -62,6 +64,7 @@ import ReportDialog from "./ReportDialog";
 import EditPostDialog from "./EditPostDialog";
 import AccountSafetyDialog from "./AccountSafetyDialog";
 import EventsView from "./EventsView";
+import PortfolioLightbox from "./PortfolioLightbox";
 
 type Tab = "connect" | "events" | "messages" | "profile";
 
@@ -108,6 +111,186 @@ function Avatar({
   return (
     <div className={`${dims} rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center justify-center flex-shrink-0`}>
       {creator.name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+/**
+ * Editor for the signed-in user's portfolio.
+ * Renders a responsive 3-column grid with a per-tile management menu.
+ */
+function PortfolioEditor({
+  urls,
+  busy,
+  error,
+  onAdd,
+  onRemove,
+  onReorder,
+  onView,
+}: {
+  urls: string[];
+  busy: boolean;
+  error: string;
+  onAdd: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: (idx: number) => void;
+  onReorder: (idx: number, delta: -1 | 1) => void;
+  onView: (idx: number) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canAdd = urls.length < 9;
+  return (
+    <div className="pb-4 border-b border-gray-100">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Portfolio</h2>
+          <p className="text-[11px] text-gray-400">Your visual identity. Up to 9 images.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={!canAdd || busy}
+          className="text-xs font-medium px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+        >
+          <Plus className="h-3 w-3" /> Add
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={onAdd}
+        />
+      </div>
+
+      {urls.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          className="w-full py-6 border-2 border-dashed border-gray-200 rounded-xl text-center text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+        >
+          <ImagePlus className="h-5 w-5 mx-auto mb-1.5" />
+          <p className="text-xs font-medium">Show your best work</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Tap to add images</p>
+        </button>
+      ) : (
+        <div className="grid grid-cols-3 gap-1.5">
+          {urls.map((url, idx) => (
+            <div
+              key={`${url}-${idx}`}
+              className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group"
+            >
+              <button
+                type="button"
+                onClick={() => onView(idx)}
+                className="absolute inset-0"
+                aria-label="View image"
+              >
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                disabled={busy}
+                className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                aria-label="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+              {idx > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onReorder(idx, -1)}
+                  disabled={busy}
+                  className="absolute bottom-1 left-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                  aria-label="Move left"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
+              ) : null}
+              {idx < urls.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => onReorder(idx, 1)}
+                  disabled={busy}
+                  className="absolute bottom-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                  aria-label="Move right"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error ? (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2 mt-2">{error}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Read-only horizontal strip of a creator's portfolio.
+ * Renders below the post card on the swipe feed.
+ */
+function PortfolioStrip({
+  urls,
+  name,
+  onOpen,
+}: {
+  urls: string[];
+  name: string;
+  onOpen: (startIndex: number) => void;
+}) {
+  if (!urls?.length) return null;
+  return (
+    <div className="px-4 pb-3 pt-1 border-t border-gray-100">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+        More from {name}
+      </p>
+      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1" style={{ scrollbarWidth: "thin" }}>
+        {urls.slice(0, 9).map((u, i) => (
+          <button
+            key={`${u}-${i}`}
+            type="button"
+            onClick={() => onOpen(i)}
+            className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
+            aria-label={`View portfolio image ${i + 1}`}
+          >
+            <img src={u} alt="" className="w-full h-full object-cover" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Full read-only portfolio grid for the post detail dialog.
+ */
+function PortfolioGrid({
+  urls,
+  onOpen,
+}: {
+  urls: string[];
+  onOpen: (startIndex: number) => void;
+}) {
+  if (!urls?.length) return null;
+  return (
+    <div className="grid grid-cols-3 gap-1.5">
+      {urls.map((u, i) => (
+        <button
+          key={`${u}-${i}`}
+          type="button"
+          onClick={() => onOpen(i)}
+          className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 hover:opacity-90 transition-opacity"
+        >
+          <img src={u} alt="" className="w-full h-full object-cover" />
+        </button>
+      ))}
     </div>
   );
 }
@@ -207,6 +390,17 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [profileMsg, setProfileMsg] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showAccountSafety, setShowAccountSafety] = useState(false);
+
+  // Portfolio state — owns the editing UI for your own portfolio + busy flags.
+  const [portfolioBusy, setPortfolioBusy] = useState(false);
+  const [portfolioError, setPortfolioError] = useState("");
+
+  // Lightbox state — generic viewer for any creator's portfolio.
+  const [lightbox, setLightbox] = useState<{
+    urls: string[];
+    index: number;
+    creatorName?: string;
+  } | null>(null);
 
   // Report dialog
   const [reportTarget, setReportTarget] = useState<{
@@ -421,6 +615,69 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     if (updateErr) { setProfileMsg(updateErr); return; }
     await loadProfile();
     setProfileMsg("Avatar updated!");
+  };
+
+  const handlePortfolioAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length || !userId || !profile) return;
+
+    const current = profile.portfolio_urls ?? [];
+    const remaining = PORTFOLIO_MAX_IMAGES - current.length;
+    if (remaining <= 0) {
+      setPortfolioError(`You can have up to ${PORTFOLIO_MAX_IMAGES} images.`);
+      e.target.value = "";
+      return;
+    }
+
+    setPortfolioBusy(true);
+    setPortfolioError("");
+    const incoming = Array.from(files).slice(0, remaining);
+    const uploaded: string[] = [];
+    for (const file of incoming) {
+      const { url, error: upErr } = await uploadFile(userId, "posts", file);
+      if (upErr || !url) {
+        setPortfolioError(upErr || "Upload failed.");
+        break;
+      }
+      uploaded.push(url);
+    }
+
+    if (uploaded.length > 0) {
+      const next = [...current, ...uploaded];
+      const { error: updErr } = await updatePortfolio(userId, next);
+      if (updErr) setPortfolioError(updErr);
+      else await loadProfile();
+    }
+
+    setPortfolioBusy(false);
+    e.target.value = "";
+  };
+
+  const handlePortfolioRemove = async (idx: number) => {
+    if (!userId || !profile) return;
+    const current = profile.portfolio_urls ?? [];
+    if (idx < 0 || idx >= current.length) return;
+    setPortfolioBusy(true);
+    setPortfolioError("");
+    const next = current.filter((_, i) => i !== idx);
+    const { error } = await updatePortfolio(userId, next);
+    if (error) setPortfolioError(error);
+    else await loadProfile();
+    setPortfolioBusy(false);
+  };
+
+  const handlePortfolioReorder = async (idx: number, delta: -1 | 1) => {
+    if (!userId || !profile) return;
+    const current = [...(profile.portfolio_urls ?? [])];
+    const target = idx + delta;
+    if (target < 0 || target >= current.length) return;
+    [current[idx], current[target]] = [current[target], current[idx]];
+    setPortfolioBusy(true);
+    setPortfolioError("");
+    const { error } = await updatePortfolio(userId, current);
+    if (error) setPortfolioError(error);
+    else await loadProfile();
+    setPortfolioBusy(false);
   };
 
   const confirmBlock = async () => {
@@ -691,6 +948,20 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
                       <p className="text-[11px] text-gray-300 mt-2">{visiblePosts.length - currentPostIndex - 1} posts remaining{connectSearch ? " (filtered)" : ""}</p>
                     </div>
+
+                    {currentPost.creator.portfolio_urls && currentPost.creator.portfolio_urls.length > 0 ? (
+                      <PortfolioStrip
+                        urls={currentPost.creator.portfolio_urls}
+                        name={currentPost.creator.name}
+                        onOpen={(idx) =>
+                          setLightbox({
+                            urls: currentPost.creator.portfolio_urls ?? [],
+                            index: idx,
+                            creatorName: currentPost.creator.name,
+                          })
+                        }
+                      />
+                    ) : null}
                   </div>
 
                   {/* Swipe buttons */}
@@ -808,6 +1079,25 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   </div>
                 </div>
               )}
+
+              {/* Portfolio gallery */}
+              {profile && userId ? (
+                <PortfolioEditor
+                  urls={profile.portfolio_urls ?? []}
+                  busy={portfolioBusy}
+                  error={portfolioError}
+                  onAdd={handlePortfolioAdd}
+                  onRemove={handlePortfolioRemove}
+                  onReorder={handlePortfolioReorder}
+                  onView={(idx) =>
+                    setLightbox({
+                      urls: profile.portfolio_urls ?? [],
+                      index: idx,
+                      creatorName: profile.name,
+                    })
+                  }
+                />
+              ) : null}
 
               {/* Profile form */}
               <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -958,6 +1248,24 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   )}
                   <div><span className="font-medium text-gray-700">Posted:</span> <span className="text-gray-500">{new Date(detailPost.created_at).toLocaleDateString()}</span></div>
                 </div>
+
+                {detailPost.creator.portfolio_urls && detailPost.creator.portfolio_urls.length > 0 ? (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                      More from {detailPost.creator.name}
+                    </h3>
+                    <PortfolioGrid
+                      urls={detailPost.creator.portfolio_urls}
+                      onOpen={(idx) =>
+                        setLightbox({
+                          urls: detailPost.creator.portfolio_urls ?? [],
+                          index: idx,
+                          creatorName: detailPost.creator.name,
+                        })
+                      }
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -1187,6 +1495,15 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           onClose={() => setReportTarget(null)}
         />
       ) : null}
+
+      {/* ======================== PORTFOLIO LIGHTBOX ======================== */}
+      <PortfolioLightbox
+        open={!!lightbox && lightbox.urls.length > 0}
+        urls={lightbox?.urls ?? []}
+        startIndex={lightbox?.index ?? 0}
+        creatorName={lightbox?.creatorName}
+        onClose={() => setLightbox(null)}
+      />
     </div>
   );
 }

@@ -53,14 +53,18 @@ Success criteria: 1 event seeded → 10+ RSVPs → 5+ attendees → ≥ 2 cross-
 - [ ] Feed filter chip row: tap a vibe to filter
 - [ ] Match score: boost posts that share vibes with your profile
 
-### 1.3 Portfolio gallery (next, ~3 days)
+### 1.3 Portfolio gallery (SHIPPED — web)
 
 **The bet:** the 9-grid is the resume. Profiles should *show*, not tell.
 
-- [ ] DB: `portfolio_media` JSONB column on profiles (or separate table for ordering)
-- [ ] Profile edit: drag-to-reorder 3x3 grid
-- [ ] Profile view: tap any tile for fullscreen + caption
-- [ ] On a swipe card, show the creator's 4-image portfolio strip below their post
+- [x] DB: `portfolio_urls TEXT[]` on profiles (v3 schema)
+- [x] Profile edit: 3-column grid with add / remove / move-left / move-right per tile, capped at 9 images
+- [x] Profile view: tap any tile for fullscreen lightbox with keyboard ← → navigation and pagination dots
+- [x] On a swipe card: "More from {creator}" horizontal portfolio strip below the post body
+- [x] In post detail dialog: full 3x3 portfolio grid below the post details
+- [ ] iOS parity (next ship)
+
+Why this is the killer move: you're no longer swiping on a single post — you're swiping on the whole person's body of work. That alone changes the math of who you choose to message.
 
 ---
 

@@ -22,6 +22,7 @@ export type CreatorInfo = {
   name: string;
   role: string | null;
   avatar_url: string | null;
+  portfolio_urls?: string[];
 };
 
 export type PostWithCreator = CollabPost & {
@@ -70,8 +71,12 @@ export type Profile = {
   current_project: string | null;
   skills: string[] | null;
   avatar_url: string | null;
+  portfolio_urls: string[] | null;
+  vibes: string[] | null;
   created_at: string;
 };
+
+export const PORTFOLIO_MAX_IMAGES = 9;
 
 export type ReportReason =
   | "spam"
@@ -93,7 +98,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
 
   const { data } = await supabase
     .from("profiles")
-    .select("user_id, name, role, avatar_url")
+    .select("user_id, name, role, avatar_url, portfolio_urls")
     .in("user_id", userIds);
 
   for (const p of data || []) {
@@ -102,6 +107,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
       name: p.name,
       role: p.role,
       avatar_url: p.avatar_url,
+      portfolio_urls: (p.portfolio_urls as string[] | null) ?? [],
     });
   }
   return map;
@@ -510,6 +516,8 @@ export async function updateProfile(
     current_project?: string;
     skills?: string[];
     avatar_url?: string;
+    portfolio_urls?: string[];
+    vibes?: string[];
   }
 ): Promise<{ error: string | null }> {
   try {
@@ -517,6 +525,36 @@ export async function updateProfile(
     return { error: error?.message ?? null };
   } catch (err) {
     return { error: errMsg(err) };
+  }
+}
+
+/**
+ * Replace the user's portfolio image list in one shot.
+ * Pass the new ordered array of public URLs.
+ */
+export async function updatePortfolio(
+  userId: string,
+  portfolioUrls: string[]
+): Promise<{ error: string | null }> {
+  return updateProfile(userId, { portfolio_urls: portfolioUrls });
+}
+
+/**
+ * Fetch just one creator's portfolio (for chat / detail views).
+ */
+export async function getCreatorPortfolio(
+  userId: string
+): Promise<{ urls: string[]; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("portfolio_urls")
+      .eq("user_id", userId)
+      .single();
+    if (error) return { urls: [], error: error.message };
+    return { urls: (data?.portfolio_urls as string[] | null) ?? [], error: null };
+  } catch (err) {
+    return { urls: [], error: errMsg(err) };
   }
 }
 
