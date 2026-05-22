@@ -2,13 +2,17 @@
 
 **[Live web demo](https://melange-psi.vercel.app)** · **[iOS app](./mobile/README.md)** (Expo, App Store-ready)
 
-A creative collaboration platform where artists, photographers, models, MUAs, stylists, and designers find each other. Post what you're working on, swipe through other creatives' projects, match when the interest is mutual, and message to plan the collaboration.
+**Where creative people find their next collaboration.** Photo walks. Open calls. Mutual swipes that lead to real shoots. The middle ground between Instagram and LinkedIn — built for the way creative work actually happens.
+
+> 📖 **Product strategy + roadmap + architecture live in [`/docs`](./docs/).** Read [`STRATEGY.md`](./docs/STRATEGY.md) first if you want to understand the bet.
 
 This repo contains:
 
-- **Web app** (`/app`, `/components`, `/lib`) — Next.js + React + Supabase
+- **Web app** (`/app`) — Next.js 16 + React 19 + Supabase
 - **iOS app** (`/mobile`) — Expo / React Native + Supabase, App Store-ready
-- **Shared backend** (`/supabase`, `/supabase_schema.sql`, `/supabase_schema_v2.sql`) — Postgres + RLS + Storage + Edge Function for push
+- **Shared backend** (`/supabase`, `/supabase_schema*.sql`) — Postgres + RLS + Storage + Edge Function for push
+- **Docs** (`/docs`) — strategy, roadmap, metrics, architecture
+- **Ops scripts** (`/scripts`) — wipe users, apply migrations (read secrets from env only)
 
 Both apps talk to the same Supabase project: same accounts, same posts, same matches. A user who signs up on iOS can sign in on web and vice versa.
 
@@ -22,26 +26,35 @@ Both apps talk to the same Supabase project: same accounts, same posts, same mat
 
 ## Features
 
-### Shared (web + iOS)
+### Shipped (web + iOS, full parity)
 
-- Email/password auth, persistent sessions
+- Email/password auth with persistent sessions and Terms / 18+ acceptance
 - Full profile editing (name, role, skills, bio, current project, avatar)
-- Posts: title, description, looking-for tags, location, compensation, images
-- Swipe feed filtered by search
+- **Posts** with title, description, looking-for tags, location, compensation, and **up to 5 images**
+- **Edit / delete** your own posts
+- **Swipe feed** filtered by search; respects blocks in both directions
 - Mutual matching (both must right-swipe)
-- Realtime chat per match
+- **Realtime chat** per match with server-side unread tracking that syncs across devices
+- **Block & report** for users, posts, and messages (App Store UGC compliance)
+- **In-app account deletion** for App Store 5.1.1(v) compliance
+- **Events** — host or RSVP to photo walks, open calls, gallery openings, workshops, meetups, exhibitions. Filter by city. *(Phase 1 — strategic bet, see [`docs/STRATEGY.md`](./docs/STRATEGY.md))*
+- Privacy policy and Terms of Service pages (rendered statically)
 - Row-level security on every table
 
 ### iOS-only additions
 
 - **Native swipe gestures** (Reanimated + Gesture Handler), feels like Tinder/Hinge
 - **Push notifications** for new matches and messages (Expo Notifications + Supabase Edge Function)
-- **Server-side unread tracking** — read state syncs across devices (`match_reads` table)
-- **Multi-image posts** — up to 5 photos per post, swipeable gallery
-- **Edit / delete your own posts**
-- **Block & report** for App Store UGC compliance
-- **In-app account deletion** for App Store 5.1.1(v) compliance
-- **Onboarding intro** before signup
+- Native bottom tab bar
+- Onboarding intro carousel before signup
+
+### Coming next (see [`docs/ROADMAP.md`](./docs/ROADMAP.md))
+
+- Vibe tags for aesthetic-driven matching
+- Portfolio gallery on profiles (the 9-grid is the resume)
+- Two-sided reviews after collabs
+- Travel mode ("I'm in NYC next week")
+- Shoot Diary (post your collab outputs for organic growth)
 
 ## Tech stack
 
@@ -61,24 +74,36 @@ No separate backend. The clients talk directly to Supabase, secured by Postgres 
 
 ```
 melange/
-├── app/                        # Next.js web app (App Router)
-├── components/                 # Web UI primitives (shadcn/ui)
-├── lib/                        # Web utilities
-├── mobile/                     # Expo / React Native iOS app
-│   ├── app/                    # Expo Router routes
-│   ├── src/lib/                # supabase, db, auth, matches, push, theme
-│   ├── src/components/         # RN components + UI primitives
-│   ├── assets/                 # Icons, splash
-│   ├── store/                  # App Store submission metadata
+├── app/                         # Next.js web app (App Router)
+│   ├── components/              # AuthPage, MelangeApp, EventsView, dialogs
+│   ├── lib/                     # supabaseClient, db, events
+│   ├── privacy/, terms/         # Static legal pages
+│   └── page.tsx, layout.tsx
+├── components/                  # shadcn/ui primitives (Button, Input, Dialog, ...)
+├── lib/                         # Utilities (cn helper)
+├── mobile/                      # Expo / React Native iOS app
+│   ├── app/                     # Expo Router routes
+│   ├── src/lib/                 # supabase, db, auth, matches, push, theme
+│   ├── src/components/          # RN components + UI primitives
+│   ├── assets/                  # Icons, splash
+│   ├── store/                   # App Store submission metadata
 │   ├── app.json, eas.json
-│   └── README.md               # iOS-specific setup + submission guide
-├── supabase/                   # Local Supabase CLI config + edge functions
-│   └── functions/send-push/    # Push fan-out edge function
-├── supabase_schema.sql         # Base schema (web + iOS)
-├── supabase_schema_v2.sql      # iOS additions: blocks, reports, push_tokens, match_reads, RPCs
-├── PRIVACY.md                  # Privacy policy (host this for App Store + GDPR)
-├── TERMS.md                    # Terms of service
-└── README.md                   # ← you are here
+│   └── README.md                # iOS-specific setup + submission guide
+├── supabase/                    # Local Supabase CLI config + edge functions
+│   └── functions/send-push/     # Push fan-out edge function
+├── supabase_schema.sql          # Base schema
+├── supabase_schema_v2.sql       # blocks, reports, push_tokens, match_reads, RPCs
+├── supabase_schema_v3.sql       # Events, vibes, portfolios (Phase 1)
+├── scripts/                     # Ops scripts — read secrets from env only
+│   ├── apply_migration.mjs      # Apply a SQL file via the Management API
+│   └── wipe_users.mjs           # Wipe all users + data (dev only)
+├── docs/                        # Strategy, roadmap, metrics, architecture
+│   ├── STRATEGY.md              # The bet we are making and why
+│   ├── ROADMAP.md               # What we're shipping when
+│   ├── METRICS.md               # How we measure success
+│   └── ARCHITECTURE.md          # Codebase guide for future contributors
+├── PRIVACY.md, TERMS.md         # Source for /privacy and /terms pages
+└── README.md                    # ← you are here
 ```
 
 ## Run locally

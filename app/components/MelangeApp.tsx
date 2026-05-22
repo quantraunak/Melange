@@ -61,8 +61,9 @@ import {
 import ReportDialog from "./ReportDialog";
 import EditPostDialog from "./EditPostDialog";
 import AccountSafetyDialog from "./AccountSafetyDialog";
+import EventsView from "./EventsView";
 
-type Tab = "connect" | "messages" | "profile";
+type Tab = "connect" | "events" | "messages" | "profile";
 
 function Logo() {
   return (
@@ -522,6 +523,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: "connect", label: "Connect" },
+    { key: "events", label: "Events" },
     { key: "messages", label: "Messages", badge: unreadCount },
     { key: "profile", label: "Profile" },
   ];
@@ -711,6 +713,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 </>
               )}
             </div>
+          )}
+
+          {/* ======================== EVENTS TAB ======================== */}
+          {activeTab === "events" && userId && (
+            <EventsView userId={userId} />
           )}
 
           {/* ======================== MESSAGES TAB ======================== */}
