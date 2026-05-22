@@ -1,113 +1,126 @@
 # Melange
 
-**[Live Demo](https://melange-psi.vercel.app)**
+**[Live web demo](https://melange-psi.vercel.app)** · **[iOS app](./mobile/README.md)** (Expo, App Store-ready)
 
-A creative collaboration platform where artists, photographers, models, and other creatives find each other. Create a profile, post what you're working on, swipe through others' projects, match when the interest is mutual, and message to plan the collaboration.
+A creative collaboration platform where artists, photographers, models, MUAs, stylists, and designers find each other. Post what you're working on, swipe through other creatives' projects, match when the interest is mutual, and message to plan the collaboration.
 
-## How It Works
+This repo contains:
+
+- **Web app** (`/app`, `/components`, `/lib`) — Next.js + React + Supabase
+- **iOS app** (`/mobile`) — Expo / React Native + Supabase, App Store-ready
+- **Shared backend** (`/supabase`, `/supabase_schema.sql`, `/supabase_schema_v2.sql`) — Postgres + RLS + Storage + Edge Function for push
+
+Both apps talk to the same Supabase project: same accounts, same posts, same matches. A user who signs up on iOS can sign in on web and vice versa.
+
+## How it works
 
 1. **Sign up** with your name, role, skills, and bio.
-2. **Create a post** describing the collaboration you're looking for -- add location, compensation, tags, and an image.
+2. **Create a post** describing the collaboration you're looking for — add location, compensation, tags, and up to 5 images.
 3. **Swipe** through other creatives' posts. Filter by role, location, or skill.
 4. **Match** when both users like each other's posts.
 5. **Message** your match in realtime to plan the collaboration.
 
 ## Features
 
-- **Auth** -- Email/password signup and login with full profile creation.
-- **Profile editing** -- Update name, role, skills, bio, and current project at any time.
-- **Avatar upload** -- Upload a profile photo, displayed across feed cards, matches, and chat.
-- **Post creation** -- Publish collaboration posts with title, description, looking-for tags, location, compensation, and an optional image.
-- **Swipe feed** -- Card stack of posts from other users, filtered by search query across all fields.
-- **Mutual matching** -- Right-swipe on a post; if the post owner has also right-swiped on one of yours, a match is created.
-- **Realtime chat** -- Per-match conversation threads with live message delivery via Supabase Realtime.
-- **Unread indicators** -- Badge count on the Messages tab and visual distinction for conversations with new messages.
-- **Realtime matches** -- New matches appear automatically without requiring a page refresh.
-- **Row Level Security** -- All data access enforced at the database level.
+### Shared (web + iOS)
 
-## Tech Stack
+- Email/password auth, persistent sessions
+- Full profile editing (name, role, skills, bio, current project, avatar)
+- Posts: title, description, looking-for tags, location, compensation, images
+- Swipe feed filtered by search
+- Mutual matching (both must right-swipe)
+- Realtime chat per match
+- Row-level security on every table
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js (App Router) |
-| Language | TypeScript |
-| UI | React, Radix UI, Tailwind CSS |
-| Auth, Database, Storage, Realtime | Supabase (Postgres, GoTrue, PostgREST, Realtime, Storage) |
-| Hosting | Vercel |
+### iOS-only additions
 
-No separate backend. The browser talks directly to Supabase's APIs, secured by Postgres RLS policies.
+- **Native swipe gestures** (Reanimated + Gesture Handler), feels like Tinder/Hinge
+- **Push notifications** for new matches and messages (Expo Notifications + Supabase Edge Function)
+- **Server-side unread tracking** — read state syncs across devices (`match_reads` table)
+- **Multi-image posts** — up to 5 photos per post, swipeable gallery
+- **Edit / delete your own posts**
+- **Block & report** for App Store UGC compliance
+- **In-app account deletion** for App Store 5.1.1(v) compliance
+- **Onboarding intro** before signup
 
-## Run Locally
+## Tech stack
 
-Prerequisites: Node.js 18+, a [Supabase](https://supabase.com) project.
+| Layer | Web | iOS |
+|---|---|---|
+| Framework | Next.js (App Router) | Expo + Expo Router |
+| Language | TypeScript | TypeScript |
+| UI | React + Radix + Tailwind v4 | React Native + StyleSheet (matched palette) |
+| Gestures | n/a | Reanimated + Gesture Handler |
+| Notifications | n/a | Expo Notifications |
+| Auth, DB, Storage, Realtime | Supabase | Supabase |
+| Hosting | Vercel | EAS Build → App Store |
+
+No separate backend. The clients talk directly to Supabase, secured by Postgres RLS.
+
+## Repository layout
+
+```
+melange/
+├── app/                        # Next.js web app (App Router)
+├── components/                 # Web UI primitives (shadcn/ui)
+├── lib/                        # Web utilities
+├── mobile/                     # Expo / React Native iOS app
+│   ├── app/                    # Expo Router routes
+│   ├── src/lib/                # supabase, db, auth, matches, push, theme
+│   ├── src/components/         # RN components + UI primitives
+│   ├── assets/                 # Icons, splash
+│   ├── store/                  # App Store submission metadata
+│   ├── app.json, eas.json
+│   └── README.md               # iOS-specific setup + submission guide
+├── supabase/                   # Local Supabase CLI config + edge functions
+│   └── functions/send-push/    # Push fan-out edge function
+├── supabase_schema.sql         # Base schema (web + iOS)
+├── supabase_schema_v2.sql      # iOS additions: blocks, reports, push_tokens, match_reads, RPCs
+├── PRIVACY.md                  # Privacy policy (host this for App Store + GDPR)
+├── TERMS.md                    # Terms of service
+└── README.md                   # ← you are here
+```
+
+## Run locally
+
+### Web
 
 ```bash
-git clone <repo-url> && cd melange
 npm install
+cp .env.local.example .env.local   # fill NEXT_PUBLIC_SUPABASE_URL + ANON_KEY
+npm run dev
+# open http://localhost:3000
 ```
 
-### Environment Variables
-
-Create `.env.local` in the project root:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-```
-
-Get both values from your Supabase Dashboard under **Settings > API**. The anon key must be the JWT format (starts with `eyJ`).
-
-### Database Setup
-
-Open the Supabase SQL Editor and run the contents of [`supabase_schema.sql`](./supabase_schema.sql). This single file creates all tables, indexes, RLS policies, and the storage bucket in one pass. It is idempotent.
-
-### Supabase Dashboard Setup
-
-After running the schema SQL:
-
-1. **Realtime** -- Enable Realtime for the `messages` and `matches` tables.
-   Go to **Database > Replication**, find each table, and toggle Realtime on.
-
-2. **Storage** -- The schema SQL creates a public `media` bucket automatically.
-   Verify it exists under **Storage** in the dashboard. If not, create a bucket named `media` with public access enabled.
-
-3. **Auth** -- Email confirmations are off by default for local development.
-   Under **Authentication > Providers > Email**, ensure "Confirm email" is disabled if you want instant sign-in during development.
-
-### Start
+### iOS
 
 ```bash
-npm run dev
+cd mobile
+npm install
+cp .env.example .env               # same Supabase URL + ANON_KEY as web
+npm run ios
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+See [`mobile/README.md`](./mobile/README.md) for the full iOS setup, push notifications wiring, and App Store submission guide.
 
-## Deployment
+## Database setup
 
-The app deploys to [Vercel](https://vercel.com) with zero configuration. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as environment variables in the Vercel project settings.
+Run both SQL files in the Supabase SQL Editor, in order:
 
-## Project Structure
+1. `supabase_schema.sql` — base tables, RLS, storage bucket
+2. `supabase_schema_v2.sql` — iOS additions (blocks, reports, push tokens, match reads, RPCs)
 
-```
-app/
-  components/
-    AuthPage.tsx       # Login, signup, and profile creation
-    MelangeApp.tsx     # Main app: feed, messages, profile tabs
-  lib/
-    db.ts              # All Supabase queries and types
-    supabaseClient.ts  # Supabase client initialization
-  layout.tsx           # Root layout
-  page.tsx             # Entry point
-components/ui/         # shadcn/ui primitives
-supabase/              # Supabase CLI config (local dev)
-supabase_schema.sql    # Canonical database + storage schema
-```
+Both are idempotent. Then enable Realtime for the `messages` and `matches` tables under **Database → Replication**.
 
-## Known Limitations
+## App Store submission
 
-- **Per-device unread tracking** -- Unread message state is stored in the browser's localStorage rather than in the database, so read/unread status does not sync across devices or browsers.
-- **No push notifications** -- New matches and messages are only visible when the app is open.
-- **No post editing or deletion** -- Posts are immutable after creation.
-- **Single image per post** -- Posts support one image; galleries are not implemented.
-- **No blocking or reporting** -- No moderation tools exist yet.
-- **Client-side search only** -- Post filtering happens in-memory on already-loaded data, not via server-side full-text search.
+The iOS app is App Store-ready. See [`mobile/README.md`](./mobile/README.md#building-for-the-app-store) for the EAS Build + Submit workflow. App Store listing copy is pre-written in [`mobile/store/metadata.md`](./mobile/store/metadata.md).
+
+Apple's UGC compliance is fully covered:
+
+- ✅ Reports (post, user, message — six categorized reasons + free text)
+- ✅ Blocks (per-user, two-way feed filtering)
+- ✅ Privacy policy + Terms of service (live in this repo, host them anywhere)
+- ✅ In-app account deletion with cascading data wipe
+- ✅ Age gate at signup (18+)
+- ✅ Email contact for moderation concerns

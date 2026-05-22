@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Melange",
+    "slug": "melange",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "melange",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e3a8a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.melange.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Melange needs access to your camera to take photos for your profile and posts.",
+        "NSPhotoLibraryUsageDescription": "Melange needs access to your photo library so you can pick photos for your profile and posts.",
+        "NSPhotoLibraryAddUsageDescription": "Melange may save photos to your library when you choose to."
+      },
+      "associatedDomains": []
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Melange needs access to your photo library so you can pick photos for your profile and posts.",
+          "cameraPermission": "Melange needs access to your camera to take photos for your profile and posts."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1e3a8a"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 200,
+          "backgroundColor": "#1e3a8a"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}

@@ -3,64 +3,75 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
-  getUnswipedPosts,
-  recordSwipe,
+  blockUser,
   checkAndCreateMatch,
+  createPost,
   getMatches,
   getMessages,
-  sendMessage,
-  createPost,
+  getMyPosts,
   getProfile,
+  getUnswipedPosts,
+  isMatchUnread,
+  markMatchRead,
+  recordSwipe,
+  sendMessage,
   updateProfile,
   uploadFile,
-  type PostWithCreator,
+  type CollabPost,
+  type CreatorInfo,
   type MatchWithPost,
   type Message,
+  type PostWithCreator,
   type Profile,
-  type CreatorInfo,
 } from "../lib/db";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
-  X,
-  Heart,
-  Plus,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertTriangle,
   ArrowLeft,
-  Send,
-  Info,
-  MapPin,
-  DollarSign,
-  Users,
-  LogOut,
   Camera,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  Flag,
+  Heart,
   ImagePlus,
+  Info,
   Loader2,
+  LogOut,
+  MapPin,
+  MoreVertical,
+  Pencil,
+  Plus,
   Search,
+  Send,
+  Settings,
+  Shield,
+  Users,
+  X,
 } from "lucide-react";
+
+import ReportDialog from "./ReportDialog";
+import EditPostDialog from "./EditPostDialog";
+import AccountSafetyDialog from "./AccountSafetyDialog";
 
 type Tab = "connect" | "messages" | "profile";
 
-const LAST_READ_KEY = "melange_last_read";
-
-function getLastReadMap(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(LAST_READ_KEY) || "{}"); }
-  catch { return {}; }
-}
-
-function markMatchRead(matchId: string) {
-  const reads = getLastReadMap();
-  reads[matchId] = new Date().toISOString();
-  localStorage.setItem(LAST_READ_KEY, JSON.stringify(reads));
-}
-
-function isMatchUnread(match: MatchWithPost, userId: string): boolean {
-  if (!match.last_message) return false;
-  if (match.last_message.sender_id === userId) return false;
-  const lastRead = getLastReadMap()[match.id];
-  if (!lastRead) return true;
-  return match.last_message.created_at > lastRead;
+function Logo() {
+  return (
+    <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#4338ca" strokeWidth="2" />
+      <path d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z" fill="#BFDBFE" stroke="#4338ca" strokeWidth="2" />
+      <circle cx="50" cy="50" r="10" fill="#4338ca" />
+    </svg>
+  );
 }
 
 function formatTimeAgo(iso: string): string {
@@ -75,14 +86,70 @@ function formatTimeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function Avatar({ creator, size = "md" }: { creator: CreatorInfo; size?: "sm" | "md" | "lg" }) {
-  const dims = size === "sm" ? "w-8 h-8 text-xs" : size === "lg" ? "w-14 h-14 text-lg" : "w-10 h-10 text-sm";
+function Avatar({
+  creator,
+  size = "md",
+}: {
+  creator: Pick<CreatorInfo, "name" | "avatar_url" | "role"> & { name: string };
+  size?: "sm" | "md" | "lg" | "xl";
+}) {
+  const dims =
+    size === "sm"
+      ? "w-8 h-8 text-xs"
+      : size === "lg"
+      ? "w-14 h-14 text-lg"
+      : size === "xl"
+      ? "w-20 h-20 text-2xl"
+      : "w-10 h-10 text-sm";
   if (creator.avatar_url) {
     return <img src={creator.avatar_url} alt={creator.name} className={`${dims} rounded-full object-cover flex-shrink-0`} />;
   }
   return (
     <div className={`${dims} rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center justify-center flex-shrink-0`}>
       {creator.name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+/** Simple swipable image gallery for cards / detail / chat. */
+function ImageGallery({ urls, height = "h-48" }: { urls: string[]; height?: string }) {
+  const [idx, setIdx] = useState(0);
+  if (urls.length === 0) {
+    return (
+      <div className={`${height} bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 flex items-center justify-center`}>
+        <div className="text-4xl opacity-20">🎨</div>
+      </div>
+    );
+  }
+  return (
+    <div className={`relative ${height} bg-gray-100 overflow-hidden`}>
+      <img src={urls[idx]} alt="" className="w-full h-full object-cover" />
+      {urls.length > 1 ? (
+        <>
+          <button
+            onClick={() => setIdx((i) => (i === 0 ? urls.length - 1 : i - 1))}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/85 hover:bg-white flex items-center justify-center shadow-sm"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="h-4 w-4 text-gray-700" />
+          </button>
+          <button
+            onClick={() => setIdx((i) => (i === urls.length - 1 ? 0 : i + 1))}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/85 hover:bg-white flex items-center justify-center shadow-sm"
+            aria-label="Next image"
+          >
+            <ChevronRight className="h-4 w-4 text-gray-700" />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {urls.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full ${i === idx ? "bg-white" : "bg-white/45"}`}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -99,6 +166,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [connectErr, setConnectErr] = useState("");
   const [detailPost, setDetailPost] = useState<PostWithCreator | null>(null);
   const [connectSearch, setConnectSearch] = useState("");
+  const [matchToast, setMatchToast] = useState<string | null>(null);
 
   // Create Post
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -109,11 +177,14 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [newPostCompensation, setNewPostCompensation] = useState("");
   const [creatingPost, setCreatingPost] = useState(false);
   const [createPostError, setCreatePostError] = useState("");
+  const [newPostImages, setNewPostImages] = useState<{ file: File; previewUrl: string }[]>([]);
+  const newPostImagesInputRef = useRef<HTMLInputElement>(null);
 
   // Messages
   const [matches, setMatches] = useState<MatchWithPost[]>([]);
   const [matchErr, setMatchErr] = useState("");
   const [chatMatch, setChatMatch] = useState<MatchWithPost | null>(null);
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messageText, setMessageText] = useState("");
@@ -122,18 +193,29 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
   // Profile
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [profileForm, setProfileForm] = useState({ name: "", role: "", bio: "", currentProject: "", skills: "" });
+  const [myPosts, setMyPosts] = useState<CollabPost[]>([]);
+  const [editingPost, setEditingPost] = useState<CollabPost | null>(null);
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    role: "",
+    bio: "",
+    currentProject: "",
+    skills: "",
+  });
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showAccountSafety, setShowAccountSafety] = useState(false);
 
-  // Post image upload
-  const [postImageFile, setPostImageFile] = useState<File | null>(null);
-  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  // Report dialog
+  const [reportTarget, setReportTarget] = useState<{
+    kind: "user" | "post" | "message";
+    id: string;
+    label?: string;
+  } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const postImageInputRef = useRef<HTMLInputElement>(null);
 
   // --- Data loading ---
 
@@ -143,13 +225,13 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setUserId(authRes?.user?.id ?? null);
   };
 
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     if (!userId) return;
     setConnectErr(""); setLoading(true);
     const { data, error } = await getUnswipedPosts(userId);
     if (error) { setConnectErr(error); setLoading(false); return; }
     setPosts(data || []); setCurrentPostIndex(0); setLoading(false);
-  };
+  }, [userId]);
 
   const loadMatches = useCallback(async () => {
     if (!userId) return;
@@ -158,7 +240,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setMatches(data || []);
   }, [userId]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!userId) return;
     const { data } = await getProfile(userId);
     if (data) {
@@ -171,7 +253,13 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         skills: data.skills?.join(", ") || "",
       });
     }
-  };
+  }, [userId]);
+
+  const loadMyPosts = useCallback(async () => {
+    if (!userId) return;
+    const { data } = await getMyPosts(userId);
+    setMyPosts(data || []);
+  }, [userId]);
 
   // --- Derived state ---
 
@@ -203,11 +291,43 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     if (direction === "right") {
       const { match, error: matchError } = await checkAndCreateMatch(userId, post.id);
       if (matchError) setConnectErr(matchError);
-      else if (match) await loadMatches();
+      else if (match) {
+        await loadMatches();
+        setMatchToast(`You matched with ${post.creator.name}!`);
+        setTimeout(() => setMatchToast(null), 2800);
+      }
     }
     if (currentPostIndex < visiblePosts.length - 1) setCurrentPostIndex(currentPostIndex + 1);
     else await loadPosts();
     setSwiping(false);
+  };
+
+  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = 5 - newPostImages.length;
+    const incoming = Array.from(files).slice(0, remaining);
+    const added = incoming.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setNewPostImages((prev) => [...prev, ...added]);
+    if (newPostImagesInputRef.current) newPostImagesInputRef.current.value = "";
+  };
+
+  const removeNewPostImage = (idx: number) => {
+    setNewPostImages((prev) => {
+      const target = prev[idx];
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const resetCreatePost = () => {
+    newPostImages.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setNewPostImages([]);
+    setNewPostTitle(""); setNewPostDescription(""); setNewPostLookingFor("");
+    setNewPostLocation(""); setNewPostCompensation("");
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -218,14 +338,17 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     const lookingFor = newPostLookingFor.split(",").map((s) => s.trim()).filter(Boolean);
 
     let mediaUrls: string[] | undefined;
-    if (postImageFile) {
-      const { url, error: uploadErr } = await uploadFile(userId, "posts", postImageFile);
-      if (uploadErr || !url) {
-        setCreatePostError(uploadErr || "Image upload failed");
-        setCreatingPost(false);
-        return;
+    if (newPostImages.length) {
+      mediaUrls = [];
+      for (const img of newPostImages) {
+        const { url, error: uploadErr } = await uploadFile(userId, "posts", img.file);
+        if (uploadErr || !url) {
+          setCreatePostError(uploadErr || "Image upload failed");
+          setCreatingPost(false);
+          return;
+        }
+        mediaUrls.push(url);
       }
-      mediaUrls = [url];
     }
 
     const { error } = await createPost(userId, newPostTitle.trim(), newPostDescription.trim(), {
@@ -235,15 +358,18 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       media_urls: mediaUrls,
     });
     if (error) { setCreatePostError(error); setCreatingPost(false); return; }
-    setNewPostTitle(""); setNewPostDescription(""); setNewPostLookingFor(""); setNewPostLocation(""); setNewPostCompensation("");
-    clearPostImage();
+    resetCreatePost();
     setShowCreatePost(false); setCreatingPost(false);
-    await loadPosts();
+    await Promise.all([loadPosts(), loadMyPosts()]);
   };
 
   const openChat = async (match: MatchWithPost) => {
-    markMatchRead(match.id);
+    if (userId) await markMatchRead(match.id, userId);
+    setMatches((prev) =>
+      prev.map((m) => (m.id === match.id ? { ...m, last_read_at: new Date().toISOString() } : m))
+    );
     setChatMatch(match); setMessages([]); setChatError(""); setMessagesLoading(true);
+    setChatMenuOpen(false);
     const { data, error } = await getMessages(match.id);
     if (error) setChatError(error);
     setMessages(data || []); setMessagesLoading(false);
@@ -255,7 +381,10 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setChatError(""); setSending(true);
     const { data, error } = await sendMessage(chatMatch.id, userId, messageText.trim());
     if (error) setChatError(error);
-    else if (data) { setMessages((prev) => [...prev, data]); setMessageText(""); }
+    else if (data) {
+      setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
+      setMessageText("");
+    }
     setSending(false);
   };
 
@@ -293,45 +422,53 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setProfileMsg("Avatar updated!");
   };
 
-  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPostImageFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setPostImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const clearPostImage = () => {
-    setPostImageFile(null);
-    setPostImagePreview(null);
-    if (postImageInputRef.current) postImageInputRef.current.value = "";
+  const confirmBlock = async () => {
+    if (!chatMatch || !userId) return;
+    if (!confirm(`Block ${chatMatch.other_creator.name}? You will no longer see their posts and they won't see yours.`)) return;
+    const { error: err } = await blockUser(userId, chatMatch.other_user_id);
+    if (err) { setChatError(err); return; }
+    setChatMenuOpen(false);
+    setChatMatch(null);
+    await Promise.all([loadMatches(), loadPosts()]);
   };
 
   const signOut = async () => { await supabase.auth.signOut(); onSignOut(); };
 
   // --- Effects ---
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadUser(); }, []);
-  useEffect(() => { if (userId) { loadPosts(); loadMatches(); loadProfile(); } }, [userId]);
-  useEffect(() => { if (activeTab === "messages") loadMatches(); }, [activeTab]);
+  useEffect(() => {
+    if (!userId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadPosts();
+    loadMatches();
+    loadProfile();
+    loadMyPosts();
+  }, [userId, loadPosts, loadMatches, loadProfile, loadMyPosts]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (activeTab === "messages") loadMatches(); }, [activeTab, loadMatches]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (activeTab === "profile") loadMyPosts(); }, [activeTab, loadMyPosts]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCurrentPostIndex(0); }, [connectSearch]);
 
   // Realtime: new messages in active chat
   useEffect(() => {
     if (!chatMatch || !userId) return;
+    const matchId = chatMatch.id;
     const channel = supabase
-      .channel(`chat:${chatMatch.id}`)
+      .channel(`chat:${matchId}`)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
         table: "messages",
-        filter: `match_id=eq.${chatMatch.id}`,
-      }, (payload) => {
+        filter: `match_id=eq.${matchId}`,
+      }, async (payload) => {
         const msg = payload.new as Message;
         if (msg.sender_id !== userId) {
-          markMatchRead(chatMatch.id);
+          await markMatchRead(matchId, userId);
           setMessages((prev) =>
             prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
           );
@@ -340,13 +477,14 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [chatMatch?.id, userId]);
+    // chatMatch.id is referenced via optional chaining; depend on chatMatch itself.
+  }, [chatMatch, userId]);
 
-  // Realtime: new matches for current user
+  // Realtime: new matches and messages list updates
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
-      .channel("my-matches")
+      .channel(`feed-events-${userId}`)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
@@ -359,22 +497,28 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         table: "matches",
         filter: `user2_id=eq.${userId}`,
       }, () => { loadMatches(); })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+      }, (payload) => {
+        const msg = payload.new as Message;
+        setMatches((prev) => {
+          const idx = prev.findIndex((m) => m.id === msg.match_id);
+          if (idx < 0) return prev;
+          const next = [...prev];
+          next[idx] = { ...next[idx], last_message: msg };
+          return next;
+        });
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [userId]);
+  }, [userId, loadMatches]);
 
   // --- Render ---
 
   const currentPost = visiblePosts[currentPostIndex];
-
-  const Logo = () => (
-    <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#4338ca" strokeWidth="2" />
-      <path d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z" fill="#BFDBFE" stroke="#4338ca" strokeWidth="2" />
-      <circle cx="50" cy="50" r="10" fill="#4338ca" />
-    </svg>
-  );
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: "connect", label: "Connect" },
@@ -426,6 +570,14 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           </div>
         </div>
 
+        {/* Match toast */}
+        {matchToast ? (
+          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-full bg-green-500 text-white text-xs font-semibold flex items-center gap-2 shadow-sm">
+            <Heart className="h-3.5 w-3.5 fill-white" />
+            {matchToast}
+          </div>
+        ) : null}
+
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto px-4 pb-4">
 
@@ -476,32 +628,40 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <>
                   {/* Post card */}
                   <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-4">
-                    {/* Card image area */}
-                    <div className="relative h-48 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 flex items-center justify-center">
-                      {currentPost.media_urls?.[0] ? (
-                        <img src={currentPost.media_urls[0]} alt={currentPost.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="text-4xl opacity-20">🎨</div>
-                      )}
+                    <div className="relative">
+                      <ImageGallery urls={currentPost.media_urls ?? []} />
                       <button
                         onClick={() => setDetailPost(currentPost)}
                         className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+                        aria-label="Post details"
                       >
                         <Info className="h-4 w-4 text-blue-600" />
                       </button>
                     </div>
 
-                    {/* Card body */}
                     <div className="p-4">
-                      {/* Creator row */}
                       <div className="flex items-center gap-2.5 mb-3">
                         <Avatar creator={currentPost.creator} size="md" />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-gray-900 truncate">{currentPost.creator.name}</p>
                           {currentPost.creator.role && (
                             <p className="text-xs text-gray-500 truncate">{currentPost.creator.role}</p>
                           )}
                         </div>
+                        <button
+                          onClick={() =>
+                            setReportTarget({
+                              kind: "post",
+                              id: currentPost.id,
+                              label: currentPost.title,
+                            })
+                          }
+                          className="text-gray-300 hover:text-red-500 transition-colors"
+                          title="Report post"
+                          aria-label="Report post"
+                        >
+                          <Flag className="h-3.5 w-3.5" />
+                        </button>
                       </div>
 
                       <h3 className="font-semibold text-gray-900 text-base mb-1">{currentPost.title}</h3>
@@ -615,10 +775,10 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
           {/* ======================== PROFILE TAB ======================== */}
           {activeTab === "profile" && (
-            <div className="pt-3">
-              {/* Avatar with upload */}
+            <div className="pt-3 space-y-5">
+              {/* Avatar + identity */}
               {profile && (
-                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
                   <button
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
@@ -634,14 +794,15 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                     </div>
                   </button>
                   <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                  <div>
-                    <p className="font-semibold text-gray-900">{profile.name}</p>
-                    {profile.role && <p className="text-sm text-gray-500">{profile.role}</p>}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{profile.name}</p>
+                    {profile.role && <p className="text-sm text-gray-500 truncate">{profile.role}</p>}
                     <p className="text-[11px] text-gray-400 mt-0.5">Click avatar to change</p>
                   </div>
                 </div>
               )}
 
+              {/* Profile form */}
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div>
                   <Label className="text-xs text-gray-500 mb-1">Name</Label>
@@ -665,7 +826,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 </div>
 
                 {profileMsg && (
-                  <p className={`text-xs rounded-xl p-2 ${profileMsg.includes("saved") ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                  <p className={`text-xs rounded-xl p-2 ${profileMsg.includes("saved") || profileMsg.includes("updated") ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
                     {profileMsg}
                   </p>
                 )}
@@ -678,6 +839,63 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   {savingProfile ? "Saving..." : "Save Profile"}
                 </button>
               </form>
+
+              {/* Your posts */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-semibold text-gray-900">Your posts</h2>
+                  <button
+                    onClick={() => setShowCreatePost(true)}
+                    className="text-xs font-medium text-blue-700 hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="h-3 w-3" /> New
+                  </button>
+                </div>
+                {myPosts.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">You haven&apos;t created a post yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {myPosts.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setEditingPost(p)}
+                        className="w-full text-left flex items-center gap-3 p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        {p.media_urls?.[0] ? (
+                          <img src={p.media_urls[0]} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-500">
+                            <Pencil className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{p.title}</p>
+                          <p className="text-[11px] text-gray-400">
+                            {new Date(p.created_at).toLocaleDateString()}
+                            {p.is_active ? "" : " · inactive"}
+                          </p>
+                        </div>
+                        <Pencil className="h-3.5 w-3.5 text-gray-300" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Account & safety */}
+              <div className="pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setShowAccountSafety(true)}
+                  className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  <Shield className="h-4 w-4 text-gray-500" />
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-semibold text-gray-900">Account &amp; safety</p>
+                    <p className="text-[11px] text-gray-400">Blocked users, delete account</p>
+                  </div>
+                  <Settings className="h-4 w-4 text-gray-300" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -693,24 +911,31 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           <DialogDescription className="sr-only">Post details</DialogDescription>
           {detailPost && (
             <div>
-              <div className="h-48 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 flex items-center justify-center">
-                {detailPost.media_urls?.[0] ? (
-                  <img src={detailPost.media_urls[0]} alt={detailPost.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-4xl opacity-20">🎨</div>
-                )}
-              </div>
+              <ImageGallery urls={detailPost.media_urls ?? []} height="h-56" />
+
               <div className="p-4 space-y-4">
-                {/* Creator section */}
                 <div className="flex items-center gap-3">
                   <Avatar creator={detailPost.creator} size="lg" />
-                  <div>
-                    <p className="font-semibold text-gray-900">{detailPost.creator.name}</p>
-                    {detailPost.creator.role && <p className="text-sm text-gray-500">{detailPost.creator.role}</p>}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{detailPost.creator.name}</p>
+                    {detailPost.creator.role && <p className="text-sm text-gray-500 truncate">{detailPost.creator.role}</p>}
                   </div>
+                  {userId && detailPost.owner_id !== userId ? (
+                    <button
+                      onClick={() =>
+                        setReportTarget({
+                          kind: "post",
+                          id: detailPost.id,
+                          label: detailPost.title,
+                        })
+                      }
+                      className="flex items-center gap-1 px-2 py-1 border border-red-200 rounded-full text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      <Flag className="h-3 w-3" /> Report
+                    </button>
+                  ) : null}
                 </div>
 
-                {/* Post details */}
                 <div className="space-y-2.5 text-sm">
                   {detailPost.description && (
                     <div><span className="font-medium text-gray-700">Description:</span> <span className="text-gray-500">{detailPost.description}</span></div>
@@ -733,8 +958,8 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       </Dialog>
 
       {/* ======================== CHAT DIALOG ======================== */}
-      <Dialog open={!!chatMatch} onOpenChange={(open) => { if (!open) setChatMatch(null); }}>
-        <DialogContent className="max-w-[440px] h-[75vh] flex flex-col p-0 rounded-2xl">
+      <Dialog open={!!chatMatch} onOpenChange={(open) => { if (!open) { setChatMatch(null); setChatMenuOpen(false); } }}>
+        <DialogContent className="max-w-[440px] h-[80vh] flex flex-col p-0 rounded-2xl">
           <div className="flex items-center gap-3 p-3 border-b border-gray-100">
             <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600">
               <ArrowLeft className="h-4 w-4" />
@@ -748,10 +973,44 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 </div>
               </div>
             )}
-            <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600 ml-auto"><X className="h-4 w-4" /></button>
+            <div className="ml-auto relative">
+              <button
+                onClick={() => setChatMenuOpen((o) => !o)}
+                className="text-gray-400 hover:text-gray-600 p-1"
+                aria-label="Conversation options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+              {chatMenuOpen && chatMatch ? (
+                <div className="absolute right-0 top-9 z-30 w-44 bg-white border border-gray-200 rounded-xl shadow-md py-1">
+                  <button
+                    onClick={() => {
+                      setChatMenuOpen(false);
+                      setReportTarget({
+                        kind: "user",
+                        id: chatMatch.other_user_id,
+                        label: chatMatch.other_creator.name,
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Flag className="h-3.5 w-3.5 text-red-500" /> Report user
+                  </button>
+                  <button
+                    onClick={confirmBlock}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" /> Block user
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <button onClick={() => { setChatMatch(null); setChatMenuOpen(false); }} className="text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div className="flex-1 overflow-y-auto px-4 py-3" onClick={() => setChatMenuOpen(false)}>
             {messagesLoading ? (
               <div className="flex items-center justify-center py-12 text-gray-400 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
@@ -801,11 +1060,21 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       </Dialog>
 
       {/* ======================== CREATE POST DIALOG ======================== */}
-      <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
-        <DialogContent className="max-w-[440px] p-0 rounded-2xl">
+      <Dialog
+        open={showCreatePost}
+        onOpenChange={(open) => {
+          if (!open) {
+            resetCreatePost();
+            setShowCreatePost(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[440px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           <div className="p-4 border-b border-gray-100">
             <DialogTitle className="text-base font-semibold text-gray-900">New Collaboration Post</DialogTitle>
-            <DialogDescription className="text-xs text-gray-400 mt-0.5">Describe what you&apos;re looking for. Others will see this in their feed.</DialogDescription>
+            <DialogDescription className="text-xs text-gray-400 mt-0.5">
+              Describe what you&apos;re looking for. Others will see this in their feed.
+            </DialogDescription>
           </div>
           <form onSubmit={handleCreatePost} className="p-4 space-y-3">
             <div>
@@ -828,31 +1097,41 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               <Label className="text-xs text-gray-500 mb-1">Compensation</Label>
               <Input value={newPostCompensation} onChange={(e) => setNewPostCompensation(e.target.value)} placeholder="e.g., TFP, $200/hr, Revenue share" className="rounded-xl" />
             </div>
-            {/* Image upload */}
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Image (optional)</Label>
-              {postImagePreview ? (
-                <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                  <img src={postImagePreview} alt="Preview" className="w-full h-32 object-cover" />
+              <Label className="text-xs text-gray-500 mb-1">Images (up to 5)</Label>
+              <div className="flex flex-wrap gap-2">
+                {newPostImages.map((img, idx) => (
+                  <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200">
+                    <img src={img.previewUrl} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewPostImage(idx)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/55 rounded-full flex items-center justify-center text-white"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {newPostImages.length < 5 ? (
                   <button
                     type="button"
-                    onClick={clearPostImage}
-                    className="absolute top-2 right-2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                    onClick={() => newPostImagesInputRef.current?.click()}
+                    className="w-20 h-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
                   >
-                    <X className="h-3 w-3" />
+                    <ImagePlus className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Add</span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => postImageInputRef.current?.click()}
-                  className="w-full h-20 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-                >
-                  <ImagePlus className="h-5 w-5" />
-                  <span className="text-xs font-medium">Add an image</span>
-                </button>
-              )}
-              <input ref={postImageInputRef} type="file" accept="image/*" className="hidden" onChange={handlePostImageSelect} />
+                ) : null}
+              </div>
+              <input
+                ref={newPostImagesInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handlePostImageSelect}
+              />
             </div>
             {createPostError && (
               <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">{createPostError}</p>
@@ -860,13 +1139,47 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
             <button
               type="submit"
               disabled={creatingPost || !newPostTitle.trim() || !newPostDescription.trim()}
-              className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
+              {creatingPost ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {creatingPost ? "Creating..." : "Create Post"}
             </button>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* ======================== EDIT POST ======================== */}
+      {userId ? (
+        <EditPostDialog
+          userId={userId}
+          post={editingPost}
+          onClose={() => setEditingPost(null)}
+          onSaved={async () => { await Promise.all([loadPosts(), loadMyPosts()]); }}
+          onDeleted={async () => { await Promise.all([loadPosts(), loadMyPosts()]); }}
+        />
+      ) : null}
+
+      {/* ======================== ACCOUNT & SAFETY ======================== */}
+      {userId ? (
+        <AccountSafetyDialog
+          userId={userId}
+          open={showAccountSafety}
+          onClose={() => setShowAccountSafety(false)}
+          onAccountDeleted={() => {
+            setShowAccountSafety(false);
+            onSignOut();
+          }}
+        />
+      ) : null}
+
+      {/* ======================== REPORT ======================== */}
+      {userId ? (
+        <ReportDialog
+          reporterId={userId}
+          target={reportTarget}
+          onClose={() => setReportTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }

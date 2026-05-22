@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from "./supabase";
 
 // ============================================================
 // Types
@@ -115,18 +115,33 @@ function errMsg(e: unknown): string {
 // Storage
 // ============================================================
 
+/**
+ * Upload a local file URI or Blob to Supabase Storage.
+ * Returns the public URL on success.
+ */
 export async function uploadFile(
   userId: string,
   folder: "avatars" | "posts",
-  file: File
+  fileUri: string,
+  contentType: string = "image/jpeg"
 ): Promise<{ url: string | null; error: string | null }> {
   try {
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${folder}/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    // On React Native, fetch(fileUri).blob() works for both file:// and assets.
+    const res = await fetch(fileUri);
+    const blob = await res.blob();
+
+    const ext = (() => {
+      const m = fileUri.match(/\.([a-zA-Z0-9]+)(?:\?.*)?$/);
+      if (m) return m[1].toLowerCase();
+      if (contentType.includes("png")) return "png";
+      return "jpg";
+    })();
+
+    const path = `${folder}/${userId}/${Date.now()}.${ext}`;
 
     const { error } = await supabase.storage
       .from("media")
-      .upload(path, file, { upsert: true });
+      .upload(path, blob, { upsert: true, contentType });
 
     if (error) return { url: null, error: error.message };
 
@@ -183,6 +198,7 @@ export async function updatePost(
       .eq("id", postId)
       .select()
       .single();
+
     if (error) return { data: null, error: error.message };
     return { data: data as CollabPost, error: null };
   } catch (err) {
@@ -208,6 +224,7 @@ export async function getMyPosts(
       .select("*")
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
+
     if (error) return { data: null, error: error.message };
     return { data: (data as CollabPost[]) ?? [], error: null };
   } catch (err) {
@@ -216,17 +233,15 @@ export async function getMyPosts(
 }
 
 /**
- * Feed of posts to swipe on.
- * Uses the `feed_posts` RPC which already filters out:
+ * Swipe feed — uses the `feed_posts` RPC which already excludes:
  *   - your own posts
  *   - inactive posts
  *   - posts by blocked users (either direction)
  *   - posts you've already swiped on
  */
-export async function getUnswipedPosts(userId: string): Promise<{
-  data: PostWithCreator[] | null;
-  error: string | null;
-}> {
+export async function getFeedPosts(
+  userId: string
+): Promise<{ data: PostWithCreator[] | null; error: string | null }> {
   try {
     const { data: posts, error } = await supabase.rpc("feed_posts", { p_user_id: userId });
 
@@ -257,11 +272,10 @@ export async function recordSwipe(
   direction: "left" | "right"
 ): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase.from("swipes").insert({
-      swiper_id: swiperId,
-      post_id: postId,
-      direction,
-    });
+    const { error } = await supabase
+      .from("swipes")
+      .insert({ swiper_id: swiperId, post_id: postId, direction });
+
     return { error: error?.message ?? null };
   } catch (err) {
     return { error: errMsg(err) };
@@ -371,9 +385,7 @@ export async function getMatches(
       .from("collab_posts")
       .select("*")
       .in("id", postIds);
-    const postsMap = new Map<string, CollabPost>(
-      (postsData || []).map((p) => [p.id, p as CollabPost])
-    );
+    const postsMap = new Map<string, CollabPost>((postsData || []).map((p) => [p.id, p as CollabPost]));
 
     const creatorIds = [...new Set(partials.map((p) => p.otherUserId))];
     const creators = await fetchCreators(creatorIds);
@@ -476,7 +488,7 @@ export async function markMatchRead(matchId: string, userId: string): Promise<vo
       { onConflict: "match_id,user_id" }
     );
   } catch {
-    // best-effort; not surfaced to the user
+    // best-effort
   }
 }
 
@@ -597,7 +609,38 @@ export async function submitReport(
 }
 
 // ============================================================
-// Account deletion (App Store requirement 5.1.1(v))
+// Push tokens
+// ============================================================
+
+export async function registerPushToken(
+  userId: string,
+  token: string,
+  platform: "ios" | "android" = "ios"
+): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase
+      .from("push_tokens")
+      .upsert(
+        { user_id: userId, token, platform, updated_at: new Date().toISOString() },
+        { onConflict: "token" }
+      );
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: errMsg(err) };
+  }
+}
+
+export async function removePushToken(token: string): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.from("push_tokens").delete().eq("token", token);
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: errMsg(err) };
+  }
+}
+
+// ============================================================
+// Account deletion (App Store requirement)
 // ============================================================
 
 export async function deleteAccount(): Promise<{ error: string | null }> {

@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { Check } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 
 import { Button } from "@/components/ui/button";
@@ -13,8 +16,23 @@ import { Textarea } from "@/components/ui/textarea";
 
 import MelangeApp from "./MelangeApp";
 
+function Logo() {
+  return (
+    <svg className="h-16 w-16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#7C3AED" strokeWidth="2" />
+      <path
+        d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z"
+        fill="#BFDBFE"
+        stroke="#7C3AED"
+        strokeWidth="2"
+      />
+      <circle cx="50" cy="50" r="10" fill="#7C3AED" />
+    </svg>
+  );
+}
+
 export default function AuthPage() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("login");
@@ -32,6 +50,8 @@ export default function AuthPage() {
     bio: "",
     currentProject: "",
   });
+
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -62,6 +82,11 @@ export default function AuthPage() {
 
     if (signupForm.password !== signupForm.confirmPassword) {
       setSignupError("Passwords do not match");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setSignupError("Please accept the Terms and Privacy Policy to continue.");
       return;
     }
 
@@ -100,8 +125,9 @@ export default function AuthPage() {
       if (profileErr) {
         setSignupError(`Profile insert failed: ${profileErr.message}`);
       }
-    } catch (err: any) {
-      setSignupError(`Unexpected error: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setSignupError(`Unexpected error: ${message}`);
     }
   };
 
@@ -109,19 +135,6 @@ export default function AuthPage() {
     await supabase.auth.signOut();
     setSession(null);
   };
-
-  const Logo = () => (
-    <svg className="h-16 w-16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#7C3AED" strokeWidth="2" />
-      <path
-        d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z"
-        fill="#BFDBFE"
-        stroke="#7C3AED"
-        strokeWidth="2"
-      />
-      <circle cx="50" cy="50" r="10" fill="#7C3AED" />
-    </svg>
-  );
 
   if (loading) return null;
 
@@ -282,6 +295,31 @@ export default function AuthPage() {
                   />
                 </div>
 
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <button
+                    type="button"
+                    onClick={() => setAcceptedTerms((v) => !v)}
+                    className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      acceptedTerms ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
+                    }`}
+                    aria-checked={acceptedTerms}
+                    role="checkbox"
+                  >
+                    {acceptedTerms ? <Check className="h-2.5 w-2.5 text-white" /> : null}
+                  </button>
+                  <span className="text-xs text-gray-600 leading-snug">
+                    I&apos;m at least 18 years old and I agree to the{" "}
+                    <Link href="/terms" target="_blank" className="text-blue-700 font-semibold hover:underline">
+                      Terms
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" target="_blank" className="text-blue-700 font-semibold hover:underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </span>
+                </label>
+
                 {signupError && (
                   <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
                     {signupError}
@@ -291,6 +329,15 @@ export default function AuthPage() {
                 <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
                   Sign Up
                 </Button>
+
+                <p className="text-[11px] text-gray-400 text-center">
+                  By signing up, you also agree to follow the Melange community rules.
+                  See the{" "}
+                  <Link href="/terms" target="_blank" className="text-gray-500 hover:text-gray-700 underline">
+                    Terms
+                  </Link>{" "}
+                  for details.
+                </p>
               </form>
             </TabsContent>
           </Tabs>
