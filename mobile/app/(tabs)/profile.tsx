@@ -38,9 +38,11 @@ import {
   updatePortfolio,
   updateProfile,
   uploadFile,
+  VIBE_PRESETS,
   type CollabPost,
   type Profile,
 } from "@/lib/db";
+import { normalizeSocialUrl } from "@/lib/reviews";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -54,7 +56,10 @@ export default function ProfileScreen() {
     bio: "",
     currentProject: "",
     skills: "",
+    instagram: "",
+    linkedin: "",
   });
+  const [vibes, setVibes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [portfolioBusy, setPortfolioBusy] = useState(false);
@@ -75,7 +80,10 @@ export default function ProfileScreen() {
         bio: profileData.bio || "",
         currentProject: profileData.current_project || "",
         skills: profileData.skills?.join(", ") || "",
+        instagram: profileData.instagram_url || "",
+        linkedin: profileData.linkedin_url || "",
       });
+      setVibes(profileData.vibes ?? []);
     }
     setMyPosts(postsData || []);
   }, [userId]);
@@ -96,6 +104,9 @@ export default function ProfileScreen() {
       bio: form.bio.trim() || undefined,
       current_project: form.currentProject.trim() || undefined,
       skills: skillsArr.length ? skillsArr : undefined,
+      vibes: vibes.length ? vibes : [],
+      instagram_url: normalizeSocialUrl("instagram", form.instagram),
+      linkedin_url: normalizeSocialUrl("linkedin", form.linkedin),
     });
     setSaving(false);
     if (err) setError(err);
@@ -318,6 +329,42 @@ export default function ProfileScreen() {
               placeholder="What you're working on right now"
             />
           </Field>
+          <Field label="Instagram">
+            <Input
+              value={form.instagram}
+              onChangeText={(t) => setForm({ ...form, instagram: t })}
+              placeholder="@handle or URL"
+              autoCapitalize="none"
+            />
+          </Field>
+          <Field label="LinkedIn">
+            <Input
+              value={form.linkedin}
+              onChangeText={(t) => setForm({ ...form, linkedin: t })}
+              placeholder="linkedin.com/in/you"
+              autoCapitalize="none"
+            />
+          </Field>
+          <Field label="Creative vibes" hint="Improves feed ranking (up to 5)">
+            <View style={styles.vibeRow}>
+              {VIBE_PRESETS.map((v) => {
+                const on = vibes.includes(v);
+                return (
+                  <Pressable
+                    key={v}
+                    onPress={() =>
+                      setVibes((prev) =>
+                        on ? prev.filter((x) => x !== v) : prev.length < 5 ? [...prev, v] : prev
+                      )
+                    }
+                    style={[styles.vibeChip, on && styles.vibeChipOn]}
+                  >
+                    <Text style={[styles.vibeChipText, on && styles.vibeChipTextOn]}>{v}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Field>
 
           <ErrorBanner message={error} />
           {savedMsg ? (
@@ -466,6 +513,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   linkRowText: { flex: 1, color: colors.text, fontWeight: "600", fontSize: 14 },
+
+  vibeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  vibeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  vibeChipOn: { backgroundColor: colors.brandSoft, borderColor: colors.brandText },
+  vibeChipText: { fontSize: 12, color: colors.textMuted },
+  vibeChipTextOn: { color: colors.brandText, fontWeight: "600" },
 
   portfolioHeader: {
     flexDirection: "row",

@@ -129,8 +129,10 @@ auth.users (managed by Supabase)
     │     cover_url, capacity, is_canceled
     │     └── event_rsvps      (v3) M:N — user × event
     │
-    └── (future) reviews       (Phase 2) two-sided collab reviews
-        (future) shoot_diary   (Phase 2) public collab outputs
+    ├── collab_reviews         (v4) two-sided reviews per match; mutual reveal
+    │     match_id, reviewer_id, reviewee_id, rating 1–5, tags[], body
+    │
+    └── (future) shoot_diary   (Phase 2) public collab outputs
 ```
 
 Every table has Row Level Security enabled. Policies grant:
@@ -138,9 +140,35 @@ Every table has Row Level Security enabled. Policies grant:
 - **INSERT** only with your own `user_id`
 - **UPDATE / DELETE** only on your own rows
 
-The two RPCs that bypass RLS for legitimate reasons:
-- `feed_posts(p_user_id UUID)` — filters out blocked users on both sides, your own posts, posts you've already swiped on. Runs as `SECURITY DEFINER` because it needs to read blocks where you are the *blockee*.
+RPCs that bypass RLS for legitimate reasons:
+- `feed_posts(p_user_id UUID)` — chronological swipe feed (legacy fallback).
+- `ranked_feed_posts(p_user_id UUID)` — **v4** scored feed (see Ranking below).
+- `explore_posts(p_user_id, p_limit)` — browse feed with block filter + reputation sort.
+- `creator_reputation(p_user_ids UUID[])` — avg rating + count for visible (mutual) reviews.
 - `delete_account()` — deletes the calling user's `auth.users` row, which cascades to everything else.
+
+### Ranking (v4 — “Tinder engineering” without ML infra yet)
+
+`ranked_feed_posts` scores each candidate post in SQL:
+
+| Signal | Weight | Notes |
+|--------|--------|-------|
+| Recency | 30% | Exponential decay (~7-day half-life) |
+| Vibe overlap | 25% | Jaccard on `profiles.vibes` ∩ `collab_posts.vibes` |
+| Role complementarity | 20% | Boost if your role ∈ post `looking_for`; partial if roles differ |
+| Reputation | 15% | Normalized avg of mutually revealed collab reviews |
+| Portfolio depth | 10% | Up to 9 images on profile |
+
+Client-side **diversity pass** (`diversifyFeed` in `app/lib/db.ts`) interleaves creators so the same photographer does not dominate the stack.
+
+**Next (Phase 3):** embeddings on portfolio images (CLIP), event co-attendance boost, swipe caps, “see who liked you.”
+
+### Collab reviews (v4)
+
+- One review per user per match, after **14 days** from `matches.created_at`.
+- Reviews are **hidden until both parties submit** (double-blind, anti-retaliation).
+- Short form: 1–5 stars, up to 2 tags, optional text.
+- Profile fields: `instagram_url`, `linkedin_url` (normalized on save).
 
 ---
 

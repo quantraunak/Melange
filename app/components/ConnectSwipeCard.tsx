@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import type { PostWithCreator } from "../lib/db";
+import ReputationBadge from "./ReputationBadge";
 
 const SWIPE_THRESHOLD = 90;
 
@@ -117,7 +118,14 @@ export default function ConnectSwipeCard({
         </button>
 
         <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm px-4 py-3 border-t border-white/50">
-          <p className="text-sm font-bold text-blue-900 truncate">{post.creator.name}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-bold text-blue-900 truncate">{post.creator.name}</p>
+            <ReputationBadge
+              avgRating={post.creator.avg_rating ?? 0}
+              reviewCount={post.creator.review_count ?? 0}
+              compact
+            />
+          </div>
           {post.creator.role ? (
             <p className="text-xs text-blue-600 truncate">{post.creator.role}</p>
           ) : null}

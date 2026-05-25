@@ -19,6 +19,7 @@ import {
   updatePortfolio,
   updateProfile,
   uploadFile,
+  VIBE_PRESETS,
   type CollabPost,
   type CreatorInfo,
   type MatchWithPost,
@@ -63,6 +64,14 @@ import ConnectSwipeCard from "./ConnectSwipeCard";
 import ExploreView from "./ExploreView";
 import Logo from "./Logo";
 import PortfolioLightbox from "./PortfolioLightbox";
+import ProfileReviews from "./ProfileReviews";
+import ReviewDialog from "./ReviewDialog";
+import ReputationBadge from "./ReputationBadge";
+import {
+  getMyReviewForMatch,
+  isReviewEligible,
+  normalizeSocialUrl,
+} from "../lib/reviews";
 
 type Tab = "connect" | "explore" | "messages" | "profile";
 type MessagesSubTab = "messages" | "matches";
@@ -339,7 +348,16 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     bio: "",
     currentProject: "",
     skills: "",
+    instagram: "",
+    linkedin: "",
   });
+  const [profileVibes, setProfileVibes] = useState<string[]>([]);
+  const [reviewDialog, setReviewDialog] = useState<{
+    matchId: string;
+    revieweeId: string;
+    revieweeName: string;
+  } | null>(null);
+  const [chatHasReview, setChatHasReview] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -400,7 +418,10 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         bio: data.bio || "",
         currentProject: data.current_project || "",
         skills: data.skills?.join(", ") || "",
+        instagram: data.instagram_url || "",
+        linkedin: data.linkedin_url || "",
       });
+      setProfileVibes(data.vibes ?? []);
     }
   }, [userId]);
 
@@ -519,6 +540,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     );
     setChatMatch(match); setMessages([]); setChatError(""); setMessagesLoading(true);
     setChatMenuOpen(false);
+    setChatHasReview(false);
+    if (userId) {
+      const { data: existing } = await getMyReviewForMatch(match.id, userId);
+      setChatHasReview(!!existing);
+    }
     const { data, error } = await getMessages(match.id);
     if (error) setChatError(error);
     setMessages(data || []); setMessagesLoading(false);
@@ -548,6 +574,9 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       bio: profileForm.bio || undefined,
       current_project: profileForm.currentProject || undefined,
       skills: skills.length ? skills : undefined,
+      vibes: profileVibes.length ? profileVibes : [],
+      instagram_url: normalizeSocialUrl("instagram", profileForm.instagram),
+      linkedin_url: normalizeSocialUrl("linkedin", profileForm.linkedin),
     });
     setSavingProfile(false);
     setProfileMsg(error ? error : "Profile saved!");
@@ -1015,6 +1044,52 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   <Label className="text-xs text-gray-500 mb-1">Current Project</Label>
                   <Input value={profileForm.currentProject} onChange={(e) => setProfileForm({ ...profileForm, currentProject: e.target.value })} className="rounded-xl" />
                 </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1">Instagram</Label>
+                  <Input
+                    value={profileForm.instagram}
+                    onChange={(e) => setProfileForm({ ...profileForm, instagram: e.target.value })}
+                    placeholder="@handle or full URL"
+                    className="rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1">LinkedIn</Label>
+                  <Input
+                    value={profileForm.linkedin}
+                    onChange={(e) => setProfileForm({ ...profileForm, linkedin: e.target.value })}
+                    placeholder="linkedin.com/in/you"
+                    className="rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1">Creative vibes</Label>
+                  <p className="text-[10px] text-gray-400 mb-2">Used to rank your posts higher for similar creators.</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {VIBE_PRESETS.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() =>
+                          setProfileVibes((prev) =>
+                            prev.includes(v)
+                              ? prev.filter((x) => x !== v)
+                              : prev.length < 5
+                              ? [...prev, v]
+                              : prev
+                          )
+                        }
+                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                          profileVibes.includes(v)
+                            ? "bg-blue-100 border-blue-400 text-blue-800"
+                            : "border-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {profileMsg && (
                   <p className={`text-xs rounded-xl p-2 ${profileMsg.includes("saved") || profileMsg.includes("updated") ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
@@ -1030,6 +1105,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   {savingProfile ? "Saving..." : "Save Profile"}
                 </button>
               </form>
+
+              <div className="pt-2 border-t border-gray-100">
+                <h2 className="text-sm font-semibold text-blue-900 mb-2">Collab reviews</h2>
+                {userId ? <ProfileReviews userId={userId} /> : null}
+              </div>
 
               {/* Your posts */}
               <div>
@@ -1111,6 +1191,25 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{detailPost.creator.name}</p>
                     {detailPost.creator.role && <p className="text-sm text-gray-500 truncate">{detailPost.creator.role}</p>}
+                    <ReputationBadge
+                      avgRating={detailPost.creator.avg_rating ?? 0}
+                      reviewCount={detailPost.creator.review_count ?? 0}
+                      compact
+                    />
+                    {(detailPost.creator.instagram_url || detailPost.creator.linkedin_url) ? (
+                      <div className="flex gap-2 mt-1">
+                        {detailPost.creator.instagram_url ? (
+                          <a href={detailPost.creator.instagram_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-violet-600 hover:underline">
+                            Instagram
+                          </a>
+                        ) : null}
+                        {detailPost.creator.linkedin_url ? (
+                          <a href={detailPost.creator.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-700 hover:underline">
+                            LinkedIn
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                   {userId && detailPost.owner_id !== userId ? (
                     <button
@@ -1219,6 +1318,27 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {chatMatch && userId && isReviewEligible(chatMatch.created_at) && !chatHasReview ? (
+            <div className="mx-4 mt-2 mb-1 p-2.5 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-violet-900 leading-snug">
+                Collaborated with {chatMatch.other_creator.name}? Leave a review.
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setReviewDialog({
+                    matchId: chatMatch.id,
+                    revieweeId: chatMatch.other_user_id,
+                    revieweeName: chatMatch.other_creator.name,
+                  })
+                }
+                className="text-[11px] font-medium px-2.5 py-1 bg-violet-400 text-white rounded-full shrink-0"
+              >
+                Review
+              </button>
+            </div>
+          ) : null}
 
           <div className="flex-1 overflow-y-auto px-4 py-3" onClick={() => setChatMenuOpen(false)}>
             {messagesLoading ? (
@@ -1388,6 +1508,18 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           reporterId={userId}
           target={reportTarget}
           onClose={() => setReportTarget(null)}
+        />
+      ) : null}
+
+      {userId && reviewDialog ? (
+        <ReviewDialog
+          open
+          onClose={() => setReviewDialog(null)}
+          matchId={reviewDialog.matchId}
+          reviewerId={userId}
+          revieweeId={reviewDialog.revieweeId}
+          revieweeName={reviewDialog.revieweeName}
+          onSubmitted={() => setChatHasReview(true)}
         />
       ) : null}
 

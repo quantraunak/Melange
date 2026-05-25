@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { getReputationForUsers } from "./reviews";
 
 // ============================================================
 // Types
@@ -23,6 +24,10 @@ export type CreatorInfo = {
   role: string | null;
   avatar_url: string | null;
   portfolio_urls?: string[];
+  instagram_url?: string | null;
+  linkedin_url?: string | null;
+  avg_rating?: number;
+  review_count?: number;
 };
 
 export type PostWithCreator = CollabPost & {
@@ -72,8 +77,22 @@ export type Profile = {
   skills: string[] | null;
   avatar_url: string | null;
   portfolio_urls: string[] | null;
+  vibes: string[] | null;
+  instagram_url: string | null;
+  linkedin_url: string | null;
   created_at: string;
 };
+
+export const VIBE_PRESETS = [
+  "Editorial",
+  "Street",
+  "Portrait",
+  "Fashion",
+  "Film",
+  "Beauty",
+  "Events",
+  "Travel",
+] as const;
 
 export const PORTFOLIO_MAX_IMAGES = 9;
 
@@ -97,15 +116,24 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
 
   const { data } = await supabase
     .from("profiles")
-    .select("user_id, name, role, avatar_url")
+    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url")
     .in("user_id", userIds);
 
+  const rep = await getReputationForUsers(userIds);
+
   for (const p of data || []) {
-    map.set(p.user_id, {
-      user_id: p.user_id,
+    const uid = p.user_id as string;
+    const r = rep.get(uid);
+    map.set(uid, {
+      user_id: uid,
       name: p.name,
       role: p.role,
       avatar_url: p.avatar_url,
+      portfolio_urls: (p.portfolio_urls as string[] | null) ?? [],
+      instagram_url: (p.instagram_url as string | null) ?? null,
+      linkedin_url: (p.linkedin_url as string | null) ?? null,
+      avg_rating: r?.avg_rating,
+      review_count: r?.review_count,
     });
   }
   return map;
@@ -247,7 +275,11 @@ export async function getFeedPosts(
   userId: string
 ): Promise<{ data: PostWithCreator[] | null; error: string | null }> {
   try {
-    const { data: posts, error } = await supabase.rpc("feed_posts", { p_user_id: userId });
+    let res = await supabase.rpc("ranked_feed_posts", { p_user_id: userId });
+    if (res.error) {
+      res = await supabase.rpc("feed_posts", { p_user_id: userId });
+    }
+    const { data: posts, error } = res;
 
     if (error) return { data: null, error: error.message };
 
@@ -527,6 +559,9 @@ export async function updateProfile(
     skills?: string[];
     avatar_url?: string;
     portfolio_urls?: string[];
+    vibes?: string[];
+    instagram_url?: string | null;
+    linkedin_url?: string | null;
   }
 ): Promise<{ error: string | null }> {
   try {

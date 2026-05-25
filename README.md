@@ -95,6 +95,7 @@ melange/
 ├── supabase_schema.sql          # Base schema
 ├── supabase_schema_v2.sql       # blocks, reports, push_tokens, match_reads, RPCs
 ├── supabase_schema_v3.sql       # Events, vibes, portfolios (Phase 1)
+├── supabase_schema_v4.sql       # Reviews, social links, ranked feed RPCs
 ├── scripts/                     # Ops scripts — read secrets from env only
 │   ├── apply_migration.mjs      # Apply a SQL file via the Management API
 │   └── wipe_users.mjs           # Wipe all users + data (dev only)
@@ -132,10 +133,19 @@ See [`mobile/README.md`](./mobile/README.md) for the full iOS setup, push notifi
 
 ## Database setup
 
-Run both SQL files in the Supabase SQL Editor, in order:
+Run all SQL files in the Supabase SQL Editor, in order:
 
 1. `supabase_schema.sql` — base tables, RLS, storage bucket
 2. `supabase_schema_v2.sql` — iOS additions (blocks, reports, push tokens, match reads, RPCs)
+3. `supabase_schema_v3.sql` — events, vibes, portfolios
+4. `supabase_schema_v4.sql` — collab reviews, Instagram/LinkedIn, ranked feed
+
+Or via Management API:
+
+```bash
+SUPABASE_PROJECT_REF=... SUPABASE_ACCESS_TOKEN=... \
+MIGRATION_FILE=supabase_schema_v4.sql node scripts/apply_migration.mjs
+```
 
 Both are idempotent. Then enable Realtime for the `messages` and `matches` tables under **Database → Replication**.
 

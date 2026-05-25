@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { getReputationForUsers } from "./reviews";
 
 // ============================================================
 // Types
@@ -15,6 +16,8 @@ export type CollabPost = {
   media_urls: string[] | null;
   is_active: boolean;
   created_at: string;
+  updated_at?: string;
+  vibes?: string[] | null;
 };
 
 export type CreatorInfo = {
@@ -23,6 +26,10 @@ export type CreatorInfo = {
   role: string | null;
   avatar_url: string | null;
   portfolio_urls?: string[];
+  instagram_url?: string | null;
+  linkedin_url?: string | null;
+  avg_rating?: number;
+  review_count?: number;
 };
 
 export type PostWithCreator = CollabPost & {
@@ -73,8 +80,21 @@ export type Profile = {
   avatar_url: string | null;
   portfolio_urls: string[] | null;
   vibes: string[] | null;
+  instagram_url: string | null;
+  linkedin_url: string | null;
   created_at: string;
 };
+
+export const VIBE_PRESETS = [
+  "Editorial",
+  "Street",
+  "Portrait",
+  "Fashion",
+  "Film",
+  "Beauty",
+  "Events",
+  "Travel",
+] as const;
 
 export const PORTFOLIO_MAX_IMAGES = 9;
 
@@ -98,19 +118,55 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
 
   const { data } = await supabase
     .from("profiles")
-    .select("user_id, name, role, avatar_url, portfolio_urls")
+    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url")
     .in("user_id", userIds);
 
+  const rep = await getReputationForUsers(userIds);
+
   for (const p of data || []) {
-    map.set(p.user_id, {
-      user_id: p.user_id,
+    const uid = p.user_id as string;
+    const r = rep.get(uid);
+    map.set(uid, {
+      user_id: uid,
       name: p.name,
       role: p.role,
       avatar_url: p.avatar_url,
       portfolio_urls: (p.portfolio_urls as string[] | null) ?? [],
+      instagram_url: (p.instagram_url as string | null) ?? null,
+      linkedin_url: (p.linkedin_url as string | null) ?? null,
+      avg_rating: r?.avg_rating,
+      review_count: r?.review_count,
     });
   }
   return map;
+}
+
+/** Interleave posts so the same creator rarely appears back-to-back. */
+function diversifyFeed(posts: PostWithCreator[]): PostWithCreator[] {
+  const buckets = new Map<string, PostWithCreator[]>();
+  for (const p of posts) {
+    const arr = buckets.get(p.owner_id) || [];
+    arr.push(p);
+    buckets.set(p.owner_id, arr);
+  }
+  const out: PostWithCreator[] = [];
+  let round = 0;
+  while (out.length < posts.length) {
+    for (const arr of buckets.values()) {
+      if (arr[round]) out.push(arr[round]);
+    }
+    round += 1;
+  }
+  return out;
+}
+
+async function enrichPosts(list: CollabPost[]): Promise<PostWithCreator[]> {
+  const ownerIds = [...new Set(list.map((p) => p.owner_id))];
+  const creators = await fetchCreators(ownerIds);
+  return list.map((post) => ({
+    ...post,
+    creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
+  }));
 }
 
 function errMsg(e: unknown): string {
@@ -234,19 +290,14 @@ export async function getUnswipedPosts(userId: string): Promise<{
   error: string | null;
 }> {
   try {
-    const { data: posts, error } = await supabase.rpc("feed_posts", { p_user_id: userId });
+    let postsRes = await supabase.rpc("ranked_feed_posts", { p_user_id: userId });
+    if (postsRes.error) {
+      postsRes = await supabase.rpc("feed_posts", { p_user_id: userId });
+    }
+    if (postsRes.error) return { data: null, error: postsRes.error.message };
 
-    if (error) return { data: null, error: error.message };
-
-    const list = (posts as CollabPost[]) || [];
-    const ownerIds = [...new Set(list.map((p) => p.owner_id))];
-    const creators = await fetchCreators(ownerIds);
-
-    const enriched: PostWithCreator[] = list.map((post) => ({
-      ...post,
-      creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
-    }));
-
+    const list = (postsRes.data as CollabPost[]) || [];
+    const enriched = diversifyFeed(await enrichPosts(list));
     return { data: enriched, error: null };
   } catch (err) {
     return { data: null, error: errMsg(err) };
@@ -261,6 +312,11 @@ export async function getExplorePosts(userId: string, limit = 40): Promise<{
   error: string | null;
 }> {
   try {
+    const rpc = await supabase.rpc("explore_posts", { p_user_id: userId, p_limit: limit });
+    if (!rpc.error && rpc.data) {
+      return { data: await enrichPosts(rpc.data as CollabPost[]), error: null };
+    }
+
     const { data: posts, error } = await supabase
       .from("collab_posts")
       .select("*")
@@ -270,17 +326,7 @@ export async function getExplorePosts(userId: string, limit = 40): Promise<{
       .limit(limit);
 
     if (error) return { data: null, error: error.message };
-
-    const list = (posts as CollabPost[]) || [];
-    const ownerIds = [...new Set(list.map((p) => p.owner_id))];
-    const creators = await fetchCreators(ownerIds);
-
-    const enriched: PostWithCreator[] = list.map((post) => ({
-      ...post,
-      creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
-    }));
-
-    return { data: enriched, error: null };
+    return { data: await enrichPosts((posts as CollabPost[]) || []), error: null };
   } catch (err) {
     return { data: null, error: errMsg(err) };
   }
@@ -551,6 +597,8 @@ export async function updateProfile(
     avatar_url?: string;
     portfolio_urls?: string[];
     vibes?: string[];
+    instagram_url?: string | null;
+    linkedin_url?: string | null;
   }
 ): Promise<{ error: string | null }> {
   try {
