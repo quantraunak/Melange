@@ -22,6 +22,7 @@ export type CreatorInfo = {
   name: string;
   role: string | null;
   avatar_url: string | null;
+  portfolio_urls?: string[];
 };
 
 export type PostWithCreator = CollabPost & {
@@ -70,8 +71,11 @@ export type Profile = {
   current_project: string | null;
   skills: string[] | null;
   avatar_url: string | null;
+  portfolio_urls: string[] | null;
   created_at: string;
 };
+
+export const PORTFOLIO_MAX_IMAGES = 9;
 
 export type ReportReason =
   | "spam"
@@ -522,6 +526,7 @@ export async function updateProfile(
     current_project?: string;
     skills?: string[];
     avatar_url?: string;
+    portfolio_urls?: string[];
   }
 ): Promise<{ error: string | null }> {
   try {
@@ -530,6 +535,13 @@ export async function updateProfile(
   } catch (err) {
     return { error: errMsg(err) };
   }
+}
+
+export async function updatePortfolio(
+  userId: string,
+  portfolioUrls: string[]
+): Promise<{ error: string | null }> {
+  return updateProfile(userId, { portfolio_urls: portfolioUrls });
 }
 
 // ============================================================

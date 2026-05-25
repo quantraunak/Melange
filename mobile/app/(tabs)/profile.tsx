@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,6 +34,8 @@ import { useAuth } from "@/lib/auth";
 import {
   getMyPosts,
   getProfile,
+  PORTFOLIO_MAX_IMAGES,
+  updatePortfolio,
   updateProfile,
   uploadFile,
   type CollabPost,
@@ -54,6 +57,7 @@ export default function ProfileScreen() {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
@@ -137,6 +141,69 @@ export default function ProfileScreen() {
     else await load();
   };
 
+  const onAddPortfolio = async () => {
+    if (!userId || !profile) return;
+    const current = profile.portfolio_urls ?? [];
+    if (current.length >= PORTFOLIO_MAX_IMAGES) {
+      Alert.alert("Portfolio full", `You can add up to ${PORTFOLIO_MAX_IMAGES} images.`);
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Photo permission denied", "Enable photo access in Settings.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: PORTFOLIO_MAX_IMAGES - current.length,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets.length) return;
+
+    setPortfolioBusy(true);
+    setError(null);
+    const uploaded: string[] = [];
+    for (const asset of result.assets) {
+      const { url, error: upErr } = await uploadFile(
+        userId,
+        "posts",
+        asset.uri,
+        asset.mimeType || "image/jpeg"
+      );
+      if (upErr || !url) {
+        setError(upErr || "Upload failed.");
+        break;
+      }
+      uploaded.push(url);
+    }
+    if (uploaded.length > 0) {
+      const { error: updErr } = await updatePortfolio(userId, [...current, ...uploaded]);
+      if (updErr) setError(updErr);
+      else await load();
+    }
+    setPortfolioBusy(false);
+  };
+
+  const onRemovePortfolio = (idx: number) => {
+    if (!userId || !profile) return;
+    Alert.alert("Remove image?", undefined, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          const next = (profile.portfolio_urls ?? []).filter((_, i) => i !== idx);
+          setPortfolioBusy(true);
+          const { error: err } = await updatePortfolio(userId, next);
+          setPortfolioBusy(false);
+          if (err) setError(err);
+          else await load();
+        },
+      },
+    ]);
+  };
+
   const onSignOut = async () => {
     Alert.alert("Sign out?", undefined, [
       { text: "Cancel", style: "cancel" },
@@ -178,6 +245,43 @@ export default function ProfileScreen() {
             {profile.role ? <Text style={styles.profileRole}>{profile.role}</Text> : null}
             <Text style={styles.profileHint}>Tap to change avatar</Text>
           </View>
+        </View>
+
+        {/* Portfolio */}
+        <View style={styles.section}>
+          <View style={styles.portfolioHeader}>
+            <Text style={styles.sectionTitle}>Portfolio</Text>
+            <Pressable
+              onPress={onAddPortfolio}
+              disabled={portfolioBusy || (profile.portfolio_urls?.length ?? 0) >= PORTFOLIO_MAX_IMAGES}
+              style={styles.addPortfolioBtn}
+            >
+              <Text style={styles.addPortfolioText}>
+                {portfolioBusy ? "…" : "+ Add"}
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={styles.muted}>Show your best work (up to {PORTFOLIO_MAX_IMAGES} images).</Text>
+          {(profile.portfolio_urls?.length ?? 0) === 0 ? (
+            <Pressable style={styles.portfolioEmpty} onPress={onAddPortfolio} disabled={portfolioBusy}>
+              <Text style={styles.portfolioEmptyText}>Tap to add images</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.portfolioGrid}>
+              {(profile.portfolio_urls ?? []).map((url, idx) => (
+                <View key={`${url}-${idx}`} style={styles.portfolioTile}>
+                  <Image source={{ uri: url }} style={styles.portfolioImg} />
+                  <Pressable
+                    style={styles.portfolioRemove}
+                    onPress={() => onRemovePortfolio(idx)}
+                    disabled={portfolioBusy}
+                  >
+                    <Text style={styles.portfolioRemoveText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Form */}
@@ -362,4 +466,52 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   linkRowText: { flex: 1, color: colors.text, fontWeight: "600", fontSize: 14 },
+
+  portfolioHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  addPortfolioBtn: {
+    backgroundColor: colors.brandSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+  },
+  addPortfolioText: { color: colors.brandText, fontWeight: "700", fontSize: 12 },
+  portfolioEmpty: {
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingVertical: 28,
+    alignItems: "center",
+  },
+  portfolioEmptyText: { color: colors.textSubtle, fontSize: 13, fontWeight: "600" },
+  portfolioGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+  },
+  portfolioTile: {
+    width: "31%",
+    aspectRatio: 1,
+    borderRadius: radii.md,
+    overflow: "hidden",
+    backgroundColor: colors.surface,
+  },
+  portfolioImg: { width: "100%", height: "100%" },
+  portfolioRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  portfolioRemoveText: { color: colors.white, fontSize: 16, fontWeight: "700", lineHeight: 18 },
 });

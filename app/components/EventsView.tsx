@@ -7,8 +7,12 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Calendar,
+  Camera,
   Check,
   Clock,
   ImagePlus,
@@ -74,9 +78,8 @@ function localInputToISO(localValue: string): string {
 }
 
 // ============================================================
-// Local atoms (themed against Melange tokens)
+// Avatar (re-used here to avoid prop-drilling from MelangeApp)
 // ============================================================
-
 function Avatar({
   name,
   url,
@@ -95,57 +98,12 @@ function Avatar({
       ? "w-14 h-14 text-lg"
       : "w-10 h-10 text-sm";
   if (url) {
-    return (
-      <img
-        src={url}
-        alt={name}
-        className={`${dims} rounded-full object-cover flex-shrink-0 ring-1 ring-[var(--line)]`}
-      />
-    );
+    return <img src={url} alt={name} className={`${dims} rounded-full object-cover flex-shrink-0 border border-white`} />;
   }
   return (
-    <div
-      className={`${dims} rounded-full bg-[var(--secondary)] text-[var(--ink)] font-display font-medium flex items-center justify-center flex-shrink-0 ring-1 ring-[var(--line)]`}
-    >
+    <div className={`${dims} rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center justify-center flex-shrink-0 border border-white`}>
       {name.charAt(0).toUpperCase()}
     </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-3)] font-medium">
-      {children}
-    </p>
-  );
-}
-
-function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className="block text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] mb-1.5"
-    >
-      {children}
-    </label>
-  );
-}
-
-function MInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`melange-input w-full ${props.className ?? ""}`} />;
-}
-
-function MTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea {...props} className={`melange-input w-full resize-none ${props.className ?? ""}`} />
-  );
-}
-
-function ErrorMessage({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[12px] text-[var(--destructive)] bg-[color-mix(in_oklab,var(--destructive)_8%,var(--surface))] border border-[color-mix(in_oklab,var(--destructive)_25%,var(--line))] rounded-[var(--radius-md)] p-2.5">
-      {children}
-    </p>
   );
 }
 
@@ -182,6 +140,7 @@ export default function EventsView({ userId }: { userId: string }) {
       await rsvpToEvent(event.id, userId, next);
     }
 
+    // Optimistic counter update
     setEvents((prev) =>
       prev.map((e) => {
         if (e.id !== event.id) return e;
@@ -207,6 +166,7 @@ export default function EventsView({ userId }: { userId: string }) {
     setBusyEventId(null);
   };
 
+  // Group by relative day for nicer scanability
   const grouped = (() => {
     const map = new Map<string, EventWithDetails[]>();
     for (const e of events) {
@@ -219,87 +179,67 @@ export default function EventsView({ userId }: { userId: string }) {
   })();
 
   return (
-    <div>
-      <div className="flex items-end justify-between mb-5">
-        <div>
-          <SectionLabel>Out there now</SectionLabel>
-          <h1 className="font-display text-[28px] sm:text-[32px] tracking-tight text-[var(--ink)] mt-0.5">
-            Events near you.
-          </h1>
+    <div className="pt-3">
+      {/* Header search + create */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+          <input
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            placeholder="Filter by city or location..."
+            className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+          />
+          {cityFilter && (
+            <button onClick={() => setCityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="hidden sm:inline-flex items-center gap-1.5 h-11 px-4 bg-[var(--ink)] text-[var(--bg)] rounded-[var(--radius-lg)] text-[14px] font-medium hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
         >
-          <Plus className="h-4 w-4" /> Host event
+          <Plus className="h-3.5 w-3.5" /> Host
         </button>
       </div>
 
-      <div className="relative mb-5">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-3)]" />
-        <input
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
-          placeholder="Filter by city or location…"
-          className="w-full pl-10 pr-10 h-11 text-[14px] bg-[var(--surface)] border border-[var(--line)] rounded-full focus:outline-none focus:border-[var(--ink)] transition-colors"
-        />
-        {cityFilter && (
-          <button
-            onClick={() => setCityFilter("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-3)] hover:text-[var(--ink)] h-7 w-7 rounded-full flex items-center justify-center"
-            aria-label="Clear"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
-      <div className="sm:hidden mb-5">
-        <button
-          onClick={() => setShowCreate(true)}
-          className="w-full h-11 inline-flex items-center justify-center gap-2 bg-[var(--ink)] text-[var(--bg)] rounded-[var(--radius-lg)] text-[14px] font-medium hover:opacity-90 transition-opacity"
-        >
-          <Plus className="h-4 w-4" /> Host an event
-        </button>
-      </div>
-
-      {error ? (
-        <div className="mb-4">
-          <ErrorMessage>{error}</ErrorMessage>
-        </div>
-      ) : null}
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-[var(--ink-3)] text-[14px]">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading events…
-        </div>
-      ) : events.length === 0 ? (
-        <div className="text-center py-16 px-4">
-          <h3 className="font-display text-[24px] tracking-tight text-[var(--ink)]">
-            {cityFilter ? "No events here yet." : "Quiet week."}
+      {/* Pitch */}
+      {!loading && events.length === 0 && !error ? (
+        <div className="text-center py-12 px-4">
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-3">
+            <Calendar className="h-5 w-5" />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">
+            {cityFilter ? "No events in that city yet" : "No upcoming events yet"}
           </h3>
-          <p className="text-[14px] text-[var(--ink-2)] mt-2 max-w-[40ch] mx-auto">
+          <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-snug mb-4">
             {cityFilter
-              ? "Be the first to host something — photo walks, open calls, gallery nights."
-              : "When local hosts post photo walks, open calls, and gallery openings, they'll appear here."}
+              ? "Be the first to host something here — photo walks, open calls, gallery nights."
+              : "This is where photo walks, open calls, and gallery openings show up. Host one and bring the community together."}
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="mt-5 inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--ink)] text-[var(--bg)] rounded-[var(--radius-lg)] text-[13px] font-medium hover:opacity-90"
+            className="text-xs font-medium px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700"
           >
-            <Plus className="h-3.5 w-3.5" /> Host the first one
+            Host an event
           </button>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{error}</div>
+      ) : null}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading events…
         </div>
       ) : (
         grouped.map(([day, dayEvents]) => (
-          <section key={day} className="mb-8">
-            <div className="flex items-center gap-3 mb-3">
-              <h2 className="text-[11px] uppercase tracking-[0.16em] text-[var(--ink-3)] font-medium">
-                {day}
-              </h2>
-              <div className="h-px flex-1 bg-[var(--line)]" />
-            </div>
-            <div className="grid grid-cols-1 gap-3">
+          <div key={day} className="mb-5">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">{day}</h2>
+            <div className="space-y-3">
               {dayEvents.map((e) => (
                 <EventCard
                   key={e.id}
@@ -310,10 +250,11 @@ export default function EventsView({ userId }: { userId: string }) {
                 />
               ))}
             </div>
-          </section>
+          </div>
         ))
       )}
 
+      {/* Detail modal */}
       <EventDetailDialog
         userId={userId}
         event={activeEvent}
@@ -322,6 +263,7 @@ export default function EventsView({ userId }: { userId: string }) {
         onRsvp={(next) => activeEvent && handleRsvp(activeEvent, next)}
       />
 
+      {/* Create modal */}
       <CreateEventDialog
         userId={userId}
         open={showCreate}
@@ -333,7 +275,7 @@ export default function EventsView({ userId }: { userId: string }) {
 }
 
 // ============================================================
-// Event card — image-led, editorial typography
+// Event card
 // ============================================================
 function EventCard({
   event,
@@ -352,80 +294,69 @@ function EventCard({
   const interested = event.my_rsvp === "interested";
 
   return (
-    <article className="melange-card overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
       <button onClick={onOpen} className="block w-full text-left">
-        <div className="relative aspect-[16/10] bg-[var(--secondary)]">
+        <div className="relative h-32 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50">
           {event.cover_url ? (
             <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="font-display italic text-[var(--ink-3)] text-sm tracking-tight">
-                {cat.label.toLowerCase()}
-              </span>
-            </div>
+            <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">{cat.emoji}</div>
           )}
-          <div className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-white/85 backdrop-blur text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--ink)]">
-            {cat.label}
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur rounded-full text-[10px] font-semibold text-gray-700">
+            <span>{cat.emoji}</span>
+            <span>{cat.label}</span>
           </div>
-          <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--ink)]/85 backdrop-blur text-white text-[11px] font-medium">
+          <div className="absolute top-2 right-2 px-2 py-1 bg-blue-900/90 backdrop-blur text-white text-[10px] font-semibold rounded-full flex items-center gap-1">
             <Clock className="h-3 w-3" /> {time}
           </div>
         </div>
 
-        <div className="p-4 pb-3">
-          <h3 className="font-display text-[19px] tracking-tight leading-tight text-[var(--ink)]">
-            {event.title}
-          </h3>
+        <div className="p-3">
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight">{event.title}</h3>
           {event.location_name ? (
-            <p className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mt-1.5">
-              <MapPin className="h-3 w-3 text-[var(--ink-3)]" /> {event.location_name}
+            <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
+              <MapPin className="h-3 w-3" /> {event.location_name}
             </p>
           ) : null}
 
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-1.5">
               <Avatar name={event.host.name} url={event.host.avatar_url} size="xs" />
-              <span className="text-[12px] text-[var(--ink-2)] truncate max-w-[160px]">
-                <span className="text-[var(--ink-3)]">by</span> {event.host.name}
-              </span>
+              <span className="text-[11px] text-gray-500 truncate max-w-[120px]">Hosted by {event.host.name}</span>
             </div>
             {event.going_count > 0 ? (
-              <span className="flex items-center gap-1 text-[11px] text-[var(--ink-3)]">
-                <Users className="h-3 w-3" /> {event.going_count} going
+              <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                <Users className="h-3 w-3" /> {event.going_count}
               </span>
             ) : null}
           </div>
         </div>
       </button>
 
-      <div className="flex border-t border-[var(--line)]">
+      <div className="flex border-t border-gray-100">
         <button
           onClick={() => onRsvp(interested ? null : "interested")}
           disabled={busy}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[13px] font-medium transition-colors ${
-            interested
-              ? "text-[var(--ink)] bg-[var(--secondary)]"
-              : "text-[var(--ink-2)] hover:bg-[var(--secondary)]/50"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
+            interested ? "bg-yellow-50 text-yellow-700" : "text-gray-500 hover:bg-gray-50"
           }`}
         >
-          <Star className={`h-3.5 w-3.5 ${interested ? "fill-[var(--ink)] text-[var(--ink)]" : ""}`} />
-          Interested
+          <Star className={`h-3.5 w-3.5 ${interested ? "fill-yellow-500 text-yellow-500" : ""}`} />
+          {interested ? "Interested" : "Interested"}
         </button>
-        <div className="w-px bg-[var(--line)]" />
+        <div className="w-px bg-gray-100" />
         <button
           onClick={() => onRsvp(going ? null : "going")}
           disabled={busy}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[13px] font-semibold transition-colors ${
-            going
-              ? "bg-[var(--accent)] text-white"
-              : "text-[var(--ink)] hover:bg-[var(--secondary)]/50"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors ${
+            going ? "bg-green-50 text-green-700" : "text-gray-500 hover:bg-gray-50"
           }`}
         >
-          <Check className="h-3.5 w-3.5" />
+          <Check className={`h-3.5 w-3.5 ${going ? "text-green-700" : ""}`} />
           {going ? "Going" : "I'm going"}
         </button>
       </div>
-    </article>
+    </div>
   );
 }
 
@@ -447,7 +378,7 @@ function EventDetailDialog({
 }) {
   return (
     <Dialog open={!!event} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-[520px] max-h-[90vh] overflow-y-auto p-0 rounded-[var(--radius-xl)] border-[var(--line)] bg-[var(--surface)]">
+      <DialogContent className="max-w-[480px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
         {event ? (
           <EventDetailInner
             key={event.id}
@@ -500,113 +431,86 @@ function EventDetailInner({
 
   return (
     <>
-      <div className="relative aspect-[16/10] bg-[var(--secondary)]">
+      <div className="relative h-40 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50">
         {event.cover_url ? (
           <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="font-display italic text-[var(--ink-3)] tracking-tight">
-              {cat.label.toLowerCase()}
-            </span>
-          </div>
+          <div className="w-full h-full flex items-center justify-center text-5xl opacity-30">{cat.emoji}</div>
         )}
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/85 backdrop-blur flex items-center justify-center text-[var(--ink)] hover:bg-white shadow-sm"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center text-gray-700 shadow"
         >
           <X className="h-4 w-4" />
         </button>
-        <div className="absolute bottom-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-white/85 backdrop-blur text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--ink)]">
-          {cat.label}
+        <div className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur rounded-full text-[11px] font-semibold text-gray-700">
+          <span>{cat.emoji}</span>
+          <span>{cat.label}</span>
         </div>
       </div>
 
-      <div className="p-5 space-y-5">
-        <div>
-          <DialogTitle className="font-display text-[26px] tracking-tight leading-tight text-[var(--ink)]">
-            {event.title}
-          </DialogTitle>
-          <DialogDescription className="sr-only">Event details</DialogDescription>
-        </div>
+      <div className="p-4 space-y-3">
+        <DialogTitle className="text-lg font-semibold text-gray-900 leading-tight">
+          {event.title}
+        </DialogTitle>
+        <DialogDescription className="sr-only">Event details</DialogDescription>
 
-        <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-          <div>
-            <SectionLabel>Date</SectionLabel>
-            <p className="text-[13px] text-[var(--ink)] mt-1 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-              {dateLabel}
-            </p>
+        <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+          <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full">
+            <Calendar className="h-3 w-3" /> {dateLabel}
           </div>
-          <div>
-            <SectionLabel>Time</SectionLabel>
-            <p className="text-[13px] text-[var(--ink)] mt-1 flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-              {timeLabel}
-            </p>
+          <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full">
+            <Clock className="h-3 w-3" /> {timeLabel}
           </div>
           {event.location_name ? (
-            <div className="col-span-2">
-              <SectionLabel>Where</SectionLabel>
-              <p className="text-[13px] text-[var(--ink)] mt-1 flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-                {event.location_name}
-                {event.city ? <span className="text-[var(--ink-3)]">, {event.city}</span> : null}
-              </p>
+            <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full">
+              <MapPin className="h-3 w-3" /> {event.location_name}
             </div>
           ) : null}
           {event.capacity ? (
-            <div>
-              <SectionLabel>Capacity</SectionLabel>
-              <p className="text-[13px] text-[var(--ink)] mt-1 flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-                {event.going_count}/{event.capacity}
-              </p>
+            <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full">
+              <Users className="h-3 w-3" /> {event.going_count}/{event.capacity}
             </div>
           ) : null}
         </div>
 
         {event.description ? (
-          <div>
-            <SectionLabel>Details</SectionLabel>
-            <p className="text-[14px] text-[var(--ink-2)] leading-relaxed mt-2 whitespace-pre-wrap">
-              {event.description}
-            </p>
-          </div>
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{event.description}</p>
         ) : null}
 
-        <div className="flex items-center gap-3 p-3 rounded-[var(--radius-lg)] bg-[var(--secondary)]/60">
+        <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl">
           <Avatar name={event.host.name} url={event.host.avatar_url} size="md" />
           <div className="flex-1 min-w-0">
-            <SectionLabel>Hosted by</SectionLabel>
-            <p className="font-display text-[16px] tracking-tight text-[var(--ink)] truncate mt-0.5">
-              {event.host.name}
-            </p>
-            {event.host.role ? <p className="text-[12px] text-[var(--ink-2)] truncate">{event.host.role}</p> : null}
+            <p className="text-xs text-gray-400">Hosted by</p>
+            <p className="text-sm font-semibold text-gray-900 truncate">{event.host.name}</p>
+            {event.host.role ? <p className="text-[11px] text-gray-500 truncate">{event.host.role}</p> : null}
           </div>
         </div>
 
         <div>
-          <div className="flex items-baseline justify-between mb-3">
-            <SectionLabel>Going · {event.going_count}</SectionLabel>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              Going ({event.going_count})
+            </h3>
             {event.interested_count > 0 ? (
-              <span className="text-[11px] text-[var(--ink-3)]">{event.interested_count} interested</span>
+              <span className="text-[11px] text-gray-400">{event.interested_count} interested</span>
             ) : null}
           </div>
           {attendeesLoading ? (
-            <p className="text-[12px] text-[var(--ink-3)]">Loading…</p>
+            <p className="text-xs text-gray-400">Loading…</p>
           ) : attendees.length === 0 ? (
-            <p className="text-[12px] text-[var(--ink-3)] italic">Be the first to RSVP.</p>
+            <p className="text-xs text-gray-400 italic">Be the first to RSVP.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {attendees.slice(0, 8).map((a) => (
-                <div key={a.user_id} className="flex items-center gap-1.5 px-2 py-1 bg-[var(--secondary)] rounded-full">
+                <div key={a.user_id} className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-full">
                   <Avatar name={a.name} url={a.avatar_url} size="xs" />
-                  <span className="text-[12px] text-[var(--ink-2)] truncate max-w-[100px]">{a.name}</span>
+                  <span className="text-[11px] font-medium text-gray-700 truncate max-w-[100px]">{a.name}</span>
                 </div>
               ))}
               {attendees.length > 8 ? (
-                <div className="px-2.5 py-1 bg-[var(--secondary)] rounded-full text-[12px] text-[var(--ink-3)]">
+                <div className="px-2 py-1 bg-gray-50 rounded-full text-[11px] text-gray-500">
                   +{attendees.length - 8} more
                 </div>
               ) : null}
@@ -614,26 +518,22 @@ function EventDetailInner({
           )}
         </div>
 
-        <div className="flex gap-2 pt-2 sticky bottom-0 bg-[var(--surface)] pb-1">
+        <div className="flex gap-2 pt-2">
           <button
             onClick={() => onRsvp(interested ? null : "interested")}
             disabled={busy}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-[var(--radius-lg)] text-[14px] font-medium border transition-colors ${
-              interested
-                ? "bg-[var(--secondary)] border-[var(--ink)] text-[var(--ink)]"
-                : "border-[var(--line)] text-[var(--ink)] hover:bg-[var(--secondary)]"
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+              interested ? "bg-yellow-50 border-yellow-300 text-yellow-700" : "border-gray-200 text-gray-700 hover:bg-gray-50"
             }`}
           >
-            <Star className={`h-4 w-4 ${interested ? "fill-[var(--ink)]" : ""}`} />
-            Interested
+            <Star className={`h-4 w-4 ${interested ? "fill-yellow-500 text-yellow-500" : ""}`} />
+            {interested ? "Interested" : "Interested"}
           </button>
           <button
             onClick={() => onRsvp(going ? null : "going")}
             disabled={busy}
-            className={`flex-[1.4] inline-flex items-center justify-center gap-1.5 h-11 rounded-[var(--radius-lg)] text-[14px] font-semibold transition-colors ${
-              going
-                ? "bg-[var(--accent)] text-white"
-                : "bg-[var(--ink)] text-[var(--bg)] hover:opacity-90"
+            className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              going ? "bg-green-500 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
             }`}
           >
             <Check className="h-4 w-4" />
@@ -661,7 +561,7 @@ function CreateEventDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-[520px] max-h-[90vh] overflow-y-auto p-0 rounded-[var(--radius-xl)] border-[var(--line)] bg-[var(--surface)]">
+      <DialogContent className="max-w-[480px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
         {open ? <CreateEventInner userId={userId} onClose={onClose} onCreated={onCreated} /> : null}
       </DialogContent>
     </Dialog>
@@ -759,54 +659,45 @@ function CreateEventInner({
 
   return (
     <>
-      <div className="px-5 py-4 border-b border-[var(--line)] flex items-start justify-between sticky top-0 bg-[var(--surface)] z-10">
-        <div>
-          <SectionLabel>Host an event</SectionLabel>
-          <DialogTitle className="font-display text-[22px] tracking-tight text-[var(--ink)] mt-0.5">
-            Bring people together.
-          </DialogTitle>
-        </div>
-        <button
-          onClick={onClose}
-          className="h-8 w-8 rounded-full flex items-center justify-center text-[var(--ink-3)] hover:bg-[var(--secondary)]"
-          aria-label="Close"
-        >
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+        <DialogTitle className="text-base font-semibold text-gray-900">Host an event</DialogTitle>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
           <X className="h-4 w-4" />
         </button>
       </div>
       <DialogDescription className="sr-only">Create a new event</DialogDescription>
 
-      <form onSubmit={submit} className="p-5 space-y-4">
+      <form onSubmit={submit} className="p-4 space-y-3">
         <div>
-          <FieldLabel>Cover photo</FieldLabel>
+          <Label className="text-xs text-gray-500 mb-1">Cover photo (optional)</Label>
           {coverPreview ? (
-            <div className="relative w-full aspect-[16/10] rounded-[var(--radius-lg)] overflow-hidden ring-1 ring-[var(--line)]">
+            <div className="relative w-full h-32 rounded-xl overflow-hidden border border-gray-200 group">
               <img src={coverPreview} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={removeCover}
-                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/65 backdrop-blur text-white flex items-center justify-center"
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/55 text-white flex items-center justify-center"
                 aria-label="Remove cover"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="w-full aspect-[16/10] border border-dashed border-[var(--line)] rounded-[var(--radius-lg)] flex flex-col items-center justify-center gap-1.5 text-[var(--ink-3)] hover:border-[var(--ink-3)] hover:text-[var(--ink-2)] transition-colors"
+              className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
             >
-              <ImagePlus className="h-5 w-5" />
-              <span className="text-[12px] font-medium uppercase tracking-wider">Add cover</span>
+              <ImagePlus className="h-4 w-4" />
+              <span className="text-[11px] font-medium">Add cover photo</span>
             </button>
           )}
           <input ref={inputRef} type="file" accept="image/*" hidden onChange={handleFile} />
         </div>
 
         <div>
-          <FieldLabel>Category</FieldLabel>
-          <div className="grid grid-cols-3 gap-2">
+          <Label className="text-xs text-gray-500 mb-1">Category</Label>
+          <div className="grid grid-cols-3 gap-1.5">
             {EVENT_CATEGORIES.map((c) => {
               const active = category === c.id;
               return (
@@ -814,12 +705,11 @@ function CreateEventInner({
                   key={c.id}
                   type="button"
                   onClick={() => setCategory(c.id)}
-                  className={`py-2.5 px-2 rounded-[var(--radius-md)] border text-[12px] transition-colors ${
-                    active
-                      ? "bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)] font-medium"
-                      : "border-[var(--line)] text-[var(--ink-2)] hover:bg-[var(--secondary)]"
+                  className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border text-[11px] transition-colors ${
+                    active ? "bg-blue-50 border-blue-300 text-blue-700 font-semibold" : "border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
+                  <span className="text-base">{c.emoji}</span>
                   {c.label}
                 </button>
               );
@@ -828,95 +718,99 @@ function CreateEventInner({
         </div>
 
         <div>
-          <FieldLabel htmlFor="ce-title">Title</FieldLabel>
-          <MInput
-            id="ce-title"
+          <Label className="text-xs text-gray-500 mb-1">Title</Label>
+          <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Golden hour photo walk in Brooklyn"
+            placeholder="e.g., Golden hour photo walk in Brooklyn"
+            className="rounded-xl"
             required
           />
         </div>
 
         <div>
-          <FieldLabel htmlFor="ce-desc">Description</FieldLabel>
-          <MTextarea
-            id="ce-desc"
+          <Label className="text-xs text-gray-500 mb-1">Description (optional)</Label>
+          <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            placeholder="Who is this for? What to bring? Meeting point?"
+            placeholder="Who is this for? What should people bring? Meeting point?"
+            className="rounded-xl"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div>
-            <FieldLabel htmlFor="ce-start">Starts</FieldLabel>
+            <Label className="text-xs text-gray-500 mb-1">Starts</Label>
             <input
-              id="ce-start"
               type="datetime-local"
               value={startLocal}
               onChange={(e) => setStartLocal(e.target.value)}
-              className="melange-input w-full"
+              className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
               required
             />
           </div>
           <div>
-            <FieldLabel htmlFor="ce-end">Ends (optional)</FieldLabel>
+            <Label className="text-xs text-gray-500 mb-1">Ends (optional)</Label>
             <input
-              id="ce-end"
               type="datetime-local"
               value={endLocal}
               onChange={(e) => setEndLocal(e.target.value)}
-              className="melange-input w-full"
+              className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
             />
           </div>
         </div>
 
         <div>
-          <FieldLabel htmlFor="ce-loc">Where</FieldLabel>
-          <MInput
-            id="ce-loc"
+          <Label className="text-xs text-gray-500 mb-1">Where</Label>
+          <Input
             value={locationName}
             onChange={(e) => setLocationName(e.target.value)}
-            placeholder="Washington Square Park"
+            placeholder="e.g., Washington Square Park"
+            className="rounded-xl"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div>
-            <FieldLabel htmlFor="ce-city">City</FieldLabel>
-            <MInput
-              id="ce-city"
+            <Label className="text-xs text-gray-500 mb-1">City</Label>
+            <Input
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="New York"
+              placeholder="e.g., New York"
+              className="rounded-xl"
             />
           </div>
           <div>
-            <FieldLabel htmlFor="ce-cap">Capacity (optional)</FieldLabel>
-            <MInput
-              id="ce-cap"
+            <Label className="text-xs text-gray-500 mb-1">Capacity (optional)</Label>
+            <Input
               type="number"
               min={1}
               value={capacity}
               onChange={(e) => setCapacity(e.target.value)}
               placeholder="Unlimited"
+              className="rounded-xl"
             />
           </div>
         </div>
 
-        {error ? <ErrorMessage>{error}</ErrorMessage> : null}
+        {error ? (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">{error}</p>
+        ) : null}
 
         <button
           type="submit"
           disabled={busy}
-          className="w-full h-11 inline-flex items-center justify-center gap-2 bg-[var(--ink)] text-[var(--bg)] rounded-[var(--radius-lg)] text-[14px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {busy ? "Creating…" : "Publish event"}
+          {busy ? "Creating…" : "Create event"}
         </button>
       </form>
     </>
   );
 }
+
+// Tiny shim so unused-Camera-import doesn't lint-fail.
+// (Camera is intentionally kept in scope for future image-camera capture.)
+void Camera;

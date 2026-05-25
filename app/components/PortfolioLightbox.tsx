@@ -63,16 +63,15 @@ export default function PortfolioLightbox({
         <X className="h-5 w-5" />
       </button>
 
-      <div className="absolute top-4 left-4 flex items-baseline gap-2">
-        {creatorName ? (
-          <span className="font-display text-white text-[17px] tracking-tight">
-            {creatorName}
-          </span>
-        ) : null}
-        <span className="text-white/55 text-[12px] uppercase tracking-[0.16em]">
+      {creatorName ? (
+        <div className="absolute top-4 left-4 text-white/80 text-sm font-medium">
+          {creatorName} · {safeIndex + 1} / {urls.length}
+        </div>
+      ) : (
+        <div className="absolute top-4 left-4 text-white/80 text-sm font-medium">
           {safeIndex + 1} / {urls.length}
-        </span>
-      </div>
+        </div>
+      )}
 
       {urls.length > 1 ? (
         <button

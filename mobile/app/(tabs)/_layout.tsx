@@ -106,6 +106,7 @@ export default function TabsLayout() {
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
       >
         <Tabs.Screen name="connect" options={{ title: "Connect" }} />
+        <Tabs.Screen name="events" options={{ title: "Events" }} />
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>

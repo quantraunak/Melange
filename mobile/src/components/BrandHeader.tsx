@@ -14,7 +14,7 @@ export function BrandHeader({
   return (
     <View style={[styles.wrap, style]}>
       <View style={styles.left}>
-        <Logo size={36} stroke={colors.brand} />
+        <Logo size={36} stroke={colors.brandOutline} />
         <View>
           <Text style={styles.title}>Melange</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
