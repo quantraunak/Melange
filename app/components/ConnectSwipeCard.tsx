@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { PostWithCreator } from "../lib/db";
 import ReputationBadge from "./ReputationBadge";
+import VerifiedBadge from "./VerifiedBadge";
 
 const SWIPE_THRESHOLD = 90;
 
@@ -120,6 +121,7 @@ export default function ConnectSwipeCard({
         <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm px-4 py-3 border-t border-white/50">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-bold text-blue-900 truncate">{post.creator.name}</p>
+            {post.creator.verification_status === "verified" ? <VerifiedBadge compact /> : null}
             <ReputationBadge
               avgRating={post.creator.avg_rating ?? 0}
               reviewCount={post.creator.review_count ?? 0}

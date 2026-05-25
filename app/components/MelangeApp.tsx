@@ -72,6 +72,8 @@ import {
   isReviewEligible,
   normalizeSocialUrl,
 } from "../lib/reviews";
+import { trackEvent } from "../lib/analytics";
+import VerifiedBadge from "./VerifiedBadge";
 
 type Tab = "connect" | "explore" | "messages" | "profile";
 type MessagesSubTab = "messages" | "matches";
@@ -458,10 +460,15 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     setSwiping(true); setConnectErr("");
     const { error: swipeError } = await recordSwipe(userId, post.id, direction);
     if (swipeError) { setConnectErr(swipeError); setSwiping(false); return; }
+    trackEvent(direction === "right" ? "swipe_right" : "swipe_left", {
+      post_id: post.id,
+      owner_id: post.owner_id,
+    });
     if (direction === "right") {
       const { match, error: matchError } = await checkAndCreateMatch(userId, post.id);
       if (matchError) setConnectErr(matchError);
       else if (match) {
+        trackEvent("match_created", { match_id: match.id, post_id: post.id });
         await loadMatches();
         setMatchToast(`You matched with ${post.creator.name}!`);
         setTimeout(() => setMatchToast(null), 2800);
@@ -528,6 +535,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
       media_urls: mediaUrls,
     });
     if (error) { setCreatePostError(error); setCreatingPost(false); return; }
+    trackEvent("post_created", { title: newPostTitle.trim() });
     resetCreatePost();
     setShowCreatePost(false); setCreatingPost(false);
     await Promise.all([loadPosts(), loadMyPosts()]);
@@ -557,6 +565,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     const { data, error } = await sendMessage(chatMatch.id, userId, messageText.trim());
     if (error) setChatError(error);
     else if (data) {
+      trackEvent("message_sent", { match_id: chatMatch.id });
       setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
       setMessageText("");
     }
@@ -580,7 +589,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
     });
     setSavingProfile(false);
     setProfileMsg(error ? error : "Profile saved!");
-    if (!error) await loadProfile();
+    if (!error) {
+      trackEvent("profile_saved");
+      await supabase.rpc("refresh_profile_verification", { p_user_id: userId });
+      await loadProfile();
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -996,7 +1009,10 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   </button>
                   <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{profile.name}</p>
+                    <p className="font-semibold text-gray-900 truncate flex items-center gap-1.5 flex-wrap">
+                      {profile.name}
+                      {profile.verification_status === "verified" ? <VerifiedBadge compact /> : null}
+                    </p>
                     {profile.role && <p className="text-sm text-gray-500 truncate">{profile.role}</p>}
                     <p className="text-[11px] text-gray-400 mt-0.5">Click avatar to change</p>
                   </div>
@@ -1189,7 +1205,12 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <div className="flex items-center gap-3">
                   <Avatar creator={detailPost.creator} size="lg" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{detailPost.creator.name}</p>
+                    <p className="font-semibold text-gray-900 truncate flex items-center gap-1.5 flex-wrap">
+                      {detailPost.creator.name}
+                      {detailPost.creator.verification_status === "verified" ? (
+                        <VerifiedBadge compact />
+                      ) : null}
+                    </p>
                     {detailPost.creator.role && <p className="text-sm text-gray-500 truncate">{detailPost.creator.role}</p>}
                     <ReputationBadge
                       avgRating={detailPost.creator.avg_rating ?? 0}

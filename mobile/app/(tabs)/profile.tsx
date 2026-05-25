@@ -42,7 +42,9 @@ import {
   type CollabPost,
   type Profile,
 } from "@/lib/db";
+import { trackEvent } from "@/lib/analytics";
 import { normalizeSocialUrl } from "@/lib/reviews";
+import { supabase } from "@/lib/supabase";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -111,6 +113,8 @@ export default function ProfileScreen() {
     setSaving(false);
     if (err) setError(err);
     else {
+      trackEvent("profile_saved");
+      await supabase.rpc("refresh_profile_verification", { p_user_id: userId });
       setSavedMsg("Profile saved.");
       await load();
       setTimeout(() => setSavedMsg(null), 2000);

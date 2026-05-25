@@ -27,6 +27,7 @@ import {
   sendMessage,
   type Message,
 } from "@/lib/db";
+import { trackEvent } from "@/lib/analytics";
 import { getMyReviewForMatch, isReviewEligible } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
 import { formatClockTime } from "@/lib/format";
@@ -108,6 +109,7 @@ export default function ChatScreen() {
       setError(err);
       setText(body); // restore on failure
     } else if (data) {
+      trackEvent("message_sent", { match_id: matchId });
       setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
     }
     setSending(false);

@@ -149,6 +149,9 @@ export function SwipeCard({
             <View style={styles.creatorText}>
               <Text style={styles.creatorName} numberOfLines={1}>
                 {post.creator.name}
+                {post.creator.verification_status === "verified" ? (
+                  <Text style={styles.verified}> ✓</Text>
+                ) : null}
               </Text>
               {post.creator.role ? (
                 <Text style={styles.creatorRole} numberOfLines={1}>
@@ -288,6 +291,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: colors.text,
+  },
+  verified: {
+    color: colors.brandText,
+    fontWeight: "800",
   },
   creatorRole: {
     fontSize: 12,

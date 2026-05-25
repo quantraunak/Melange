@@ -96,6 +96,7 @@ melange/
 ├── supabase_schema_v2.sql       # blocks, reports, push_tokens, match_reads, RPCs
 ├── supabase_schema_v3.sql       # Events, vibes, portfolios (Phase 1)
 ├── supabase_schema_v4.sql       # Reviews, social links, ranked feed RPCs
+├── supabase_schema_v5.sql       # Analytics, verification, embeddings, ranking v2
 ├── scripts/                     # Ops scripts — read secrets from env only
 │   ├── apply_migration.mjs      # Apply a SQL file via the Management API
 │   └── wipe_users.mjs           # Wipe all users + data (dev only)
@@ -139,6 +140,7 @@ Run all SQL files in the Supabase SQL Editor, in order:
 2. `supabase_schema_v2.sql` — iOS additions (blocks, reports, push tokens, match reads, RPCs)
 3. `supabase_schema_v3.sql` — events, vibes, portfolios
 4. `supabase_schema_v4.sql` — collab reviews, Instagram/LinkedIn, ranked feed
+5. `supabase_schema_v5.sql` — analytics events, verified badges, text embeddings, event-boosted ranking
 
 Or via Management API:
 

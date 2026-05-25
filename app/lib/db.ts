@@ -30,6 +30,7 @@ export type CreatorInfo = {
   linkedin_url?: string | null;
   avg_rating?: number;
   review_count?: number;
+  verification_status?: "none" | "pending" | "verified";
 };
 
 export type PostWithCreator = CollabPost & {
@@ -82,6 +83,8 @@ export type Profile = {
   vibes: string[] | null;
   instagram_url: string | null;
   linkedin_url: string | null;
+  verification_status: "none" | "pending" | "verified";
+  verified_at: string | null;
   created_at: string;
 };
 
@@ -118,7 +121,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
 
   const { data } = await supabase
     .from("profiles")
-    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url")
+    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url, verification_status")
     .in("user_id", userIds);
 
   const rep = await getReputationForUsers(userIds);
@@ -136,6 +139,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
       linkedin_url: (p.linkedin_url as string | null) ?? null,
       avg_rating: r?.avg_rating,
       review_count: r?.review_count,
+      verification_status: (p.verification_status as CreatorInfo["verification_status"]) ?? "none",
     });
   }
   return map;

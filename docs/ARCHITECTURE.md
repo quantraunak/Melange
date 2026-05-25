@@ -161,7 +161,23 @@ RPCs that bypass RLS for legitimate reasons:
 
 Client-side **diversity pass** (`diversifyFeed` in `app/lib/db.ts`) interleaves creators so the same photographer does not dominate the stack.
 
-**Next (Phase 3):** embeddings on portfolio images (CLIP), event co-attendance boost, swipe caps, “see who liked you.”
+### Analytics (v5)
+
+`track_event(name, properties)` RPC → `analytics_events` table. Instrumented on web + iOS for signup, profile save, swipes, matches, messages, reviews, events.
+
+### Verification (v5)
+
+`profiles.verification_status`: auto-`verified` when Instagram linked + 3+ portfolio images + 2+ reviews at ≥4.0 avg. Shown as badge on swipe cards and profiles. +5% feed boost.
+
+### Embeddings (v5)
+
+128-dim `compute_text_embedding()` in Postgres (hashed bag-of-words, normalized). Stored on profiles/posts via triggers. Feed adds **12% cosine similarity** between viewer profile embedding and post embedding.
+
+### Event liquidity boost (v5)
+
+Ranked feed adds **5%** for shared upcoming event RSVP and **5%** for same-city event overlap.
+
+**Next (Phase 3):** CLIP on portfolio images, swipe caps, “see who liked you,” PostHog dashboard.
 
 ### Collab reviews (v4)
 
@@ -245,7 +261,7 @@ Web ignores push notifications entirely. (Browser notifications were considered 
 - All user-controllable input passes through Postgres-level constraints + RLS — we don't trust client validation.
 - Auth tokens stored in `httpOnly` cookies (web) / `AsyncStorage` (mobile, encrypted via Expo SecureStore in production).
 - File uploads scoped to the user's path: `media/<folder>/<user_id>/<random>.ext`. RLS on `storage.objects` enforces this.
-- No third-party analytics / tracking in Phase 1. (Privacy budget = strategic moat.)
+- First-party `analytics_events` only (v5) — no cross-site trackers.
 
 ---
 

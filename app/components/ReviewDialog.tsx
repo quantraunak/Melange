@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { trackEvent } from "../lib/analytics";
 import { REVIEW_TAGS, submitCollabReview } from "../lib/reviews";
 
 export default function ReviewDialog({
@@ -57,6 +58,7 @@ export default function ReviewDialog({
       setError(err);
       return;
     }
+    trackEvent("review_submitted", { match_id: matchId, rating });
     onSubmitted?.();
     onClose();
     setRating(5);

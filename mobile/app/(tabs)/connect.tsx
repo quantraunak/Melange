@@ -18,6 +18,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, radii } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
+import { trackEvent } from "@/lib/analytics";
 import {
   checkAndCreateMatch,
   getFeedPosts,
@@ -104,10 +105,16 @@ export default function ConnectScreen() {
         return;
       }
 
+      trackEvent(dir === "right" ? "swipe_right" : "swipe_left", {
+        post_id: post.id,
+        owner_id: post.owner_id,
+      });
+
       if (dir === "right") {
         const { match, error: matchErr } = await checkAndCreateMatch(userId, post.id);
         if (matchErr) setError(matchErr);
         if (match) {
+          trackEvent("match_created", { match_id: match.id, post_id: post.id });
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           await refreshMatches();
           setMatchToast(`You matched with ${post.creator.name}!`);

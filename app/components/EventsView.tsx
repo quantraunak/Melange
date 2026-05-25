@@ -37,6 +37,7 @@ import {
   type AttendeeInfo,
 } from "../lib/events";
 import { uploadFile } from "../lib/db";
+import { trackEvent } from "../lib/analytics";
 
 // ============================================================
 // Date helpers
@@ -144,6 +145,7 @@ export default function EventsView({
       await cancelRsvp(event.id, userId);
     } else {
       await rsvpToEvent(event.id, userId, next);
+      trackEvent("event_rsvp", { event_id: event.id, state: next });
     }
 
     // Optimistic counter update
@@ -674,6 +676,7 @@ function CreateEventInner({
       setError(createErr);
       return;
     }
+    trackEvent("event_created", { category, city: city.trim() || "" });
     onCreated();
   };
 

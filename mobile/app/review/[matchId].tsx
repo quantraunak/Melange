@@ -18,6 +18,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, radii } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
+import { trackEvent } from "@/lib/analytics";
 import { REVIEW_TAGS, submitCollabReview } from "@/lib/reviews";
 
 export default function ReviewScreen() {
@@ -57,6 +58,7 @@ export default function ReviewScreen() {
       setError(err);
       return;
     }
+    trackEvent("review_submitted", { match_id: match.id, rating });
     Alert.alert("Review submitted", "It will show on their profile once they review you too.");
     router.back();
   };

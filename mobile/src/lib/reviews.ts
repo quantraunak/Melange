@@ -89,6 +89,9 @@ export async function submitCollabReview(
       tags: tags.slice(0, 3),
       body: body?.trim() || null,
     });
+    if (!error) {
+      await supabase.rpc("refresh_profile_verification", { p_user_id: revieweeId });
+    }
     return { error: error?.message ?? null };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Unknown error" };

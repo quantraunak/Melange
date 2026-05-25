@@ -11,8 +11,24 @@
  */
 
 import fs from "node:fs";
+import path from "node:path";
 
-const ref = process.env.SUPABASE_PROJECT_REF;
+/** Load SUPABASE_* from .env.local when not passed on the command line. */
+function loadEnvLocal() {
+  const envPath = path.join(process.cwd(), ".env.local");
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+    if (!m || process.env[m[1]]) continue;
+    process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+}
+
+loadEnvLocal();
+
+const ref =
+  process.env.SUPABASE_PROJECT_REF ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 const file = process.env.MIGRATION_FILE;
 
