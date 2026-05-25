@@ -253,6 +253,39 @@ export async function getUnswipedPosts(userId: string): Promise<{
   }
 }
 
+/**
+ * Browse feed for Explore → Collaboration Ideas (includes posts you've already swiped).
+ */
+export async function getExplorePosts(userId: string, limit = 40): Promise<{
+  data: PostWithCreator[] | null;
+  error: string | null;
+}> {
+  try {
+    const { data: posts, error } = await supabase
+      .from("collab_posts")
+      .select("*")
+      .eq("is_active", true)
+      .neq("owner_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) return { data: null, error: error.message };
+
+    const list = (posts as CollabPost[]) || [];
+    const ownerIds = [...new Set(list.map((p) => p.owner_id))];
+    const creators = await fetchCreators(ownerIds);
+
+    const enriched: PostWithCreator[] = list.map((post) => ({
+      ...post,
+      creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
+    }));
+
+    return { data: enriched, error: null };
+  } catch (err) {
+    return { data: null, error: errMsg(err) };
+  }
+}
+
 // ============================================================
 // Swipes & Matches
 // ============================================================

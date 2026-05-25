@@ -15,21 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 
 import MelangeApp from "./MelangeApp";
-
-function Logo() {
-  return (
-    <svg className="h-16 w-16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#7C3AED" strokeWidth="2" />
-      <path
-        d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z"
-        fill="#BFDBFE"
-        stroke="#7C3AED"
-        strokeWidth="2"
-      />
-      <circle cx="50" cy="50" r="10" fill="#7C3AED" />
-    </svg>
-  );
-}
+import Logo from "./Logo";
 
 export default function AuthPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -146,7 +132,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-[500px] bg-white shadow-lg rounded-xl overflow-hidden">
         <CardHeader className="bg-blue-900 text-white p-4 flex items-center">
-          <Logo />
+          <Logo size="lg" stroke="#7C3AED" center="#7C3AED" />
           <div className="ml-4">
             <CardTitle className="text-3xl font-bold italic transform -skew-x-6">
               <span

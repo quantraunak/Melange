@@ -27,9 +27,11 @@ export function BrandHeader({
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: colors.brand,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#bfdbfe",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -37,18 +39,18 @@ const styles = StyleSheet.create({
   left: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   title: {
-    color: colors.white,
-    fontSize: 22,
+    color: colors.brandText,
+    fontSize: 20,
     fontWeight: "800",
     fontStyle: "italic",
     letterSpacing: -0.5,
   },
   subtitle: {
-    color: "#bfdbfe",
-    fontSize: 11,
+    color: "#3b82f6",
+    fontSize: 10,
     marginTop: -2,
   },
 });

@@ -44,7 +44,7 @@ function Header() {
           onPress={() => router.push("/(tabs)/profile")}
           accessibilityLabel="Settings"
         >
-          <SettingsIcon size={20} color="#bfdbfe" />
+          <SettingsIcon size={20} color="#60a5fa" />
         </Pressable>
       }
     />
@@ -106,7 +106,7 @@ export default function TabsLayout() {
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
       >
         <Tabs.Screen name="connect" options={{ title: "Connect" }} />
-        <Tabs.Screen name="events" options={{ title: "Events" }} />
+        <Tabs.Screen name="events" options={{ title: "Explore" }} />
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>
@@ -115,7 +115,7 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: colors.brand },
+  safe: { backgroundColor: colors.white },
   tabBarOuter: {
     backgroundColor: colors.bg,
     paddingHorizontal: 16,

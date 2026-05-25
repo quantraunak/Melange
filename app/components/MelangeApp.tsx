@@ -41,14 +41,11 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
-  DollarSign,
   Flag,
   Heart,
   ImagePlus,
-  Info,
   Loader2,
   LogOut,
-  MapPin,
   MoreVertical,
   Pencil,
   Plus,
@@ -56,27 +53,19 @@ import {
   Send,
   Settings,
   Shield,
-  Users,
   X,
 } from "lucide-react";
 
 import ReportDialog from "./ReportDialog";
 import EditPostDialog from "./EditPostDialog";
 import AccountSafetyDialog from "./AccountSafetyDialog";
-import EventsView from "./EventsView";
+import ConnectSwipeCard from "./ConnectSwipeCard";
+import ExploreView from "./ExploreView";
+import Logo from "./Logo";
 import PortfolioLightbox from "./PortfolioLightbox";
 
-type Tab = "connect" | "events" | "messages" | "profile";
-
-function Logo() {
-  return (
-    <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="48" fill="#E0F2FE" stroke="#4338ca" strokeWidth="2" />
-      <path d="M50 10C55 25 75 40 90 50C75 60 55 75 50 90C45 75 25 60 10 50C25 40 45 25 50 10Z" fill="#BFDBFE" stroke="#4338ca" strokeWidth="2" />
-      <circle cx="50" cy="50" r="10" fill="#4338ca" />
-    </svg>
-  );
-}
+type Tab = "connect" | "explore" | "messages" | "profile";
+type MessagesSubTab = "messages" | "matches";
 
 function formatTimeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -233,42 +222,6 @@ function PortfolioEditor({
 }
 
 /**
- * Read-only horizontal strip of a creator's portfolio.
- * Renders below the post card on the swipe feed.
- */
-function PortfolioStrip({
-  urls,
-  name,
-  onOpen,
-}: {
-  urls: string[];
-  name: string;
-  onOpen: (startIndex: number) => void;
-}) {
-  if (!urls?.length) return null;
-  return (
-    <div className="px-4 pb-3 pt-1 border-t border-gray-100">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-        More from {name}
-      </p>
-      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1" style={{ scrollbarWidth: "thin" }}>
-        {urls.slice(0, 9).map((u, i) => (
-          <button
-            key={`${u}-${i}`}
-            type="button"
-            onClick={() => onOpen(i)}
-            className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
-            aria-label={`View portfolio image ${i + 1}`}
-          >
-            <img src={u} alt="" className="w-full h-full object-cover" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
  * Full read-only portfolio grid for the post detail dialog.
  */
 function PortfolioGrid({
@@ -341,6 +294,7 @@ function ImageGallery({ urls, height = "h-48" }: { urls: string[]; height?: stri
 export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("connect");
+  const [messagesSubTab, setMessagesSubTab] = useState<MessagesSubTab>("messages");
 
   // Connect
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
@@ -780,53 +734,57 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: "connect", label: "Connect" },
-    { key: "events", label: "Events" },
+    { key: "explore", label: "Explore" },
     { key: "messages", label: "Messages", badge: unreadCount },
     { key: "profile", label: "Profile" },
   ];
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-4 px-4">
-      <div className="w-full max-w-[500px] bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[90vh]">
+  const messageMatches = matches.filter((m) =>
+    messagesSubTab === "messages" ? !!m.last_message : !m.last_message
+  );
 
-        {/* Brand header */}
-        <div className="bg-blue-900 text-white px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Logo />
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center py-4 px-4">
+      <div className="w-full max-w-[375px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[90vh] max-h-[900px]">
+
+        {/* In-app header (Jolea prototype) */}
+        <div className="bg-white text-blue-800 px-4 py-3 flex items-center justify-between border-b border-blue-200">
+          <div className="flex items-center gap-2.5">
+            <Logo size="sm" />
             <div>
-              <h1 className="text-xl font-bold italic -skew-x-3" style={{ WebkitTextStroke: "1px #818cf8", paintOrder: "stroke fill" }}>
+              <h1
+                className="text-lg font-bold italic -skew-x-3 text-blue-800"
+                style={{ WebkitTextStroke: "1px #A78BFA", paintOrder: "stroke fill" }}
+              >
                 Melange
               </h1>
-              <p className="text-[11px] text-blue-200 -mt-0.5">Creative Collaborations</p>
+              <p className="text-[10px] text-blue-500 -mt-0.5">Creative Collaborations</p>
             </div>
           </div>
-          <button onClick={signOut} className="text-blue-200 hover:text-white transition-colors" title="Sign out">
+          <button onClick={signOut} className="text-blue-400 hover:text-blue-700 transition-colors" title="Sign out">
             <LogOut className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Tab navigation */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="bg-blue-600 rounded-full p-1 flex">
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className={`flex-1 text-xs font-medium py-2 rounded-full transition-all relative ${
-                  activeTab === t.key
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-white hover:text-blue-100"
-                }`}
-              >
-                {t.label}
-                {t.badge && t.badge > 0 ? (
-                  <span className="absolute -top-1 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 shadow-sm">
-                    {t.badge > 9 ? "9+" : t.badge}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
+        {/* Tab navigation — full-width blue grid */}
+        <div className="grid grid-cols-4 bg-blue-800">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key)}
+              className={`text-[11px] font-medium py-2.5 transition-colors relative ${
+                activeTab === t.key ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-gray-200"
+              }`}
+            >
+              {t.label}
+              {t.badge && t.badge > 0 ? (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5">
+                  {t.badge > 9 ? "9+" : t.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
         </div>
 
         {/* Match toast */}
@@ -838,32 +796,32 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         ) : null}
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-3 pb-4">
 
           {/* ======================== CONNECT TAB ======================== */}
           {activeTab === "connect" && (
             <div className="pt-3">
-              {/* Search + New Post */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-400" />
                   <input
                     value={connectSearch}
                     onChange={(e) => setConnectSearch(e.target.value)}
-                    placeholder="Filter by role, location, skill..."
-                    className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                    placeholder="Role, location, skill..."
+                    className="w-full pl-8 pr-8 py-2 text-xs bg-blue-50 border border-blue-200 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                   />
                   {connectSearch && (
-                    <button onClick={() => setConnectSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <button type="button" onClick={() => setConnectSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowCreatePost(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
+                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-2 bg-violet-400 text-white rounded-full hover:bg-violet-500 flex-shrink-0"
                 >
-                  <Plus className="h-3.5 w-3.5" /> New Post
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
 
@@ -875,145 +833,81 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading posts...</div>
               ) : !currentPost ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-gray-500 mb-1">{connectSearch ? "No posts match your filter." : "No posts to swipe on yet."}</p>
+                  <p className="text-blue-800 mb-1">{connectSearch ? "No posts match your filter." : "No posts to swipe on yet."}</p>
                   <p className="text-gray-400 text-sm mb-4">{connectSearch ? "Try a different search term." : "Create a post so others can find you!"}</p>
                   {connectSearch ? (
-                    <button onClick={() => setConnectSearch("")} className="text-sm text-blue-600 hover:underline">Clear filter</button>
+                    <button type="button" onClick={() => setConnectSearch("")} className="text-sm text-violet-600 hover:underline">Clear filter</button>
                   ) : (
-                    <button onClick={loadPosts} className="text-sm text-blue-600 hover:underline">Refresh</button>
+                    <button type="button" onClick={loadPosts} className="text-sm text-blue-800 hover:underline">Refresh</button>
                   )}
                 </div>
               ) : (
-                <>
-                  {/* Post card */}
-                  <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-4">
-                    <div className="relative">
-                      <ImageGallery urls={currentPost.media_urls ?? []} />
-                      <button
-                        onClick={() => setDetailPost(currentPost)}
-                        className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
-                        aria-label="Post details"
-                      >
-                        <Info className="h-4 w-4 text-blue-600" />
-                      </button>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="flex items-center gap-2.5 mb-3">
-                        <Avatar creator={currentPost.creator} size="md" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{currentPost.creator.name}</p>
-                          {currentPost.creator.role && (
-                            <p className="text-xs text-gray-500 truncate">{currentPost.creator.role}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() =>
-                            setReportTarget({
-                              kind: "post",
-                              id: currentPost.id,
-                              label: currentPost.title,
-                            })
-                          }
-                          className="text-gray-300 hover:text-red-500 transition-colors"
-                          title="Report post"
-                          aria-label="Report post"
-                        >
-                          <Flag className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      <h3 className="font-semibold text-gray-900 text-base mb-1">{currentPost.title}</h3>
-                      {currentPost.description && (
-                        <p className="text-gray-500 text-sm line-clamp-2 mb-2">{currentPost.description}</p>
-                      )}
-
-                      <div className="space-y-1">
-                        {currentPost.location && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                            <MapPin className="h-3 w-3 flex-shrink-0" /> {currentPost.location}
-                          </div>
-                        )}
-                        {currentPost.looking_for && currentPost.looking_for.length > 0 && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                            <Users className="h-3 w-3 flex-shrink-0" /> Looking for: {currentPost.looking_for.join(", ")}
-                          </div>
-                        )}
-                        {currentPost.compensation && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                            <DollarSign className="h-3 w-3 flex-shrink-0" /> {currentPost.compensation}
-                          </div>
-                        )}
-                      </div>
-
-                      <p className="text-[11px] text-gray-300 mt-2">{visiblePosts.length - currentPostIndex - 1} posts remaining{connectSearch ? " (filtered)" : ""}</p>
-                    </div>
-
-                    {currentPost.creator.portfolio_urls && currentPost.creator.portfolio_urls.length > 0 ? (
-                      <PortfolioStrip
-                        urls={currentPost.creator.portfolio_urls}
-                        name={currentPost.creator.name}
-                        onOpen={(idx) =>
-                          setLightbox({
-                            urls: currentPost.creator.portfolio_urls ?? [],
-                            index: idx,
-                            creatorName: currentPost.creator.name,
-                          })
-                        }
-                      />
-                    ) : null}
-                  </div>
-
-                  {/* Swipe buttons */}
-                  <div className="flex justify-center gap-4 mb-2">
-                    <button
-                      onClick={() => handleSwipe("left")}
-                      disabled={swiping}
-                      className="flex items-center gap-2 px-6 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                    >
-                      <X className="h-4 w-4" /> Pass
-                    </button>
-                    <button
-                      onClick={() => handleSwipe("right")}
-                      disabled={swiping}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-green-500 text-white rounded-full text-sm font-medium hover:bg-green-600 disabled:opacity-50 transition-colors"
-                    >
-                      <Heart className="h-4 w-4" /> Like
-                    </button>
-                  </div>
-                </>
+                <ConnectSwipeCard
+                  post={currentPost}
+                  remaining={Math.max(0, visiblePosts.length - currentPostIndex - 1)}
+                  swiping={swiping}
+                  onSwipe={handleSwipe}
+                  onDetail={() => setDetailPost(currentPost)}
+                />
               )}
             </div>
           )}
 
-          {/* ======================== EVENTS TAB ======================== */}
-          {activeTab === "events" && userId && (
-            <EventsView userId={userId} />
+          {/* ======================== EXPLORE TAB ======================== */}
+          {activeTab === "explore" && userId && (
+            <ExploreView
+              userId={userId}
+              onNewIdea={() => setShowCreatePost(true)}
+              onOpenPost={(post) => setDetailPost(post)}
+            />
           )}
 
           {/* ======================== MESSAGES TAB ======================== */}
           {activeTab === "messages" && (
-            <div className="pt-3">
+            <div className="pt-2">
+              <div className="grid grid-cols-2 bg-blue-800 rounded-lg overflow-hidden mb-3">
+                {(["messages", "matches"] as MessagesSubTab[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setMessagesSubTab(key)}
+                    className={`text-xs font-medium py-2 capitalize transition-colors ${
+                      messagesSubTab === key ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-gray-200"
+                    }`}
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+
               {matchErr && (
                 <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{matchErr}</div>
               )}
 
               {matches.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-gray-500 mb-1">No matches yet.</p>
+                  <p className="text-blue-800 mb-1">No matches yet.</p>
                   <p className="text-gray-400 text-sm mb-4">Start swiping to find collaborators!</p>
-                  <button onClick={loadMatches} className="text-sm text-blue-600 hover:underline">Refresh</button>
+                  <button type="button" onClick={loadMatches} className="text-sm text-violet-600 hover:underline">Refresh</button>
+                </div>
+              ) : messageMatches.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <p className="text-gray-500 text-sm">
+                    {messagesSubTab === "messages"
+                      ? "No conversations yet — say hello from Matches."
+                      : "All matches have started chatting!"}
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {matches.map((match) => {
+                <div className="space-y-2">
+                  {messageMatches.map((match) => {
                     const unread = userId ? isMatchUnread(match, userId) : false;
                     return (
                       <div
                         key={match.id}
                         onClick={() => openChat(match)}
                         className={`flex items-center gap-3 bg-white border rounded-xl p-3 hover:shadow-sm transition-shadow cursor-pointer ${
-                          unread ? "border-blue-300 bg-blue-50/40" : "border-gray-200"
+                          unread ? "border-violet-300 bg-violet-50/30" : "border-blue-100"
                         }`}
                       >
                         <div className="relative flex-shrink-0">
@@ -1131,7 +1025,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="w-full py-2.5 bg-violet-400 text-white text-sm font-medium rounded-xl hover:bg-violet-500 disabled:opacity-50 transition-colors"
                 >
                   {savingProfile ? "Saving..." : "Save Profile"}
                 </button>
@@ -1142,8 +1036,9 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-sm font-semibold text-gray-900">Your posts</h2>
                   <button
+                    type="button"
                     onClick={() => setShowCreatePost(true)}
-                    className="text-xs font-medium text-blue-700 hover:underline flex items-center gap-1"
+                    className="text-xs font-medium text-violet-600 hover:underline flex items-center gap-1"
                   >
                     <Plus className="h-3 w-3" /> New
                   </button>

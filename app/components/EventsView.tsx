@@ -111,7 +111,13 @@ function Avatar({
 // Main component
 // ============================================================
 
-export default function EventsView({ userId }: { userId: string }) {
+export default function EventsView({
+  userId,
+  embedded = false,
+}: {
+  userId: string;
+  embedded?: boolean;
+}) {
   const [events, setEvents] = useState<EventWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -179,29 +185,43 @@ export default function EventsView({ userId }: { userId: string }) {
   })();
 
   return (
-    <div className="pt-3">
+    <div className={embedded ? "pt-0" : "pt-3"}>
       {/* Header search + create */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-          <input
-            value={cityFilter}
-            onChange={(e) => setCityFilter(e.target.value)}
-            placeholder="Filter by city or location..."
-            className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-          />
-          {cityFilter && (
-            <button onClick={() => setCityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X className="h-3.5 w-3.5" />
+      <div className={`flex items-center gap-2 mb-3 ${embedded ? "flex-col-reverse" : ""}`}>
+        {embedded ? (
+          <div className="w-full flex justify-end">
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 bg-violet-400 text-white rounded-full hover:bg-violet-500 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> New Event
             </button>
-          )}
+          </div>
+        ) : null}
+        <div className={`flex items-center gap-2 ${embedded ? "w-full" : "flex-1 w-full"}`}>
+          <div className="flex-1 relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              placeholder="Filter by city or location..."
+              className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+            />
+            {cityFilter && (
+              <button onClick={() => setCityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          {!embedded ? (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" /> Host
+            </button>
+          ) : null}
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
-        >
-          <Plus className="h-3.5 w-3.5" /> Host
-        </button>
       </div>
 
       {/* Pitch */}
