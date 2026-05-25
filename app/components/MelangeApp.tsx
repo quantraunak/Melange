@@ -65,6 +65,7 @@ import ExploreView from "./ExploreView";
 import Logo from "./Logo";
 import PortfolioLightbox from "./PortfolioLightbox";
 import ProfileReviews from "./ProfileReviews";
+import SetupChecklist from "./SetupChecklist";
 import ReviewDialog from "./ReviewDialog";
 import ReputationBadge from "./ReputationBadge";
 import {
@@ -874,13 +875,31 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               {loading ? (
                 <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading posts...</div>
               ) : !currentPost ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-blue-800 mb-1">{connectSearch ? "No posts match your filter." : "No posts to swipe on yet."}</p>
-                  <p className="text-gray-400 text-sm mb-4">{connectSearch ? "Try a different search term." : "Create a post so others can find you!"}</p>
+                <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                  <p className="text-blue-800 font-medium mb-1">
+                    {connectSearch ? "No posts match your filter." : "You're all caught up"}
+                  </p>
+                  <p className="text-gray-500 text-sm mb-4 max-w-[280px]">
+                    {connectSearch
+                      ? "Try role, city, or skill keywords — or clear the filter."
+                      : "Post a collab idea so others can swipe on you, or check Explore for ranked ideas near you."}
+                  </p>
                   {connectSearch ? (
                     <button type="button" onClick={() => setConnectSearch("")} className="text-sm text-violet-600 hover:underline">Clear filter</button>
                   ) : (
-                    <button type="button" onClick={loadPosts} className="text-sm text-blue-800 hover:underline">Refresh</button>
+                    <div className="flex flex-col gap-2 w-full max-w-[220px]">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreatePost(true)}
+                        className="text-sm font-medium py-2.5 rounded-full bg-violet-500 text-white hover:bg-violet-600"
+                      >
+                        Post a collab idea
+                      </button>
+                      <button type="button" onClick={() => setActiveTab("explore")} className="text-sm text-blue-800 hover:underline">
+                        Browse Explore
+                      </button>
+                      <button type="button" onClick={loadPosts} className="text-xs text-gray-400 hover:underline">Refresh feed</button>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -990,6 +1009,8 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           {/* ======================== PROFILE TAB ======================== */}
           {activeTab === "profile" && (
             <div className="pt-3 space-y-5">
+              {profile ? <SetupChecklist profile={profile} /> : null}
+
               {/* Avatar + identity */}
               {profile && (
                 <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
@@ -1015,6 +1036,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                     </p>
                     {profile.role && <p className="text-sm text-gray-500 truncate">{profile.role}</p>}
                     <p className="text-[11px] text-gray-400 mt-0.5">Click avatar to change</p>
+                    {profile.verification_status !== "verified" ? (
+                      <p className="text-[10px] text-violet-700 mt-1 leading-snug">
+                        Verified: Instagram + 3 portfolio photos + 2 reviews (4.0+ avg).
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               )}

@@ -302,6 +302,50 @@ export async function getFeedPosts(
   }
 }
 
+export async function getExplorePosts(
+  userId: string,
+  limit = 40
+): Promise<{ data: PostWithCreator[] | null; error: string | null }> {
+  try {
+    const rpc = await supabase.rpc("explore_posts", { p_user_id: userId, p_limit: limit });
+    if (!rpc.error && rpc.data) {
+      const list = (rpc.data as CollabPost[]) || [];
+      const ownerIds = [...new Set(list.map((p) => p.owner_id))];
+      const creators = await fetchCreators(ownerIds);
+      return {
+        data: list.map((post) => ({
+          ...post,
+          creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
+        })),
+        error: null,
+      };
+    }
+
+    const { data: posts, error } = await supabase
+      .from("collab_posts")
+      .select("*")
+      .eq("is_active", true)
+      .neq("owner_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) return { data: null, error: error.message };
+
+    const list = (posts as CollabPost[]) || [];
+    const ownerIds = [...new Set(list.map((p) => p.owner_id))];
+    const creators = await fetchCreators(ownerIds);
+    return {
+      data: list.map((post) => ({
+        ...post,
+        creator: creators.get(post.owner_id) || UNKNOWN_CREATOR,
+      })),
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: errMsg(err) };
+  }
+}
+
 // ============================================================
 // Swipes & Matches
 // ============================================================

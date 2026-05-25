@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import MelangeApp from "./MelangeApp";
 import Logo from "./Logo";
+import { trackEvent } from "../lib/analytics";
 
 export default function AuthPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -110,7 +111,10 @@ export default function AuthPage() {
 
       if (profileErr) {
         setSignupError(`Profile insert failed: ${profileErr.message}`);
+        return;
       }
+
+      trackEvent("signup_completed", { user_id: userId });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setSignupError(`Unexpected error: ${message}`);

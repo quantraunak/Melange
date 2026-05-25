@@ -24,7 +24,7 @@ export type Reputation = {
   review_count: number;
 };
 
-export const REVIEW_ELIGIBILITY_DAYS = 14;
+export const REVIEW_ELIGIBILITY_DAYS = 3;
 
 export function isReviewEligible(matchCreatedAt: string): boolean {
   const days =

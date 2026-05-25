@@ -31,9 +31,10 @@ export type Reputation = {
   review_count: number;
 };
 
-export const REVIEW_ELIGIBILITY_DAYS = 14;
+/** Production: 14. Beta: 3 so reviewers and early users can test trust loop faster. */
+export const REVIEW_ELIGIBILITY_DAYS = 3;
 
-/** Both parties wait 14 days after match before reviewing (anti-spam, per ROADMAP). */
+/** Wait period after match before leaving a collab review (anti-spam). */
 export function isReviewEligible(matchCreatedAt: string): boolean {
   const days =
     (Date.now() - new Date(matchCreatedAt).getTime()) / (1000 * 60 * 60 * 24);
