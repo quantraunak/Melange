@@ -64,6 +64,13 @@ Deno.serve(async (req: Request) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  // Deployed with --no-verify-jwt (webhooks don't carry a user JWT), so this
+  // function is the only auth boundary. Database Webhooks are configured to
+  // send `Authorization: Bearer <service_role_key>` — enforce it here.
+  if (req.headers.get("Authorization") !== `Bearer ${serviceKey}`) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   let payload: Payload;
   try {
     payload = await req.json();
