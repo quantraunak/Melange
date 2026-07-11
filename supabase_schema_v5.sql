@@ -465,3 +465,28 @@ CREATE POLICY "Users read mutually revealed reviews"
       OR public.review_has_reciprocal(match_id, reviewer_id, reviewee_id)
     )
   );
+
+-- ------------------------------------------------------------
+-- 9. Fix: chat had no live delivery — messages/matches were never
+--    added to the supabase_realtime publication (this is normally a
+--    manual Dashboard → Database → Replication toggle, so it doesn't
+--    happen automatically on a scripted setup). Without it, the chat
+--    screen's postgres_changes subscription connects but never fires,
+--    so new messages only show up after the chat is closed and
+--    reopened. Script it here so it's no longer a manual step.
+-- ------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'matches'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.matches;
+  END IF;
+END $$;

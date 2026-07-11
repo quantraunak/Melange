@@ -149,7 +149,7 @@ SUPABASE_PROJECT_REF=... SUPABASE_ACCESS_TOKEN=... \
 MIGRATION_FILE=supabase_schema_v4.sql node scripts/apply_migration.mjs
 ```
 
-Both are idempotent. Then enable Realtime for the `messages` and `matches` tables under **Database → Replication**.
+Both are idempotent. `supabase_schema_v5.sql` also enables Realtime replication for `messages` and `matches` (added to the `supabase_realtime` publication directly) — no manual **Database → Replication** step needed.
 
 ## App Store submission
 
