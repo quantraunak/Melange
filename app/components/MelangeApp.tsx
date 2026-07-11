@@ -62,6 +62,7 @@ import EditPostDialog from "./EditPostDialog";
 import AccountSafetyDialog from "./AccountSafetyDialog";
 import ConnectSwipeCard from "./ConnectSwipeCard";
 import ExploreView from "./ExploreView";
+import EventsView from "./EventsView";
 import Logo from "./Logo";
 import PortfolioLightbox from "./PortfolioLightbox";
 import ProfileReviews from "./ProfileReviews";
@@ -76,7 +77,7 @@ import {
 import { trackEvent } from "../lib/analytics";
 import VerifiedBadge from "./VerifiedBadge";
 
-type Tab = "connect" | "explore" | "messages" | "profile";
+type Tab = "connect" | "explore" | "events" | "messages" | "profile";
 type MessagesSubTab = "messages" | "matches";
 
 function formatTimeAgo(iso: string): string {
@@ -778,6 +779,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: "connect", label: "Connect" },
     { key: "explore", label: "Explore" },
+    { key: "events", label: "Events" },
     { key: "messages", label: "Messages", badge: unreadCount },
     { key: "profile", label: "Profile" },
   ];
@@ -810,13 +812,13 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
         </div>
 
         {/* Tab navigation — full-width blue grid */}
-        <div className="grid grid-cols-4 bg-blue-800">
+        <div className="grid bg-blue-800" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => setActiveTab(t.key)}
-              className={`text-[11px] font-medium py-2.5 transition-colors relative ${
+              className={`text-[11px] font-medium py-2.5 px-0.5 transition-colors relative ${
                 activeTab === t.key ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-gray-200"
               }`}
             >
@@ -921,6 +923,11 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               onNewIdea={() => setShowCreatePost(true)}
               onOpenPost={(post) => setDetailPost(post)}
             />
+          )}
+
+          {/* ======================== EVENTS TAB ======================== */}
+          {activeTab === "events" && userId && (
+            <EventsView userId={userId} />
           )}
 
           {/* ======================== MESSAGES TAB ======================== */}

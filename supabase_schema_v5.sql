@@ -384,3 +384,84 @@ BEGIN
     PERFORM public.refresh_profile_verification(r.uid);
   END LOOP;
 END $$;
+
+-- ------------------------------------------------------------
+-- 7. Fix: explore_posts still returning pre-embedding column set
+--    (post_embedding was added earlier in this file; explore_posts
+--    was never updated to select it, so its declared return type
+--    RETURNS SETOF public.collab_posts no longer matched — Postgres
+--    error 42P13 "return type mismatch" on every call.)
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.explore_posts(p_user_id UUID, p_limit INT DEFAULT 40)
+RETURNS SETOF public.collab_posts
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH viewer AS (
+    SELECT role, COALESCE(vibes, '{}'::text[]) AS vibes
+    FROM public.profiles WHERE user_id = p_user_id
+  ),
+  rep AS (
+    SELECT * FROM public.creator_reputation(
+      ARRAY(SELECT DISTINCT owner_id FROM public.collab_posts WHERE is_active = true)
+    )
+  ),
+  candidates AS (
+    SELECT p.*, COALESCE(rep.avg_rating, 0) AS owner_avg_rating,
+      EXTRACT(EPOCH FROM (now() - p.created_at)) / 86400.0 AS age_days
+    FROM public.collab_posts p
+    LEFT JOIN rep ON rep.user_id = p.owner_id
+    WHERE p.owner_id <> p_user_id AND p.is_active = true
+      AND NOT EXISTS (
+        SELECT 1 FROM public.blocks b
+        WHERE (b.blocker_id = p_user_id AND b.blocked_id = p.owner_id)
+           OR (b.blocker_id = p.owner_id AND b.blocked_id = p_user_id)
+      )
+  )
+  SELECT id, owner_id, title, description, looking_for, location, compensation,
+         media_urls, is_active, created_at, updated_at, vibes, post_embedding
+  FROM candidates
+  ORDER BY (0.5 / (1.0 + age_days / 7.0) + 0.5 * LEAST(owner_avg_rating / 5.0, 1.0)) DESC,
+           created_at DESC
+  LIMIT GREATEST(p_limit, 1);
+$$;
+
+GRANT EXECUTE ON FUNCTION public.explore_posts(UUID, INT) TO authenticated;
+
+-- ------------------------------------------------------------
+-- 8. Fix: infinite recursion in collab_reviews SELECT policy
+--    (the policy's USING clause queried collab_reviews itself to
+--    check for a reciprocal review, which re-triggers the same
+--    policy on the referenced rows — Postgres error 42P17.
+--    Move the self-reference into a SECURITY DEFINER function,
+--    the standard way to break recursive RLS policies.)
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.review_has_reciprocal(p_match_id UUID, p_reviewer_id UUID, p_reviewee_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.collab_reviews r
+    WHERE r.match_id = p_match_id
+      AND r.reviewer_id = p_reviewee_id
+      AND r.reviewee_id = p_reviewer_id
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.review_has_reciprocal(UUID, UUID, UUID) TO authenticated;
+
+DROP POLICY IF EXISTS "Users read mutually revealed reviews" ON public.collab_reviews;
+CREATE POLICY "Users read mutually revealed reviews"
+  ON public.collab_reviews FOR SELECT
+  USING (
+    auth.uid() IS NOT NULL
+    AND (
+      reviewer_id = auth.uid()
+      OR reviewee_id = auth.uid()
+      OR public.review_has_reciprocal(match_id, reviewer_id, reviewee_id)
+    )
+  );
