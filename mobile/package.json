@@ -7,15 +7,18 @@
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "prebuild": "expo prebuild --platform ios --clean",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "android": "expo run:android"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@supabase/supabase-js": "^2.45.0",
+    "base64-arraybuffer": "^1.0.2",
     "expo": "~52.0.42",
     "expo-blur": "~14.0.3",
     "expo-constants": "~17.0.8",
+    "expo-file-system": "~18.0.12",
     "expo-haptics": "~14.0.1",
     "expo-image": "~2.0.7",
     "expo-image-picker": "~16.0.6",
@@ -39,6 +42,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
+    "eas-cli": "^19.1.0",
     "typescript": "~5.3.3"
   },
   "private": true

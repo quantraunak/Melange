@@ -1,3 +1,5 @@
+import * as FileSystem from "expo-file-system";
+import { decode as decodeBase64 } from "base64-arraybuffer";
 import { supabase } from "./supabase";
 import { getReputationForUsers } from "./reviews";
 
@@ -162,9 +164,13 @@ export async function uploadFile(
   contentType: string = "image/jpeg"
 ): Promise<{ url: string | null; error: string | null }> {
   try {
-    // On React Native, fetch(fileUri).blob() works for both file:// and assets.
-    const res = await fetch(fileUri);
-    const blob = await res.blob();
+    // fetch(fileUri).blob() is unreliable on React Native (esp. with the New
+    // Architecture) and silently produces empty/corrupt uploads. Read the
+    // file as base64 via expo-file-system and decode to an ArrayBuffer instead.
+    const base64 = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const fileData = decodeBase64(base64);
 
     const ext = (() => {
       const m = fileUri.match(/\.([a-zA-Z0-9]+)(?:\?.*)?$/);
@@ -177,7 +183,7 @@ export async function uploadFile(
 
     const { error } = await supabase.storage
       .from("media")
-      .upload(path, blob, { upsert: true, contentType });
+      .upload(path, fileData, { upsert: true, contentType });
 
     if (error) return { url: null, error: error.message };
 
