@@ -16,12 +16,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.melange.app",
-      "buildNumber": "1",
+      "buildNumber": "5",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Melange needs access to your camera to take photos for your profile and posts.",
-        "NSPhotoLibraryUsageDescription": "Melange needs access to your photo library so you can pick photos for your profile and posts.",
-        "NSPhotoLibraryAddUsageDescription": "Melange may save photos to your library when you choose to."
+        "NSPhotoLibraryUsageDescription": "Melange needs access to your photo library so you can pick photos for your profile and posts."
       },
       "associatedDomains": []
     },
@@ -31,8 +29,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Melange needs access to your photo library so you can pick photos for your profile and posts.",
-          "cameraPermission": "Melange needs access to your camera to take photos for your profile and posts."
+          "photosPermission": "Melange needs access to your photo library so you can pick photos for your profile and posts."
         }
       ],
       [
@@ -57,6 +54,9 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "43d6220f-4696-442c-a89c-38cac6b1f49f"
       }
     },
     "runtimeVersion": {

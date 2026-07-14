@@ -77,7 +77,7 @@ Demo account:
 - Email: review@melange.app
 - Password: ReviewMelange2026!
 
-(Create this in Supabase before submitting.)
+(Verified working in Supabase as of 2026-07-12: account exists and signs in successfully.)
 
 The app is a peer-to-peer creative collaboration network. Reviewers can:
 

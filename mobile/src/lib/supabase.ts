@@ -1,10 +1,15 @@
 import "react-native-url-polyfill/auto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { createClient } from "@supabase/supabase-js";
 import { AppState } from "react-native";
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const extra = Constants.expoConfig?.extra as Record<string, string | undefined> | undefined;
+
+const url =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ?? extra?.EXPO_PUBLIC_SUPABASE_URL;
+const anon =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!url || !anon) {
   // We throw early so a misconfigured build is obvious in the simulator.

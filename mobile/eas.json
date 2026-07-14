@@ -19,16 +19,15 @@
     },
     "production": {
       "ios": {
-        "autoIncrement": "buildNumber"
+        "autoIncrement": "buildNumber",
+        "image": "macos-sequoia-15.6-xcode-26.2"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "ascAppId": "6774481477"
       }
     }
   }
