@@ -104,6 +104,13 @@ GRANT EXECUTE ON FUNCTION public.refresh_profile_verification(UUID) TO authentic
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS profile_embedding REAL[];
 
+-- REGRESSION GUARD: public.explore_posts and public.ranked_feed_posts (below,
+-- and in section 7) are declared `RETURNS SETOF public.collab_posts` and end
+-- with an explicit column list (id, owner_id, ..., vibes, post_embedding) that
+-- must match collab_posts' column set/order exactly, or every call fails with
+-- Postgres error 42P13 "return type mismatch" (this happened once already —
+-- see section 7 below). If you add another column to collab_posts here or in
+-- a future schema file, update both functions' trailing SELECT list too.
 ALTER TABLE public.collab_posts
   ADD COLUMN IF NOT EXISTS post_embedding REAL[];
 
@@ -490,3 +497,130 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.matches;
   END IF;
 END $$;
+
+-- ------------------------------------------------------------
+-- 10. Fix: missing index on collab_reviews.reviewer_id.
+--     The collab_reviews SELECT RLS policy (see section 8) filters
+--     directly on `reviewer_id = auth.uid()`, but reviewer_id only
+--     appears as the non-leading (2nd) column of the composite
+--     unique index collab_reviews_match_id_reviewer_id_key(match_id,
+--     reviewer_id), so a standalone filter on reviewer_id can't use
+--     an index-only lookup there. reviewee_id got its own dedicated
+--     index in v4 (idx_collab_reviews_reviewee); reviewer_id was
+--     missed — this is that oversight, fixed to match.
+-- ------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_collab_reviews_reviewer ON public.collab_reviews(reviewer_id);
+
+-- ------------------------------------------------------------
+-- 11. Fix: missing index on matches.post1_id / matches.post2_id.
+--     Both are FK columns (matches_post_low_fkey / matches_post_high_fkey)
+--     referencing collab_posts(id) ON DELETE CASCADE, but carried no
+--     supporting index at all. Every DELETE on collab_posts (owner
+--     deletes/deactivates a post) makes Postgres verify no matches row
+--     still references it, which without an index means a full
+--     sequential scan of matches per deleted post. Same root cause as
+--     section 10 (FK column added without a matching index).
+-- ------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_matches_post1_id ON public.matches(post1_id);
+CREATE INDEX IF NOT EXISTS idx_matches_post2_id ON public.matches(post2_id);
+
+-- ------------------------------------------------------------
+-- 12. Fix: last_read_at was stamped with the client's local clock
+--     (new Date().toISOString() in mobile/src/lib/db.ts markMatchRead),
+--     but messages.created_at is stamped by the DB server clock
+--     (now()). Under client/server clock skew, isMatchUnread's
+--     `last_message.created_at > last_read_at` comparison can
+--     misreport read state. Move the timestamp to the server via a
+--     SECURITY DEFINER RPC so both sides of the comparison come
+--     from the same clock.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.mark_match_read(p_match_id UUID)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  INSERT INTO public.match_reads (match_id, user_id, last_read_at)
+  VALUES (p_match_id, auth.uid(), now())
+  ON CONFLICT (match_id, user_id) DO UPDATE SET last_read_at = now();
+$$;
+
+GRANT EXECUTE ON FUNCTION public.mark_match_read(UUID) TO authenticated;
+
+-- ------------------------------------------------------------
+-- 13. Fix: supabase_schema.sql's INSERT policy on the 'media' storage
+--     bucket ("Authenticated users can upload to media") only checked
+--     `auth.role() = 'authenticated'`, letting any signed-in user write
+--     into any other user's folder (e.g. avatars/<someone-else-id>/...).
+--     Production was already patched out-of-band at some point (live
+--     policy "Users upload to own folder" adds the per-user path check
+--     that UPDATE/DELETE already had) but that fix was never captured
+--     in a schema file, so a fresh install/disaster-recovery from this
+--     repo would reproduce the vulnerable version. Re-declaring it here,
+--     matching the live production policy, closes that drift. See also
+--     supabase_schema.sql, which now matches this directly for a
+--     from-scratch install.
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Authenticated users can upload to media" ON storage.objects;
+DROP POLICY IF EXISTS "Users upload to own folder" ON storage.objects;
+CREATE POLICY "Users upload to own folder"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'media'
+    AND auth.role() = 'authenticated'
+    AND auth.uid()::text = (storage.foldername(name))[2]
+  );
+
+-- ------------------------------------------------------------
+-- 14. Fix: two more public storage buckets, 'avatars' and 'portfolio',
+--     were created directly against the live project (project
+--     thkwuhxsattnmsdfozzq) outside migration tracking and never
+--     appeared in any supabase_schema*.sql file. Neither app/ nor
+--     mobile/ references bucket 'avatars' or 'portfolio' by name (the
+--     app consolidated onto the single 'media' bucket with
+--     `${folder}/${userId}/...` paths -- see section 13 above) but
+--     'avatars' still holds at least one real pre-existing file, so
+--     they are legacy-but-live, not purely theoretical.
+--
+--     Their INSERT policies ("avatars_upload" / "portfolio_upload")
+--     only checked `bucket_id = '<bucket>'`, with no ownership check
+--     at all -- strictly looser than even the pre-patch 'media' bug in
+--     section 13, since there wasn't even an `auth.role()` check tying
+--     it to a signed-in user's own path. Live-verified: any
+--     authenticated user could upload to an arbitrary top-level path
+--     in either public bucket (e.g. `not-my-folder/x.jpg`), which is
+--     both a data-integrity and Free-plan storage-exhaustion/abuse
+--     vector. Neither bucket has an UPDATE or DELETE policy, so those
+--     already deny by default under RLS -- only INSERT needed fixing.
+--
+--     Re-declaring both buckets + a path-scoped WITH CHECK here mirrors
+--     the 'media' bucket's ownership convention (auth.uid() must match
+--     a path segment), requiring uploads to live under a
+--     `{auth.uid()}/...` top-level folder, and documents buckets that
+--     were previously untracked.
+-- ------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('portfolio', 'portfolio', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "avatars_upload" ON storage.objects;
+CREATE POLICY "avatars_upload"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+DROP POLICY IF EXISTS "portfolio_upload" ON storage.objects;
+CREATE POLICY "portfolio_upload"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'portfolio'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );

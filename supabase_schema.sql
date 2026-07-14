@@ -190,7 +190,11 @@ CREATE POLICY "Public read access on media"
 
 CREATE POLICY "Authenticated users can upload to media"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');
+  WITH CHECK (
+    bucket_id = 'media'
+    AND auth.role() = 'authenticated'
+    AND auth.uid()::text = (storage.foldername(name))[2]
+  );
 
 CREATE POLICY "Users can update their own media"
   ON storage.objects FOR UPDATE

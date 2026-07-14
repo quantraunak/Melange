@@ -3,7 +3,10 @@
 // Then wire up Database Webhooks:
 //   - messages INSERT  -> POST { type: "message", record }
 //   - matches  INSERT  -> POST { type: "match",   record }
-// (Settings > Webhooks in the Supabase Dashboard.)
+// (Settings > Webhooks in the Supabase Dashboard.) Set the webhook's
+// "Authorization" header to `Bearer <PUSH_WEBHOOK_SECRET>` — a dedicated
+// secret set via `supabase secrets set PUSH_WEBHOOK_SECRET=...`, NOT the
+// service_role key, so a leaked webhook header can't grant DB admin access.
 //
 // Reads SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from the function env
 // so it can look up recipient push tokens and the sender's display name.
@@ -14,12 +17,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // Deno globals exist at runtime in Supabase Edge Functions.
 declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Response | Promise<Response>) => void };
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseUrl  = Deno.env.get("SUPABASE_URL")!;
+const serviceKey   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const webhookSecret = Deno.env.get("PUSH_WEBHOOK_SECRET")!;
 
 const admin = createClient(supabaseUrl, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
+
+/** Constant-time string compare (equal-length fast path fails closed). */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const bufA = enc.encode(a);
+  const bufB = enc.encode(b);
+  if (bufA.length !== bufB.length) return false;
+  let diff = 0;
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i];
+  return diff === 0;
+}
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
@@ -66,8 +81,12 @@ Deno.serve(async (req: Request) => {
 
   // Deployed with --no-verify-jwt (webhooks don't carry a user JWT), so this
   // function is the only auth boundary. Database Webhooks are configured to
-  // send `Authorization: Bearer <service_role_key>` — enforce it here.
-  if (req.headers.get("Authorization") !== `Bearer ${serviceKey}`) {
+  // send `Authorization: Bearer <PUSH_WEBHOOK_SECRET>` — a narrowly-scoped
+  // secret dedicated to this check (NOT the service_role key, so a leaked
+  // header only grants push-sending capability, not full DB admin access).
+  // Compared in constant time to avoid leaking the secret via timing.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!timingSafeEqual(authHeader, `Bearer ${webhookSecret}`)) {
     return new Response("Unauthorized", { status: 401 });
   }
 

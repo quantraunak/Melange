@@ -149,6 +149,24 @@ GRANT EXECUTE ON FUNCTION public.feed_posts(UUID) TO authenticated;
 -- The user can wipe themselves; cascades remove all their data.
 -- ============================================================
 
+-- NOTE on uploaded media: storage.objects is NOT part of the auth.users FK
+-- graph (Supabase Storage lives outside the public/auth schemas), so the
+-- DELETE below never touches a deleted user's avatars/post photos — left
+-- alone they'd stay in the public `media` bucket at a guessable, permanent
+-- URL. This function intentionally does NOT attempt that cleanup with a
+-- plain SQL DELETE: this project has storage.protect_delete() installed,
+-- which RAISEs (42501) on any direct DELETE against storage.objects,
+-- so a SQL DELETE here would abort the whole function (verified live).
+-- Even bypassing that guard (`SET LOCAL storage.allow_delete_query`) only
+-- removes the Postgres metadata row, not the underlying blob — Supabase's
+-- own error hint says to "use the Storage API instead", and only the
+-- Storage API's DELETE actually purges the blob (verified live: object
+-- became unreachable after a Storage API delete, but a bare metadata-row
+-- delete cannot be confirmed to). So storage cleanup for delete_account is
+-- done client-side, before this RPC is called, via the Storage API under
+-- the user's own authenticated session (which the "Users can delete their
+-- own media" RLS policy already permits) — see deleteAccount() in
+-- mobile/src/lib/db.ts.
 CREATE OR REPLACE FUNCTION public.delete_account()
 RETURNS void
 LANGUAGE plpgsql
