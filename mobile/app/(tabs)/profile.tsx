@@ -67,10 +67,14 @@ export default function ProfileScreen() {
   const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
-    const [{ data: profileData }, { data: postsData }] = await Promise.all([
+    setLoading(true);
+    setLoadError(null);
+    const [{ data: profileData, error: profileErr }, { data: postsData }] = await Promise.all([
       getProfile(userId),
       getMyPosts(userId),
     ]);
@@ -86,8 +90,11 @@ export default function ProfileScreen() {
         linkedin: profileData.linkedin_url || "",
       });
       setVibes(profileData.vibes ?? []);
+    } else {
+      setLoadError(profileErr || "We couldn't load your profile.");
     }
     setMyPosts(postsData || []);
+    setLoading(false);
   }, [userId]);
 
   useEffect(() => {
@@ -227,9 +234,18 @@ export default function ProfileScreen() {
   };
 
   if (!profile) {
+    if (loading) {
+      return (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.brand} />
+        </View>
+      );
+    }
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.brand} />
+      <View style={[styles.loading, styles.loadingError]}>
+        <ErrorBanner message={loadError || "We couldn't load your profile."} />
+        <Button title="Try again" variant="primary" onPress={load} />
+        <Button title="Sign out" variant="outline" onPress={onSignOut} />
       </View>
     );
   }
@@ -445,6 +461,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadingError: { gap: 12, paddingHorizontal: 24 },
   scroll: { padding: 16, gap: 16, paddingBottom: 32 },
   avatarBlock: {
     flexDirection: "row",

@@ -23,14 +23,16 @@ function ReviewAvatar({
 export default function ProfileReviews({ userId }: { userId: string }) {
   const [reviews, setReviews] = useState<ReviewWithReviewer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await getVisibleReviewsForUser(userId);
+      const { data, error } = await getVisibleReviewsForUser(userId);
       if (!cancelled) {
         setReviews(data);
+        setError(error);
         setLoading(false);
       }
     })();
@@ -41,6 +43,13 @@ export default function ProfileReviews({ userId }: { userId: string }) {
 
   if (loading) {
     return <p className="text-xs text-gray-400 py-2">Loading reviews...</p>;
+  }
+  if (error) {
+    return (
+      <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2">
+        Couldn&apos;t load reviews: {error}
+      </p>
+    );
   }
   if (reviews.length === 0) {
     return (

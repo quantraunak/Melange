@@ -36,7 +36,12 @@ export default function ChatScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
   const { userId } = useAuth();
-  const { matches, markRead, refresh: refreshMatches } = useMatches();
+  const {
+    matches,
+    loading: matchesLoading,
+    markRead,
+    refresh: refreshMatches,
+  } = useMatches();
 
   const match = useMemo(() => matches.find((m) => m.id === matchId), [matches, matchId]);
 
@@ -46,6 +51,16 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasReview, setHasReview] = useState(false);
+  const [retriedNotFound, setRetriedNotFound] = useState(false);
+
+  // If matches have finished loading and this matchId still isn't in the
+  // list, try one refresh (e.g. a match created just before navigating here
+  // may not have been in the initial fetch) before treating it as missing.
+  useEffect(() => {
+    if (match || matchesLoading || retriedNotFound) return;
+    setRetriedNotFound(true);
+    refreshMatches();
+  }, [match, matchesLoading, retriedNotFound, refreshMatches]);
 
   const listRef = useRef<FlatList<Message>>(null);
 
@@ -192,6 +207,9 @@ export default function ChatScreen() {
   }, [match, userId, router, refreshMatches]);
 
   if (!match) {
+    // Still fetching matches, or we just kicked off the one-shot retry
+    // above — this is a transient state, keep spinning.
+    const stillResolving = matchesLoading || !retriedNotFound;
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.header}>
@@ -202,7 +220,22 @@ export default function ChatScreen() {
           <View style={{ width: 22 }} />
         </View>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.brand} />
+          {stillResolving ? (
+            <ActivityIndicator color={colors.brand} />
+          ) : (
+            <View style={styles.notFound}>
+              <Text style={styles.notFoundTitle}>Conversation not found</Text>
+              <Text style={styles.notFoundBody}>
+                This match may have been removed, or you may no longer have access to it.
+              </Text>
+              <Pressable
+                style={styles.notFoundBtn}
+                onPress={() => router.replace("/(tabs)/messages")}
+              >
+                <Text style={styles.notFoundBtnText}>Back to messages</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -334,6 +367,17 @@ const styles = StyleSheet.create({
   headerName: { fontSize: 15, fontWeight: "700", color: colors.text },
   headerSubtitle: { fontSize: 11, color: colors.textSubtle },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  notFound: { alignItems: "center", paddingHorizontal: 32, gap: 8 },
+  notFoundTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
+  notFoundBody: { fontSize: 13, color: colors.textSubtle, textAlign: "center" },
+  notFoundBtn: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: radii.md,
+    backgroundColor: colors.accent,
+  },
+  notFoundBtnText: { color: colors.white, fontSize: 14, fontWeight: "700" },
   messageList: { paddingHorizontal: 14, paddingVertical: 12, flexGrow: 1 },
   emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
   emptyChatText: { color: colors.textSubtle, fontSize: 14 },

@@ -78,7 +78,17 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }, [userId, cityFilter]);
 
+  // Initial/tab-switch load. Deliberately keyed on [subTab, userId] (not
+  // loadIdeas/loadEvents) so that typing in the city filter — which changes
+  // loadEvents's identity — never re-triggers the full-screen loading gate.
   useEffect(() => {
+    if (!userId) {
+      // No fallback: make sure the spinner can't hang forever if userId is
+      // transiently null when this effect fires (e.g. an auth race).
+      setIdeasLoading(false);
+      setEventsLoading(false);
+      return;
+    }
     if (subTab === "ideas") {
       setIdeasLoading(true);
       loadIdeas();
@@ -86,7 +96,23 @@ export default function ExploreScreen() {
       setEventsLoading(true);
       loadEvents();
     }
-  }, [subTab, loadIdeas, loadEvents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subTab, userId]);
+
+  // Debounced city-filter refetch. Uses the RefreshControl's `refreshing`
+  // state (a small top-of-list spinner) instead of the initial-load
+  // `loading` gate, so the TextInput is never unmounted while typing.
+  useEffect(() => {
+    if (subTab !== "events" || !userId) return;
+    const handle = setTimeout(() => {
+      setRefreshing(true);
+      loadEvents();
+    }, 400);
+    return () => clearTimeout(handle);
+    // Intentionally only reacts to cityFilter changes — subTab/userId
+    // changes are already handled by the tab-switch effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityFilter]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -100,8 +126,15 @@ export default function ExploreScreen() {
   const handleRsvp = async (event: EventWithDetails, next: "going" | "interested" | null) => {
     if (!userId) return;
     setBusyId(event.id);
-    if (next === null) await cancelRsvp(event.id, userId);
-    else await rsvpToEvent(event.id, userId, next);
+    const { error: err } =
+      next === null ? await cancelRsvp(event.id, userId) : await rsvpToEvent(event.id, userId, next);
+    if (err) {
+      // Don't apply the optimistic update on failure — surface the error
+      // instead of silently diverging from the backend state.
+      setError(err);
+      setBusyId(null);
+      return;
+    }
     setEvents((prev) =>
       prev.map((e) => {
         if (e.id !== event.id) return e;
@@ -234,7 +267,10 @@ export default function ExploreScreen() {
               placeholder="Filter by city or location…"
               placeholderTextColor={colors.textSubtle}
               style={styles.search}
-              onSubmitEditing={loadEvents}
+              onSubmitEditing={() => {
+                setRefreshing(true);
+                loadEvents();
+              }}
             />
             {cityFilter ? (
               <Pressable onPress={() => setCityFilter("")} style={styles.clearBtn}>

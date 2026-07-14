@@ -119,10 +119,17 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
   const map = new Map<string, CreatorInfo>();
   if (userIds.length === 0) return map;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url, verification_status")
     .in("user_id", userIds);
+
+  if (error) {
+    // Don't fail the caller (posts/matches should still render), but don't
+    // swallow this silently either — a real failure here means every post
+    // falls back to UNKNOWN_CREATOR with no visible explanation.
+    console.error("fetchCreators: failed to load profiles", error.message);
+  }
 
   const rep = await getReputationForUsers(userIds);
 
@@ -394,7 +401,10 @@ export async function checkAndCreateMatch(
       .select("id")
       .eq("owner_id", swiperId);
 
-    if (swiperPostsError || !swiperPosts?.length) {
+    if (swiperPostsError) {
+      return { match: null, error: swiperPostsError.message };
+    }
+    if (!swiperPosts?.length) {
       return { match: null, error: null };
     }
 
@@ -471,10 +481,13 @@ export async function getMatches(
     }
 
     const postIds = partials.map((p) => p.otherPostId);
-    const { data: postsData } = await supabase
+    const { data: postsData, error: postsError } = await supabase
       .from("collab_posts")
       .select("*")
       .in("id", postIds);
+    if (postsError) {
+      console.error("getMatches: failed to load counterpart posts", postsError.message);
+    }
     const postsMap = new Map<string, CollabPost>((postsData || []).map((p) => [p.id, p as CollabPost]));
 
     const creatorIds = [...new Set(partials.map((p) => p.otherUserId))];
@@ -482,7 +495,7 @@ export async function getMatches(
 
     const matchIds = matches.map((m) => m.id);
 
-    const [{ data: recentMsgs }, { data: reads }] = await Promise.all([
+    const [{ data: recentMsgs, error: recentMsgsError }, { data: reads, error: readsError }] = await Promise.all([
       supabase
         .from("messages")
         .select("*")
@@ -494,6 +507,12 @@ export async function getMatches(
         .eq("user_id", userId)
         .in("match_id", matchIds),
     ]);
+    if (recentMsgsError) {
+      console.error("getMatches: failed to load recent messages", recentMsgsError.message);
+    }
+    if (readsError) {
+      console.error("getMatches: failed to load read receipts", readsError.message);
+    }
 
     const latestByMatch = new Map<string, Message>();
     for (const msg of (recentMsgs || []) as Message[]) {
@@ -506,8 +525,29 @@ export async function getMatches(
 
     const enriched: MatchWithPost[] = [];
     for (const { match, otherUserId, otherPostId } of partials) {
-      const otherPost = postsMap.get(otherPostId);
-      if (!otherPost) continue;
+      let otherPost = postsMap.get(otherPostId);
+      if (!otherPost) {
+        // The counterpart post is gone (owner deleted it) but the match itself
+        // is still valid — don't drop it from the list. Dropping it here used
+        // to make previously-open chats vanish entirely (and spin forever if
+        // the user was already viewing them). Show a "removed" placeholder
+        // instead so chat/messages screens still have a post to render.
+        console.warn(
+          `getMatches: post ${otherPostId} for match ${match.id} not found (likely deleted); using placeholder`
+        );
+        otherPost = {
+          id: otherPostId,
+          owner_id: otherUserId,
+          title: "This listing was removed",
+          description: null,
+          looking_for: null,
+          location: null,
+          compensation: null,
+          media_urls: null,
+          is_active: false,
+          created_at: match.created_at,
+        };
+      }
       enriched.push({
         ...match,
         other_user_id: otherUserId,
@@ -573,12 +613,23 @@ export async function sendMessage(
 
 export async function markMatchRead(matchId: string, userId: string): Promise<void> {
   try {
-    await supabase.from("match_reads").upsert(
-      { match_id: matchId, user_id: userId, last_read_at: new Date().toISOString() },
-      { onConflict: "match_id,user_id" }
-    );
-  } catch {
-    // best-effort
+    // Use the mark_match_read RPC so last_read_at is stamped by the DB
+    // server clock (now()), matching how messages.created_at is stamped.
+    // A client-supplied timestamp here would be compared against a
+    // server-supplied one in isMatchUnread, which can misreport read
+    // state under client/server clock skew.
+    const { error } = await supabase.rpc("mark_match_read", { p_match_id: matchId });
+    if (error) {
+      // Fall back to the client-timestamped upsert so read state still
+      // updates (best-effort) if the RPC is unavailable for any reason.
+      console.error("markMatchRead: RPC failed, falling back to client timestamp", error.message);
+      await supabase.from("match_reads").upsert(
+        { match_id: matchId, user_id: userId, last_read_at: new Date().toISOString() },
+        { onConflict: "match_id,user_id" }
+      );
+    }
+  } catch (err) {
+    console.error("markMatchRead: failed", errMsg(err));
   }
 }
 
@@ -746,6 +797,38 @@ export async function removePushToken(token: string): Promise<{ error: string | 
 
 export async function deleteAccount(): Promise<{ error: string | null }> {
   try {
+    // storage.objects is not part of the auth.users FK graph, so the
+    // delete_account RPC's cascading delete never touches uploaded media —
+    // it would otherwise stay in the (public) bucket and remain publicly
+    // downloadable forever after "deletion". Remove it here, while the
+    // session is still authenticated and RLS still permits it ("Users can
+    // delete their own media" requires auth.uid() = folder[2]), via the
+    // Storage API — this is the only path that actually purges the
+    // underlying blob (a raw SQL DELETE on storage.objects only removes
+    // the metadata row and is blocked outright on this project by
+    // storage.protect_delete()). Best-effort: log loudly on failure
+    // instead of silently leaving media orphaned, but don't block the
+    // account deletion itself on a storage hiccup.
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (userId) {
+      for (const folder of ["avatars", "posts"] as const) {
+        const { data: files, error: listError } = await supabase.storage
+          .from("media")
+          .list(`${folder}/${userId}`, { limit: 1000 });
+        if (listError) {
+          console.error(`deleteAccount: failed to list ${folder}/${userId}`, listError.message);
+          continue;
+        }
+        if (!files?.length) continue;
+        const paths = files.map((f) => `${folder}/${userId}/${f.name}`);
+        const { error: removeError } = await supabase.storage.from("media").remove(paths);
+        if (removeError) {
+          console.error(`deleteAccount: failed to remove ${folder}/${userId} media`, removeError.message);
+        }
+      }
+    }
+
     const { error } = await supabase.rpc("delete_account");
     if (error) return { error: error.message };
     await supabase.auth.signOut();

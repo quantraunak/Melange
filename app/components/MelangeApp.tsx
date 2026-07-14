@@ -391,9 +391,16 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   // --- Data loading ---
 
   const loadUser = async () => {
-    const { data: authRes, error: authErr } = await supabase.auth.getUser();
-    if (authErr) { setConnectErr(authErr.message); return; }
-    setUserId(authRes?.user?.id ?? null);
+    try {
+      const { data: authRes, error: authErr } = await supabase.auth.getUser();
+      if (authErr) { setConnectErr(authErr.message); setLoading(false); return; }
+      const uid = authRes?.user?.id ?? null;
+      setUserId(uid);
+      if (!uid) setLoading(false);
+    } catch (err) {
+      setConnectErr(err instanceof Error ? err.message : "Failed to load your session.");
+      setLoading(false);
+    }
   };
 
   const loadPosts = useCallback(async () => {
@@ -900,7 +907,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                       <button type="button" onClick={() => setActiveTab("explore")} className="text-sm text-blue-800 hover:underline">
                         Browse Explore
                       </button>
-                      <button type="button" onClick={loadPosts} className="text-xs text-gray-400 hover:underline">Refresh feed</button>
+                      <button type="button" onClick={() => (userId ? loadPosts() : loadUser())} className="text-xs text-gray-400 hover:underline">Refresh feed</button>
                     </div>
                   )}
                 </div>

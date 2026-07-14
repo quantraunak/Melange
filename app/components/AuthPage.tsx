@@ -21,6 +21,7 @@ import { trackEvent } from "../lib/analytics";
 export default function AuthPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState("login");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -41,10 +42,17 @@ export default function AuthPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session ?? null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setSessionError(message);
+        setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -127,6 +135,27 @@ export default function AuthPage() {
   };
 
   if (loading) return null;
+
+  if (sessionError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+        <Card className="w-full max-w-[420px] bg-white shadow-lg rounded-xl overflow-hidden">
+          <CardContent className="p-6 text-center space-y-4">
+            <p className="text-sm text-gray-700">
+              Something went wrong loading your session.
+            </p>
+            <p className="text-xs text-gray-400">{sessionError}</p>
+            <Button
+              className="w-full bg-violet-400 hover:bg-violet-500"
+              onClick={() => window.location.reload()}
+            >
+              Reload
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (session) {
     return <MelangeApp onSignOut={handleSignOut} />;

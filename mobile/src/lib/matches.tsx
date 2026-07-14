@@ -42,7 +42,11 @@ export function MatchesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setMatches([]);
+      setLoading(false);
+      return;
+    }
     setError(null);
     const { data, error: err } = await getMatches(userId);
     if (err) setError(err);
