@@ -5,6 +5,8 @@
 **Where creative people find their next collaboration.** Photo walks. Open calls. Mutual swipes that lead to real shoots. The middle ground between Instagram and LinkedIn — built for the way creative work actually happens.
 
 > 📖 **Product strategy + roadmap + architecture live in [`/docs`](./docs/).** Read [`STRATEGY.md`](./docs/STRATEGY.md) first to understand the bet.
+>
+> See [`docs/DUE_DILIGENCE.md`](./docs/DUE_DILIGENCE.md) for the technical due-diligence writeup (architecture, security posture, honest gaps) and [`docs/INVESTOR_OVERVIEW.md`](./docs/INVESTOR_OVERVIEW.md) for the product/business narrative — real data only, with a marked "business inputs needed" section for anything only a founder can supply (ask amount, valuation, team, go-to-market).
 
 This repo contains:
 
@@ -30,14 +32,16 @@ Both apps talk to the same Supabase project: same accounts, same posts, same mat
 
 - Email/password auth with persistent sessions and Terms / 18+ acceptance
 - Full profile editing (name, role, skills, bio, current project, avatar)
-- **Posts** with title, description, looking-for tags, location, compensation, and **up to 5 images**
+- **Posts** with title, description, looking-for tags, location, compensation, and **up to 5 images**; photo uploads (avatar, portfolio, post images) verified working on iOS via `expo-file-system` (the previous `fetch().blob()` path silently produced empty uploads on RN's New Architecture)
 - **Edit / delete** your own posts
 - **Swipe feed** filtered by search; respects blocks in both directions
 - Mutual matching (both must right-swipe)
-- **Realtime chat** per match with server-side unread tracking that syncs across devices
-- **Block & report** for users, posts, and messages (App Store UGC compliance)
+- **Realtime chat** per match with server-side unread tracking that syncs across devices — `messages`/`matches` are in the `supabase_realtime` publication (scripted in `supabase_schema_v5.sql`, previously a manual Dashboard step that was never done, so live INSERTs never reached subscribers)
+- **Block & report** for users, posts, and messages (App Store UGC compliance) — web uses dialogs, iOS uses action sheets (`mobile/app/report/[kind]/[id].tsx`)
 - **In-app account deletion** for App Store 5.1.1(v) compliance
-- **Events** — host or RSVP to photo walks, open calls, gallery openings, workshops, meetups, exhibitions. Filter by city. *(Phase 1 — strategic bet, see [`docs/STRATEGY.md`](./docs/STRATEGY.md))*
+- **Events** — host or RSVP to photo walks, open calls, gallery openings, workshops, meetups, exhibitions. Filter by city. Web nav tab restored (was dropped in the Jolea redesign). *(Phase 1 — strategic bet, see [`docs/STRATEGY.md`](./docs/STRATEGY.md))*
+- **Vibe tags** for aesthetic-driven matching — pick up to 5 on your profile (web + iOS); factored into swipe feed ranking (`ranked_feed_posts`, weighted overlap between viewer and post vibes)
+- **Two-sided reviews** after collabs (web + iOS) — leave a review from the match chat once eligible; recursive RLS bug on `collab_reviews` fixed (moved the reciprocal-review check into a `SECURITY DEFINER` function)
 - **Portfolio gallery** — up to 9 portfolio images per profile (web + iOS); strip on swipe cards on web
 - Privacy policy and Terms of Service pages (rendered statically)
 - Row-level security on every table
@@ -46,15 +50,13 @@ Both apps talk to the same Supabase project: same accounts, same posts, same mat
 
 - **Native swipe gestures** (Reanimated + Gesture Handler), feels like Tinder/Hinge
 - **Push notifications** for new matches and messages (Expo Notifications + Supabase Edge Function)
+- **Host events from iOS** — create, browse, and RSVP to events all work on-device (`mobile/app/event/new.tsx`), not just browse/RSVP as previously documented
 - Native bottom tab bar (Connect · Events · Messages · Profile)
 - Onboarding intro carousel before signup
 
 ### Coming next (see [`docs/ROADMAP.md`](./docs/ROADMAP.md))
 
-- Vibe tags for aesthetic-driven matching
-- Host events from iOS (browse + RSVP on iOS; create on web)
-- Two-sided reviews after collabs
-- Travel mode ("I'm in NYC next week")
+- Travel mode ("I'm in NYC next week") — `"Travel"` currently only exists as a role/skill tag, not an actual mode
 - Shoot Diary (post your collab outputs for organic growth)
 
 ## Tech stack
