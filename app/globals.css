@@ -121,5 +121,87 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+}
+
+/* ============================================================
+   Melange design system — premium chrome, classic brand
+   Blue/violet identity kept; execution elevated.
+   ============================================================ */
+
+/* Ambient backdrop the phone frame floats on */
+.melange-bg {
+  background-color: #eef2fb;
+  background-image:
+    radial-gradient(60rem 60rem at 15% -10%, rgba(129, 140, 248, 0.22), transparent 55%),
+    radial-gradient(50rem 50rem at 110% 10%, rgba(37, 99, 235, 0.18), transparent 50%),
+    radial-gradient(55rem 55rem at 50% 120%, rgba(167, 139, 250, 0.16), transparent 55%);
+}
+
+/* The device-style app frame */
+.melange-frame {
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.06),
+    0 12px 24px -8px rgba(30, 58, 138, 0.14),
+    0 40px 80px -24px rgba(30, 58, 138, 0.28);
+}
+
+/* Brand wordmark treatment */
+.melange-wordmark {
+  background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 55%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+/* Header surface */
+.melange-header {
+  background: linear-gradient(180deg, #ffffff 0%, #f7f8fe 100%);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+/* Segmented control track */
+.melange-segment {
+  background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+}
+
+/* Premium primary button */
+.melange-btn-primary {
+  background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow:
+    0 1px 2px rgba(67, 56, 202, 0.4),
+    0 6px 16px -4px rgba(79, 70, 229, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.melange-btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 2px 4px rgba(67, 56, 202, 0.45),
+    0 10px 24px -4px rgba(79, 70, 229, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.melange-btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* Elevated card surface */
+.melange-card {
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.04),
+    0 8px 20px -12px rgba(30, 58, 138, 0.18);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.melange-card:hover {
+  box-shadow:
+    0 2px 4px rgba(30, 58, 138, 0.06),
+    0 14px 32px -12px rgba(30, 58, 138, 0.26);
 }

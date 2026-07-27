@@ -138,15 +138,15 @@ export default function AuthPage() {
 
   if (sessionError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-[420px] bg-white shadow-lg rounded-xl overflow-hidden">
+      <div className="melange-bg min-h-screen flex flex-col items-center justify-center p-4">
+        <Card className="melange-frame w-full max-w-[420px] rounded-[24px] overflow-hidden border-0">
           <CardContent className="p-6 text-center space-y-4">
             <p className="text-sm text-gray-700">
               Something went wrong loading your session.
             </p>
             <p className="text-xs text-gray-400">{sessionError}</p>
             <Button
-              className="w-full bg-violet-400 hover:bg-violet-500"
+              className="melange-btn-primary w-full border-0 font-semibold"
               onClick={() => window.location.reload()}
             >
               Reload
@@ -162,26 +162,26 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-[500px] bg-white shadow-lg rounded-xl overflow-hidden">
-        <CardHeader className="bg-blue-900 text-white p-4 flex items-center">
-          <Logo size="lg" stroke="#7C3AED" center="#7C3AED" />
-          <div className="ml-4">
-            <CardTitle className="text-3xl font-bold italic transform -skew-x-6">
+    <div className="melange-bg min-h-screen flex flex-col items-center justify-center p-4">
+      <Card className="melange-frame w-full max-w-[500px] rounded-[28px] overflow-hidden border-0 py-0 gap-0">
+        <CardHeader className="text-white px-6 py-7 flex items-center gap-4 bg-gradient-to-br from-blue-900 via-indigo-800 to-violet-800 [&]:space-y-0">
+          <Logo size="lg" stroke="#C4B5FD" center="#C4B5FD" />
+          <div>
+            <CardTitle className="text-3xl font-extrabold italic transform -skew-x-6 tracking-tight">
               <span
                 style={{
-                  WebkitTextStroke: "2px #A78BFA",
+                  WebkitTextStroke: "1.5px rgba(196,181,253,0.9)",
                   paintOrder: "stroke fill",
                 }}
               >
                 Melange
               </span>
             </CardTitle>
-            <p className="text-sm text-blue-200 mt-1">Creative Collaborations</p>
+            <p className="text-sm text-indigo-200 mt-1.5 tracking-wide">Where creative work begins</p>
           </div>
         </CardHeader>
 
-        <CardContent className="p-4">
+        <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Login</TabsTrigger>
@@ -216,7 +216,7 @@ export default function AuthPage() {
                   </p>
                 )}
 
-                <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
+                <Button type="submit" className="melange-btn-primary w-full border-0 font-semibold">
                   Login
                 </Button>
               </form>
@@ -345,7 +345,7 @@ export default function AuthPage() {
                   </p>
                 )}
 
-                <Button type="submit" className="w-full bg-violet-400 hover:bg-violet-500">
+                <Button type="submit" className="melange-btn-primary w-full border-0 font-semibold">
                   Sign Up
                 </Button>
 

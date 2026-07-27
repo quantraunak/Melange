@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
 import {
   blockUser,
@@ -799,47 +800,69 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center py-4 px-4">
-      <div className="w-full max-w-[375px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[90vh] max-h-[900px]">
+    <div className="melange-bg min-h-screen flex flex-col items-center justify-center py-6 px-4">
+      <div className="melange-frame w-full max-w-[390px] rounded-[28px] overflow-hidden flex flex-col min-h-[90vh] max-h-[900px]">
 
-        {/* In-app header (Jolea prototype) */}
-        <div className="bg-white text-blue-800 px-4 py-3 flex items-center justify-between border-b border-blue-200">
+        {/* In-app header */}
+        <div className="melange-header px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Logo size="sm" />
-            <div>
-              <h1
-                className="text-lg font-bold italic -skew-x-3 text-blue-800"
-                style={{ WebkitTextStroke: "1px #A78BFA", paintOrder: "stroke fill" }}
-              >
+            <div className="leading-none">
+              <h1 className="melange-wordmark text-[19px] font-extrabold italic -skew-x-3">
                 Melange
               </h1>
-              <p className="text-[10px] text-blue-500 -mt-0.5">Creative Collaborations</p>
+              <p className="text-[10px] font-medium text-indigo-400/90 mt-0.5 tracking-wide">
+                Creative Collaborations
+              </p>
             </div>
           </div>
-          <button onClick={signOut} className="text-blue-400 hover:text-blue-700 transition-colors" title="Sign out">
+          <button
+            onClick={signOut}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+            title="Sign out"
+          >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Tab navigation — full-width blue grid */}
-        <div className="grid bg-blue-800" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setActiveTab(t.key)}
-              className={`text-[11px] font-medium py-2.5 px-0.5 transition-colors relative ${
-                activeTab === t.key ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-gray-200"
-              }`}
-            >
-              {t.label}
-              {t.badge && t.badge > 0 ? (
-                <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5">
-                  {t.badge > 9 ? "9+" : t.badge}
-                </span>
-              ) : null}
-            </button>
-          ))}
+        {/* Tab navigation — animated segmented control */}
+        <div className="melange-segment px-2 py-2">
+          <div
+            className="grid gap-1"
+            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+          >
+            {tabs.map((t) => {
+              const active = activeTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setActiveTab(t.key)}
+                  className="relative text-[11px] font-semibold py-2 px-0.5 rounded-full transition-colors"
+                >
+                  {active ? (
+                    <motion.span
+                      layoutId="tabPill"
+                      transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                      className="absolute inset-0 rounded-full bg-white shadow-sm"
+                    />
+                  ) : null}
+                  <span
+                    className={`relative z-10 transition-colors ${
+                      active ? "text-blue-800" : "text-blue-100/80"
+                    }`}
+                  >
+                    {t.label}
+                  </span>
+                  {t.badge && t.badge > 0 ? (
+                    <span className="absolute top-0.5 right-1.5 z-20 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 ring-2 ring-blue-800">
+                      {t.badge > 9 ? "9+" : t.badge}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Match toast */}
@@ -874,7 +897,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <button
                   type="button"
                   onClick={() => setShowCreatePost(true)}
-                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-2 bg-violet-400 text-white rounded-full hover:bg-violet-500 flex-shrink-0"
+                  className="melange-btn-primary flex items-center gap-1 text-xs font-semibold px-3 py-2 text-white rounded-full flex-shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>
@@ -919,7 +942,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                       <button
                         type="button"
                         onClick={() => setShowCreatePost(true)}
-                        className="text-sm font-medium py-2.5 rounded-full bg-violet-500 text-white hover:bg-violet-600"
+                        className="melange-btn-primary text-sm font-semibold py-2.5 rounded-full text-white"
                       >
                         Post a collab idea
                       </button>
@@ -1013,8 +1036,8 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                       <div
                         key={match.id}
                         onClick={() => openChat(match)}
-                        className={`flex items-center gap-3 bg-white border rounded-xl p-3 hover:shadow-sm transition-shadow cursor-pointer ${
-                          unread ? "border-violet-300 bg-violet-50/30" : "border-blue-100"
+                        className={`melange-card flex items-center gap-3 rounded-2xl p-3 cursor-pointer ${
+                          unread ? "!border-violet-300 bg-violet-50/40" : ""
                         }`}
                       >
                         <div className="relative flex-shrink-0">
