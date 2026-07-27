@@ -20,7 +20,6 @@ import {
   Pencil,
   ShieldOff,
   Trash2,
-  UserX,
 } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
@@ -400,7 +399,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your posts</Text>
           {myPosts.length === 0 ? (
-            <Text style={styles.muted}>You haven't created a post yet.</Text>
+            <Text style={styles.muted}>You haven&apos;t created a post yet.</Text>
           ) : (
             myPosts.map((p) => (
               <Pressable

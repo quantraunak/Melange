@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { MatchRowSkeleton } from "@/components/ui/Skeleton";
 import { colors, radii } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
@@ -33,6 +34,13 @@ export default function MessagesScreen() {
     <View style={styles.root}>
       {error ? <View style={{ padding: 16 }}><ErrorBanner message={error} /></View> : null}
 
+      {loading && matches.length === 0 ? (
+        <View style={[styles.list, { gap: 10 }]}>
+          <MatchRowSkeleton />
+          <MatchRowSkeleton />
+          <MatchRowSkeleton />
+        </View>
+      ) : (
       <FlatList
         data={matches}
         keyExtractor={(m) => m.id}
@@ -60,6 +68,7 @@ export default function MessagesScreen() {
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       />
+      )}
     </View>
   );
 }

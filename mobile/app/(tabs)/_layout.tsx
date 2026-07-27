@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import { Settings as SettingsIcon } from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -66,6 +67,7 @@ function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           const onPress = () => {
             const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
             if (!focused && !event.defaultPrevented) {
+              Haptics.selectionAsync();
               navigation.navigate(route.name);
             }
           };

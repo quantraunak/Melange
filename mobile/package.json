@@ -7,7 +7,8 @@
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "prebuild": "expo prebuild --platform ios --clean",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "android": "expo run:android"
   },
   "dependencies": {
@@ -43,6 +44,7 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
     "eas-cli": "^19.1.0",
+    "eslint-config-expo": "^57.0.0",
     "typescript": "~5.3.3"
   },
   "private": true

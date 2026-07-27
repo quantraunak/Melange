@@ -294,6 +294,7 @@ export async function getFeedPosts(
   try {
     let res = await supabase.rpc("ranked_feed_posts", { p_user_id: userId });
     if (res.error) {
+      console.warn("[getFeedPosts] ranked_feed_posts failed, falling back to feed_posts:", res.error.message);
       res = await supabase.rpc("feed_posts", { p_user_id: userId });
     }
     const { data: posts, error } = res;

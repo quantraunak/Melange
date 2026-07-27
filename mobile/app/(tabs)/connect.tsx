@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,9 +11,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Heart, Plus, Search, X } from "lucide-react-native";
 
-import { SwipeCard, type SwipeDir } from "@/components/SwipeCard";
+import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCard";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { SwipeCardSkeleton } from "@/components/ui/Skeleton";
 import { colors, radii } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
@@ -181,9 +181,7 @@ export default function ConnectScreen() {
         <ErrorBanner message={error} />
 
         {loading ? (
-          <View style={styles.empty}>
-            <ActivityIndicator color={colors.brand} />
-          </View>
+          <SwipeCardSkeleton />
         ) : !current ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>
@@ -210,17 +208,20 @@ export default function ConnectScreen() {
           </View>
         ) : (
           <View style={styles.deck}>
-            <SwipeCard
-              key={current.id}
-              post={current}
-              disabled={swiping}
-              pendingButtonSwipe={pendingButtonSwipe}
-              onButtonSwipeComplete={() => setPendingButtonSwipe(null)}
-              onSwipe={handleSwipe}
-              onOpenDetails={() =>
-                router.push({ pathname: "/post/[id]", params: { id: current.id } })
-              }
-            />
+            <View style={styles.cardStack}>
+              {filtered[index + 1] ? <SwipeCardBehind post={filtered[index + 1]} /> : null}
+              <SwipeCard
+                key={current.id}
+                post={current}
+                disabled={swiping}
+                pendingButtonSwipe={pendingButtonSwipe}
+                onButtonSwipeComplete={() => setPendingButtonSwipe(null)}
+                onSwipe={handleSwipe}
+                onOpenDetails={() =>
+                  router.push({ pathname: "/post/[id]", params: { id: current.id } })
+                }
+              />
+            </View>
 
             <Text style={styles.remaining}>
               {filtered.length - index - 1} posts remaining
@@ -229,16 +230,30 @@ export default function ConnectScreen() {
 
             <View style={styles.actions}>
               <Pressable
-                style={[styles.actionBtn, styles.passBtn]}
-                onPress={() => setPendingButtonSwipe("left")}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  styles.passBtn,
+                  pressed && styles.actionBtnPressed,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setPendingButtonSwipe("left");
+                }}
                 disabled={swiping}
               >
                 <X size={20} color={colors.dangerText} />
                 <Text style={styles.passText}>Pass</Text>
               </Pressable>
               <Pressable
-                style={[styles.actionBtn, styles.likeBtn]}
-                onPress={() => setPendingButtonSwipe("right")}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  styles.likeBtn,
+                  pressed && styles.actionBtnPressed,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setPendingButtonSwipe("right");
+                }}
                 disabled={swiping}
               >
                 <Heart size={20} color={colors.white} />
@@ -273,6 +288,7 @@ const styles = StyleSheet.create({
   },
   newPostText: { color: colors.brandText, fontWeight: "700", fontSize: 13 },
   deck: { gap: 12 },
+  cardStack: { position: "relative" },
   remaining: {
     textAlign: "center",
     fontSize: 11,
@@ -295,6 +311,7 @@ const styles = StyleSheet.create({
     minWidth: 130,
     justifyContent: "center",
   },
+  actionBtnPressed: { transform: [{ scale: 0.94 }], opacity: 0.9 },
   passBtn: {
     backgroundColor: colors.card,
     borderColor: colors.borderStrong,

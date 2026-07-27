@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
@@ -6,6 +7,8 @@ export const metadata = {
   title: "Reports (internal)",
   robots: { index: false, follow: false },
 };
+
+const COOKIE_NAME = "admin_reports_session";
 
 type ReportRow = {
   id: string;
@@ -18,23 +21,52 @@ type ReportRow = {
   created_at: string;
 };
 
-export default async function InternalReportsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ key?: string }>;
-}) {
-  const params = await searchParams;
+async function authenticate(formData: FormData) {
+  "use server";
+  const key = formData.get("key");
   const adminKey = process.env.ADMIN_REPORTS_KEY;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (adminKey && key === adminKey) {
+    const store = await cookies();
+    store.set(COOKIE_NAME, adminKey, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      path: "/internal/reports",
+      maxAge: 60 * 60 * 8, // 8h
+    });
+  }
+}
 
-  if (!adminKey || params.key !== adminKey) {
+export default async function InternalReportsPage() {
+  const adminKey = process.env.ADMIN_REPORTS_KEY;
+  const store = await cookies();
+  const authed = !!adminKey && store.get(COOKIE_NAME)?.value === adminKey;
+
+  if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
-        <p className="text-gray-600">Unauthorized. Set ADMIN_REPORTS_KEY and open /internal/reports?key=...</p>
+        <form action={authenticate} className="w-full max-w-xs space-y-3">
+          <h1 className="text-lg font-semibold text-gray-900">Moderation login</h1>
+          <input
+            type="password"
+            name="key"
+            placeholder="Admin key"
+            autoComplete="off"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-gray-900 text-white text-sm font-medium py-2"
+          >
+            Enter
+          </button>
+        </form>
       </div>
     );
   }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
     return (

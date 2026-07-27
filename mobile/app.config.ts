@@ -25,7 +25,6 @@ function loadDotEnv(filename: string) {
 
 loadDotEnv(".env");
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require("./app.json") as { expo: ExpoConfig };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({

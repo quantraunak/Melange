@@ -296,6 +296,7 @@ export async function getUnswipedPosts(userId: string): Promise<{
   try {
     let postsRes = await supabase.rpc("ranked_feed_posts", { p_user_id: userId });
     if (postsRes.error) {
+      console.warn("[getUnswipedPosts] ranked_feed_posts failed, falling back to feed_posts:", postsRes.error.message);
       postsRes = await supabase.rpc("feed_posts", { p_user_id: userId });
     }
     if (postsRes.error) return { data: null, error: postsRes.error.message };

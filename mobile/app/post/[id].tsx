@@ -16,7 +16,7 @@ import { DollarSign, Flag, MapPin, Users, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { CollabPost, CreatorInfo } from "@/lib/db";

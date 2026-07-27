@@ -29,6 +29,40 @@ const ROTATION_MAX = 14; // degrees
 
 export type SwipeDir = "left" | "right";
 
+/** Non-interactive card shown peeking behind the active card for stack depth. */
+export function SwipeCardBehind({ post }: { post: PostWithCreator }) {
+  const scale = useSharedValue(0.94);
+  const translateY = useSharedValue(10);
+  const opacity = useSharedValue(0.6);
+
+  useEffect(() => {
+    scale.value = withSpring(1, { damping: 18, stiffness: 220 });
+    translateY.value = withSpring(0, { damping: 18, stiffness: 220 });
+    opacity.value = withTiming(1, { duration: 180 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }, { scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.card, styles.behindCard, animatedStyle]} pointerEvents="none">
+      <View style={styles.imageWrap}>
+        {post.media_urls?.[0] ? (
+          <Image source={{ uri: post.media_urls[0] }} style={styles.image} contentFit="cover" />
+        ) : (
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderEmoji}>🎨</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.body} />
+    </Animated.View>
+  );
+}
+
 type Props = {
   post: PostWithCreator;
   onSwipe: (dir: SwipeDir) => void;
@@ -50,6 +84,7 @@ export function SwipeCard({
 }: Props) {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
+  const entrance = useSharedValue(0);
 
   const triggerSwipe = (dir: SwipeDir) => {
     Haptics.impactAsync(
@@ -57,6 +92,12 @@ export function SwipeCard({
     );
     onSwipe(dir);
   };
+
+  useEffect(() => {
+    entrance.value = 0;
+    entrance.value = withSpring(1, { damping: 20, stiffness: 260 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id]);
 
   useEffect(() => {
     if (!pendingButtonSwipe) return;
@@ -99,9 +140,11 @@ export function SwipeCard({
   const animatedStyle = useAnimatedStyle(() => {
     const rotate = (tx.value / SCREEN_W) * ROTATION_MAX;
     return {
+      opacity: entrance.value,
       transform: [
         { translateX: tx.value },
-        { translateY: ty.value },
+        { translateY: ty.value + (1 - entrance.value) * 16 },
+        { scale: 0.96 + entrance.value * 0.04 },
         { rotate: `${rotate}deg` },
       ],
     };
@@ -210,6 +253,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     overflow: "hidden",
     ...shadows.card,
+  },
+  behindCard: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
   },
   imageWrap: {
     height: 240,

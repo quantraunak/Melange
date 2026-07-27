@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   RefreshControl,
@@ -11,10 +10,12 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { Calendar, Check, Clock, MapPin, Plus, Star, Users, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, radii, shadows } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { getExplorePosts, type PostWithCreator } from "@/lib/db";
@@ -125,6 +126,7 @@ export default function ExploreScreen() {
 
   const handleRsvp = async (event: EventWithDetails, next: "going" | "interested" | null) => {
     if (!userId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBusyId(event.id);
     const { error: err } =
       next === null ? await cancelRsvp(event.id, userId) : await rsvpToEvent(event.id, userId, next);
@@ -170,8 +172,20 @@ export default function ExploreScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.brand} />
+      <View style={styles.scroll}>
+        <Skeleton height={40} radius={radii.md} />
+        {subTab === "ideas" ? (
+          <>
+            <IdeaCardSkeleton />
+            <IdeaCardSkeleton />
+            <IdeaCardSkeleton />
+          </>
+        ) : (
+          <>
+            <EventCardSkeleton />
+            <EventCardSkeleton />
+          </>
+        )}
       </View>
     );
   }
@@ -232,7 +246,7 @@ export default function ExploreScreen() {
               return (
                 <Pressable
                   key={post.id}
-                  style={styles.ideaCard}
+                  style={({ pressed }) => [styles.ideaCard, pressed && styles.pressedCard]}
                   onPress={() => router.push({ pathname: "/post/[id]", params: { id: post.id } })}
                 >
                   {thumb ? (
@@ -314,6 +328,32 @@ export default function ExploreScreen() {
   );
 }
 
+function IdeaCardSkeleton() {
+  return (
+    <View style={styles.ideaCard}>
+      <Skeleton width={64} height={64} radius={radii.md} />
+      <View style={styles.ideaBody}>
+        <Skeleton width="70%" height={13} />
+        <Skeleton width="45%" height={11} style={{ marginTop: 6 }} />
+        <Skeleton width="55%" height={11} style={{ marginTop: 6 }} />
+      </View>
+    </View>
+  );
+}
+
+function EventCardSkeleton() {
+  return (
+    <View style={styles.card}>
+      <Skeleton height={140} radius={0} />
+      <View style={styles.cardBody}>
+        <Skeleton width="30%" height={11} />
+        <Skeleton width="70%" height={16} style={{ marginTop: 6 }} />
+        <Skeleton width="50%" height={12} style={{ marginTop: 6 }} />
+      </View>
+    </View>
+  );
+}
+
 function EventCard({
   event,
   busy,
@@ -376,7 +416,11 @@ function EventCard({
 
       <View style={styles.rsvpRow}>
         <Pressable
-          style={[styles.rsvpBtn, interested && styles.rsvpInterested]}
+          style={({ pressed }) => [
+            styles.rsvpBtn,
+            interested && styles.rsvpInterested,
+            pressed && styles.pressedOpacity,
+          ]}
           onPress={() => onRsvp(interested ? null : "interested")}
           disabled={busy}
         >
@@ -385,7 +429,11 @@ function EventCard({
         </Pressable>
         <View style={styles.rsvpDivider} />
         <Pressable
-          style={[styles.rsvpBtn, going && styles.rsvpGoing]}
+          style={({ pressed }) => [
+            styles.rsvpBtn,
+            going && styles.rsvpGoing,
+            pressed && styles.pressedOpacity,
+          ]}
           onPress={() => onRsvp(going ? null : "going")}
           disabled={busy}
         >
@@ -458,6 +506,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  pressedCard: { opacity: 0.85, transform: [{ scale: 0.99 }] },
+  pressedOpacity: { opacity: 0.75 },
   ideaThumb: { width: 64, height: 64, borderRadius: radii.md },
   ideaThumbEmpty: { backgroundColor: colors.brandSoft },
   ideaBody: { flex: 1, justifyContent: "center", gap: 2 },

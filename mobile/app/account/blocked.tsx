@@ -87,7 +87,7 @@ export default function BlockedUsersScreen() {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>You haven't blocked anyone.</Text>
+              <Text style={styles.emptyText}>You haven&apos;t blocked anyone.</Text>
             </View>
           }
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}

@@ -206,7 +206,7 @@ export default function Signup() {
                 {acceptedTerms ? <Check size={12} color={colors.white} /> : null}
               </View>
               <Text style={styles.termsText}>
-                I'm at least 18 years old and I agree to the{" "}
+                I&apos;m at least 18 years old and I agree to the{" "}
                 <Text
                   style={styles.termsLink}
                   onPress={() => Linking.openURL("https://melange-psi.vercel.app/terms")}
