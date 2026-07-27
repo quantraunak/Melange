@@ -62,12 +62,14 @@ function CardImage({ urls }: { urls: string[] }) {
 
 export default function ConnectSwipeCard({
   post,
+  nextPost,
   remaining,
   swiping,
   onSwipe,
   onDetail,
 }: {
   post: PostWithCreator;
+  nextPost?: PostWithCreator | null;
   remaining: number;
   swiping: boolean;
   onSwipe: (direction: "left" | "right") => void;
@@ -86,14 +88,30 @@ export default function ConnectSwipeCard({
 
   return (
     <div>
-      <motion.div
-        style={{ x, rotate }}
-        drag="x"
-        dragElastic={0.15}
-        dragConstraints={{ left: 0, right: 0 }}
-        onDragEnd={handleDragEnd}
-        className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg bg-gray-900 touch-pan-y cursor-grab active:cursor-grabbing"
-      >
+      <div className="relative">
+        {nextPost ? (
+          <motion.div
+            key={`behind-${nextPost.id}`}
+            initial={{ scale: 0.94, y: 10, opacity: 0.6 }}
+            animate={{ scale: 0.96, y: 6, opacity: 1 }}
+            transition={{ type: "spring", damping: 18, stiffness: 220 }}
+            className="absolute inset-0 aspect-[3/4] rounded-2xl overflow-hidden shadow-lg bg-gray-900 pointer-events-none"
+          >
+            <CardImage urls={nextPost.media_urls ?? []} />
+          </motion.div>
+        ) : null}
+        <motion.div
+          key={post.id}
+          style={{ x, rotate }}
+          initial={{ scale: 0.96, y: 16, opacity: 0 }}
+          animate={{ scale: 1, y: 0, opacity: 1 }}
+          transition={{ type: "spring", damping: 20, stiffness: 260 }}
+          drag="x"
+          dragElastic={0.15}
+          dragConstraints={{ left: 0, right: 0 }}
+          onDragEnd={handleDragEnd}
+          className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg bg-gray-900 touch-pan-y cursor-grab active:cursor-grabbing"
+        >
         <CardImage urls={post.media_urls ?? []} />
 
         <motion.div
@@ -156,27 +174,30 @@ export default function ConnectSwipeCard({
             <p className="text-[10px] text-gray-400 mt-1">{remaining} more in stack</p>
           ) : null}
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       <div className="flex justify-center gap-5 mt-4 mb-1">
-        <button
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.9 }}
           onClick={() => onSwipe("left")}
           disabled={swiping}
           className="w-14 h-14 rounded-full border-2 border-violet-400 text-violet-500 flex items-center justify-center hover:bg-violet-50 disabled:opacity-50 transition-colors shadow-sm"
           aria-label="Pass"
         >
           <X className="h-6 w-6" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.9 }}
           onClick={() => onSwipe("right")}
           disabled={swiping}
           className="w-14 h-14 rounded-full border-2 border-blue-800 text-blue-800 flex items-center justify-center hover:bg-blue-50 disabled:opacity-50 transition-colors shadow-sm"
           aria-label="Like"
         >
           <Heart className="h-6 w-6" />
-        </button>
+        </motion.button>
       </div>
     </div>
   );

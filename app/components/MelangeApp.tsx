@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -333,6 +334,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
   // Messages
   const [matches, setMatches] = useState<MatchWithPost[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(true);
   const [matchErr, setMatchErr] = useState("");
   const [chatMatch, setChatMatch] = useState<MatchWithPost | null>(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
@@ -414,8 +416,9 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const loadMatches = useCallback(async () => {
     if (!userId) return;
     const { data, error } = await getMatches(userId);
-    if (error) { setMatchErr(error); return; }
+    if (error) { setMatchErr(error); setMatchesLoading(false); return; }
     setMatches(data || []);
+    setMatchesLoading(false);
   }, [userId]);
 
   const loadProfile = useCallback(async () => {
@@ -882,7 +885,23 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               )}
 
               {loading ? (
-                <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading posts...</div>
+                <div>
+                  <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg">
+                    <Skeleton className="absolute inset-0 rounded-none" />
+                    <div className="absolute bottom-0 left-0 right-0 bg-white/95 px-4 py-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                  </div>
+                  <div className="flex justify-center gap-5 mt-4 mb-1">
+                    <Skeleton className="h-14 w-14 rounded-full" />
+                    <Skeleton className="h-14 w-14 rounded-full" />
+                  </div>
+                </div>
               ) : !currentPost ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                   <p className="text-blue-800 font-medium mb-1">
@@ -914,6 +933,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               ) : (
                 <ConnectSwipeCard
                   post={currentPost}
+                  nextPost={visiblePosts[currentPostIndex + 1] ?? null}
                   remaining={Math.max(0, visiblePosts.length - currentPostIndex - 1)}
                   swiping={swiping}
                   onSwipe={handleSwipe}
@@ -959,7 +979,19 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                 <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">{matchErr}</div>
               )}
 
-              {matches.length === 0 ? (
+              {matchesLoading ? (
+                <div className="space-y-2">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="flex items-center gap-3 bg-white border border-blue-100 rounded-xl p-3">
+                      <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : matches.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <p className="text-blue-800 mb-1">No matches yet.</p>
                   <p className="text-gray-400 text-sm mb-4">Start swiping to find collaborators!</p>
