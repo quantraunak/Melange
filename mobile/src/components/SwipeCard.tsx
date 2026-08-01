@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radii.xl,
     overflow: "hidden",
-    ...shadows.card,
+    ...shadows.lift,
   },
   behindCard: {
     position: "absolute",

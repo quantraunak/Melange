@@ -1,5 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -52,12 +57,36 @@ function Header() {
   );
 }
 
+const TAB_BAR_PAD = 4;
+
 function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { unreadCount } = useMatches();
+  const [barWidth, setBarWidth] = useState(0);
+
+  const tabCount = state.routes.length;
+  const pillWidth = barWidth > 0 ? (barWidth - TAB_BAR_PAD * 2) / tabCount : 0;
+  const tx = useSharedValue(0);
+
+  useEffect(() => {
+    if (pillWidth <= 0) return;
+    tx.value = withSpring(TAB_BAR_PAD + state.index * pillWidth, {
+      damping: 20,
+      stiffness: 220,
+    });
+  }, [state.index, pillWidth, tx]);
+
+  const pillStyle = useAnimatedStyle(() => ({
+    width: pillWidth,
+    transform: [{ translateX: tx.value }],
+  }));
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.tabBarOuter}>
-      <View style={styles.tabBar}>
+      <View
+        style={styles.tabBar}
+        onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+      >
+        {pillWidth > 0 ? <Animated.View style={[styles.pill, pillStyle]} /> : null}
         {state.routes.map((route, idx) => {
           const focused = state.index === idx;
           const { options } = descriptors[route.key];
@@ -78,7 +107,7 @@ function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               onPress={onPress}
-              style={[styles.tab, focused && styles.tabActive]}
+              style={styles.tab}
             >
               <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
                 {label}
@@ -125,28 +154,45 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   tabBar: {
-    backgroundColor: colors.brandTabBg,
+    backgroundColor: colors.brand,
     borderRadius: radii.pill,
-    padding: 4,
+    padding: TAB_BAR_PAD,
     flexDirection: "row",
+    position: "relative",
+    shadowColor: colors.brand,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  pill: {
+    position: "absolute",
+    top: TAB_BAR_PAD,
+    bottom: TAB_BAR_PAD,
+    left: 0,
+    borderRadius: radii.pill,
+    backgroundColor: colors.white,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 9,
     alignItems: "center",
     borderRadius: radii.pill,
     position: "relative",
   },
-  tabActive: {
-    backgroundColor: colors.white,
-  },
   tabLabel: {
     fontSize: 13,
-    color: colors.white,
+    color: "rgba(255,255,255,0.75)",
     fontWeight: "600",
   },
   tabLabelActive: {
     color: colors.brandText,
+    fontWeight: "700",
   },
   badge: {
     position: "absolute",

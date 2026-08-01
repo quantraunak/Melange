@@ -29,9 +29,9 @@ const styles = StyleSheet.create({
   wrap: {
     backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: "#bfdbfe",
+    borderBottomColor: "rgba(99,102,241,0.12)",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -39,18 +39,20 @@ const styles = StyleSheet.create({
   left: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 11,
   },
   title: {
     color: colors.brandText,
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: "800",
     fontStyle: "italic",
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
   subtitle: {
-    color: "#3b82f6",
+    color: "#818cf8",
     fontSize: 10,
-    marginTop: -2,
+    fontWeight: "500",
+    marginTop: 1,
+    letterSpacing: 0.4,
   },
 });
