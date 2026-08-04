@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
@@ -14,7 +14,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { BrandHeader } from "@/components/BrandHeader";
 import { useAuth } from "@/lib/auth";
-import { MatchesProvider, useMatches } from "@/lib/matches";
+import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
 import { colors, radii } from "@/lib/theme";
 
@@ -126,12 +126,13 @@ function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
-    <MatchesProvider>
+    <>
       <PushBootstrap />
-      <SafeAreaView style={styles.safe} edges={["top"]}>
+      <View style={[styles.safe, { paddingTop: insets.top }]}>
         <Header />
-      </SafeAreaView>
+      </View>
       <Tabs
         tabBar={(props) => <PillTabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
@@ -141,7 +142,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>
-    </MatchesProvider>
+    </>
   );
 }
 

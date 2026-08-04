@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { MatchesProvider } from "@/lib/matches";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -28,17 +29,19 @@ function Gate() {
   }, [loading, session, segments, router]);
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#f3f4f6" } }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
-      <Stack.Screen name="post/new" options={{ presentation: "modal" }} />
-      <Stack.Screen name="post/edit/[id]" options={{ presentation: "modal" }} />
-      <Stack.Screen name="post/[id]" options={{ presentation: "modal" }} />
-      <Stack.Screen name="report/[kind]/[id]" options={{ presentation: "modal" }} />
-      <Stack.Screen name="account/blocked" options={{ presentation: "card", animation: "slide_from_right" }} />
-      <Stack.Screen name="account/delete" options={{ presentation: "modal" }} />
-    </Stack>
+    <MatchesProvider>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#f3f4f6" } }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
+        <Stack.Screen name="post/new" options={{ presentation: "modal" }} />
+        <Stack.Screen name="post/edit/[id]" options={{ presentation: "modal" }} />
+        <Stack.Screen name="post/[id]" options={{ presentation: "modal" }} />
+        <Stack.Screen name="report/[kind]/[id]" options={{ presentation: "modal" }} />
+        <Stack.Screen name="account/blocked" options={{ presentation: "card", animation: "slide_from_right" }} />
+        <Stack.Screen name="account/delete" options={{ presentation: "modal" }} />
+      </Stack>
+    </MatchesProvider>
   );
 }
 
