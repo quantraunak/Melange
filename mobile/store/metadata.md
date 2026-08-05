@@ -22,6 +22,9 @@ Post a project you're working on. Swipe through other creatives' posts. Match wh
 - Post a collab — title, description, location, compensation, tags, multiple photos
 - Swipe deck of nearby creatives with search filters
 - Real-time chat for matches with read receipts
+- Events — host or RSVP to photo walks, open calls, and meetups near you
+- Portfolio gallery with up to 9 images on your profile
+- Two-way reviews after a collaboration, so you know who you're working with
 - Push notifications for new matches and messages
 - Block and report tools to keep the community safe
 

@@ -1,0 +1,30 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "subtitle": "Creative collaborations",
+        "promoText": "Photographers, models, MUAs, stylists — find each other, match, and start collaborating in minutes. Realtime chat. Push notifications. No ads.",
+        "description": "Melange is where photographers, models, makeup artists, stylists, and designers find each other.\n\nPost a project you're working on. Swipe through other creatives' posts. Match when you both like each other's work. Chat in realtime to plan the shoot.\n\nWhat's inside:\n- Profile with avatar, role, skills, bio, and current project\n- Post a collab — title, description, location, compensation, tags, multiple photos\n- Swipe deck of nearby creatives with search filters\n- Real-time chat for matches with read receipts\n- Events — host or RSVP to photo walks, open calls, and meetups near you\n- Portfolio gallery with up to 9 images on your profile\n- Two-way reviews after a collaboration, so you know who you're working with\n- Push notifications for new matches and messages\n- Block and report tools to keep the community safe\n\nFree to use. No ads, no in-app purchases.",
+        "keywords": [
+          "photographer",
+          "model",
+          "makeup",
+          "stylist",
+          "creative",
+          "collab",
+          "portfolio",
+          "shoot",
+          "muse",
+          "casting",
+          "hire",
+          "booking"
+        ],
+        "marketingUrl": "https://melange-psi.vercel.app",
+        "supportUrl": "https://melange-psi.vercel.app/support",
+        "privacyPolicyUrl": "https://melange-psi.vercel.app/privacy"
+      }
+    },
+    "categories": ["SOCIAL_NETWORKING", "LIFESTYLE"]
+  }
+}

@@ -74,10 +74,10 @@ melange/
 ├── supabase/
 │   └── functions/send-push/   Edge Function for push notifications
 │
-├── supabase_schema.sql        v1 — auth, profiles, posts, swipes, matches, messages
-├── supabase_schema_v2.sql     v2 — blocks, reports, push_tokens, match_reads
-├── supabase_schema_v3.sql     v3 — events, vibes, portfolios (Phase 1)
-├── wipe_users.sql             dev utility — wipe all data
+├── supabase/schema/01_core.sql        v1 — auth, profiles, posts, swipes, matches, messages
+├── supabase/schema/02_safety.sql     v2 — blocks, reports, push_tokens, match_reads
+├── supabase/schema/03_events.sql     v3 — events, vibes, portfolios (Phase 1)
+├── scripts/wipe_users.mjs             dev utility — wipe all data
 │
 ├── scripts/                   one-off ops scripts (run with env vars only)
 │   ├── apply_migration.mjs    apply a SQL file via Management API
@@ -267,7 +267,7 @@ Web ignores push notifications entirely. (Browser notifications were considered 
 
 ## When you're stuck
 
-- **DB schema questions** → `supabase_schema*.sql` are the source of truth.
+- **DB schema questions** → `supabase/schema/*.sql` are the source of truth.
 - **What does this function do?** → All data access goes through `app/lib/db.ts` (web) or `mobile/src/lib/db.ts` (native). The types are accurate.
 - **Why does this look like this?** → `docs/STRATEGY.md` § "What we believe".
 - **What should I build?** → `docs/ROADMAP.md`.

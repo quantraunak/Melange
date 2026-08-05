@@ -45,8 +45,8 @@ The mobile app shares the **same** Supabase project as the web app — same sche
 
 Two scripts, run in order in the Supabase SQL Editor:
 
-1. `../supabase_schema.sql` — base schema (already in the web README; idempotent)
-2. `../supabase_schema_v2.sql` — additions for the mobile app: `blocks`, `reports`, `push_tokens`, `match_reads`, `feed_posts` RPC, `delete_account` RPC, `touch_updated_at` trigger
+1. `supabase/schema/01_core.sql` — base schema (already in the web README; idempotent)
+2. `supabase/schema/02_safety.sql` — additions for the mobile app: `blocks`, `reports`, `push_tokens`, `match_reads`, `feed_posts` RPC, `delete_account` RPC, `touch_updated_at` trigger
 
 Then in the Supabase Dashboard:
 
