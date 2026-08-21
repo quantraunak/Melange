@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SITE } from "./lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Melange",
-  description: "Find creative collaborators",
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: "Melange — Where creative people find their next collaboration",
+    template: "%s · Melange",
+  },
+  description: SITE.description,
 };
 
 export default function RootLayout({
