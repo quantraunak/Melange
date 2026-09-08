@@ -47,7 +47,7 @@ function Header() {
       right={
         <Pressable
           hitSlop={12}
-          onPress={() => router.push("/(tabs)/profile")}
+          onPress={() => router.push("/account/settings")}
           accessibilityLabel="Settings"
         >
           <SettingsIcon size={20} color="#60a5fa" />

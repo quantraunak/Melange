@@ -116,23 +116,6 @@ no admin tier, no paid tier, and no role-gated functionality.
 The demo account has an existing match with message history, so matching and
 chat can be reviewed immediately without creating a second account.
 
-> ⚠️ **This sentence is not true yet — make it true before you reply.**
->
-> `scripts/seed_demo_accounts.mjs` creates `review@melange.app` and a second
-> demo account with posts, but it stops there: its own closing line says to
-> "sign in as review, swipe right on demo2's post (or vice versa)." No match
-> exists.
->
-> Your previous reviewer notes asked Apple to *"create a second test account on
-> a second device"* to see a match. Never ask a reviewer to do setup work — it
-> is a common reason a reviewer marks an app incomplete, and it may well be part
-> of why this submission came back.
->
-> Fix, about two minutes: sign in as `review@melange.app`, swipe right on the
-> second demo account's post, sign in as that account, swipe right back. That
-> creates the match. Then send two or three messages so the chat is not empty.
-> Delete this warning block once done.
-
 ---
 
 ## 5. External services used
