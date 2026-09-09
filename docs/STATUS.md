@@ -92,7 +92,7 @@ The build pipeline works and the app record exists (`ascAppId 6774481477`, bundl
 
 **Blocking:**
 
-1. **Screenshots.** None exist. `mobile/store/` has the listing text but no images. Apple requires 6.7" iPhone screenshots. Take them in the simulator with Cmd+S. This is a couple of hours.
+1. ~~**Screenshots.**~~ Done on 2026-09-08. Five framed 6.9" (1320x2868) screenshots were captured from the simulator and composited; they live in `mobile/store/screenshots/`.
 2. **Upgrade the database off the free plan.** See above — a sleeping database during review means rejection.
 
 **Should do first:**
@@ -100,7 +100,9 @@ The build pipeline works and the app record exists (`ascAppId 6774481477`, bundl
 3. Turn on the leaked-password check.
 4. Decide whether the 5 fake seeded accounts stay. A populated feed helps a reviewer understand the app; it also means real early users are swiping on people who don't exist. Recommendation: keep them for review, delete them the day you have real signups.
 
-**Already done:** reporting, blocking, privacy policy, terms, in-app account deletion, 18+ age gate, moderation contact email, reviewer demo account (`review@melange.app`).
+**Already done:** reporting, blocking, privacy policy, terms, in-app account deletion, 18+ age gate, moderation contact email, reviewer demo account (`review@melange.app`), and screenshots.
+
+**Note on the reviewer account (2026-09-08):** `review@melange.app` had swiped every post, so a reviewer opening the app saw an empty feed. Its swipes were cleared and the test posts ("testing match", "Model", and three others with no images) were deleted. It now opens on a five-post deck and has one real conversation.
 
 **Realistic timeline:** a focused day of work, then 1–3 days in Apple's review queue.
 

@@ -28,6 +28,13 @@ export default function AuthPage() {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
+  // Password reset ("forgot password") — inline on the login tab rather than a
+  // separate route, so the person never loses the email they already typed.
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
   const [signupForm, setSignupForm] = useState({
     name: "",
     email: "",
@@ -69,6 +76,25 @@ export default function AuthPage() {
       password: loginForm.password,
     });
     if (error) setLoginError(error.message);
+  };
+
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = loginForm.email.trim();
+    if (!email) {
+      setResetError("Enter the email you signed up with.");
+      return;
+    }
+    setResetBusy(true);
+    setResetError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetBusy(false);
+    // Supabase returns success for unknown addresses on purpose — surfacing
+    // "no such user" would let anyone probe for who has a Melange account.
+    if (error) setResetError(error.message);
+    else setResetSent(true);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -219,7 +245,68 @@ export default function AuthPage() {
                 <Button type="submit" className="melange-btn-primary w-full border-0 font-semibold">
                   Login
                 </Button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetOpen((v) => !v);
+                      setResetSent(false);
+                      setResetError(null);
+                    }}
+                    className="text-sm text-blue-700 hover:text-blue-900 font-medium"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </form>
+
+              {resetOpen && (
+                <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  {resetSent ? (
+                    <div className="space-y-1.5">
+                      <p className="text-sm font-semibold text-gray-900">Check your email</p>
+                      <p className="text-sm text-gray-600">
+                        If an account exists for{" "}
+                        <span className="font-medium text-gray-900">{loginForm.email.trim()}</span>,
+                        a link to set a new password is on its way. It expires in an hour.
+                      </p>
+                      <p className="text-xs text-gray-400 pt-1">
+                        Nothing after a minute? Check spam, and confirm it&apos;s the address you
+                        signed up with.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleResetRequest} className="space-y-2.5">
+                      <div>
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          value={loginForm.email}
+                          onChange={(e) =>
+                            setLoginForm({ ...loginForm, email: e.target.value })
+                          }
+                          placeholder="you@example.com"
+                          required
+                        />
+                      </div>
+                      {resetError && (
+                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+                          {resetError}
+                        </p>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={resetBusy}
+                        className="melange-btn-primary w-full border-0 font-semibold"
+                      >
+                        {resetBusy ? "Sending…" : "Send reset link"}
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="signup">

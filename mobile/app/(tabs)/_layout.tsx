@@ -24,7 +24,10 @@ function PushBootstrap() {
 
   useEffect(() => {
     if (!userId) return;
-    registerForPushAsync(userId).catch(() => {});
+    // prompt:false — this re-registers the token for someone who has already
+    // said yes, and stays silent otherwise. The ask itself belongs to
+    // PushPrimer, where there's room to explain it first.
+    registerForPushAsync(userId, { prompt: false }).catch(() => {});
 
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as

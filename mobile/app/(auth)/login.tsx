@@ -77,6 +77,14 @@ export default function Login() {
               />
             </Field>
 
+            <Pressable
+              onPress={() => router.push("/(auth)/forgot-password")}
+              hitSlop={8}
+              style={styles.forgotWrap}
+            >
+              <Text style={styles.forgotLink}>Forgot password?</Text>
+            </Pressable>
+
             <ErrorBanner message={error} />
 
             <Button title="Sign in" variant="primary" size="lg" loading={loading} onPress={onSubmit} />
@@ -108,6 +116,8 @@ const styles = StyleSheet.create({
     gap: 14,
     marginTop: 16,
   },
+  forgotWrap: { alignSelf: "flex-end", marginTop: -4 },
+  forgotLink: { color: colors.brandText, fontSize: 13, fontWeight: "600" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 4 },
   footerText: { color: colors.textMuted, fontSize: 13 },
   footerLink: { color: colors.brandText, fontSize: 13, fontWeight: "700" },

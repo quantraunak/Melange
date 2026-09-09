@@ -41,6 +41,7 @@ Everything below works on **both** the website and the iPhone app:
 - Posts with photos, location, pay, and tags — create, edit, delete
 - Swipe feed with search, filtered by who you've blocked
 - Matching, and live chat with unread counts that stay in sync across devices
+- Password reset by email, on both the website and the phone
 - Events — create one, browse by city, RSVP
 - "Vibe" tags that influence what shows up in your feed
 - Reviews after a collaboration, visible on both profiles
@@ -48,7 +49,7 @@ Everything below works on **both** the website and the iPhone app:
 - Delete your account from inside the app
 - Every database table is locked down so you can only read and write your own data
 
-**iPhone-only extras:** native swipe gestures, push notifications for matches and messages, an intro carousel before signup.
+**iPhone-only extras:** native swipe gestures, push notifications for matches and messages, an intro carousel before signup, undo on a mis-swipe, a full-screen match moment, read receipts, and unmatch.
 
 **Not built yet:** travel mode ("I'm in NYC next week") and Shoot Diary (posting the results of a collaboration). See [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
@@ -89,7 +90,7 @@ Full iPhone setup, push notification wiring, and the App Store submission steps 
 
 ## Setting up the database
 
-Run these five files in order, in the Supabase SQL Editor:
+Run these six files in order, in the Supabase SQL Editor:
 
 | File | What it adds |
 |---|---|
@@ -98,6 +99,7 @@ Run these five files in order, in the Supabase SQL Editor:
 | `supabase/schema/03_events.sql` | Events, vibe tags, portfolios |
 | `supabase/schema/04_reviews.sql` | Reviews, social links, feed ranking |
 | `supabase/schema/05_ranking.sql` | Analytics, verified badges, better ranking, live chat updates |
+| `supabase/schema/06_interactions.sql` | Read receipts, unmatch, undo a swipe |
 
 Or from the command line:
 

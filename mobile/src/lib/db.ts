@@ -60,6 +60,13 @@ export type MatchWithPost = Match & {
   other_creator: CreatorInfo;
   last_message: Message | null;
   last_read_at: string | null;
+  /**
+   * When the OTHER person last opened this thread, for the "Seen" marker on
+   * messages you sent. Null when they've never opened it — and also null on a
+   * database that hasn't had 06_messaging.sql applied yet, which is why the
+   * UI treats it as "no receipt to show" rather than "not seen".
+   */
+  peer_last_read_at: string | null;
 };
 
 export type Message = {
@@ -364,6 +371,33 @@ export async function getExplorePosts(
 // Swipes & Matches
 // ============================================================
 
+/**
+ * Post ids this user has already swiped on, and which way.
+ *
+ * The swipe deck filters these out server-side; Explore deliberately keeps
+ * them so it can work as a browsable catalogue rather than a second deck. It
+ * needs to label them, though — an unmarked grid of posts you already passed
+ * on is exactly the "this is just the feed again" problem.
+ */
+export async function getMySwipes(
+  userId: string
+): Promise<{ data: Map<string, "left" | "right">; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("swipes")
+      .select("post_id,direction")
+      .eq("swiper_id", userId);
+    if (error) return { data: new Map(), error: error.message };
+    const map = new Map<string, "left" | "right">();
+    for (const row of (data || []) as { post_id: string; direction: "left" | "right" }[]) {
+      map.set(row.post_id, row.direction);
+    }
+    return { data: map, error: null };
+  } catch (err) {
+    return { data: new Map(), error: errMsg(err) };
+  }
+}
+
 export async function recordSwipe(
   swiperId: string,
   postId: string,
@@ -375,6 +409,24 @@ export async function recordSwipe(
       .insert({ swiper_id: swiperId, post_id: postId, direction });
 
     return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: errMsg(err) };
+  }
+}
+
+/**
+ * Take back the last swipe so the post returns to the deck.
+ *
+ * Returns an error string rather than throwing when the swipe already turned
+ * into a match — the other person has seen and reciprocated it by then, and
+ * quietly deleting their match is not undo, it's a deletion.
+ */
+export async function undoSwipe(postId: string): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("undo_swipe", { p_post_id: postId });
+    if (error) return { error: error.message };
+    if (data === false) return { error: "That one already turned into a match — it can't be undone." };
+    return { error: null };
   } catch (err) {
     return { error: errMsg(err) };
   }
@@ -496,7 +548,11 @@ export async function getMatches(
 
     const matchIds = matches.map((m) => m.id);
 
-    const [{ data: recentMsgs, error: recentMsgsError }, { data: reads, error: readsError }] = await Promise.all([
+    const [
+      { data: recentMsgs, error: recentMsgsError },
+      { data: reads, error: readsError },
+      peerReads,
+    ] = await Promise.all([
       supabase
         .from("messages")
         .select("*")
@@ -507,6 +563,10 @@ export async function getMatches(
         .select("match_id,last_read_at")
         .eq("user_id", userId)
         .in("match_id", matchIds),
+      // The other side's read times come from an RPC because match_reads is
+      // locked to your own rows. Older databases don't have it — resolve to
+      // an empty map rather than failing the whole list.
+      supabase.rpc("match_peer_reads", { p_user_id: userId }),
     ]);
     if (recentMsgsError) {
       console.error("getMatches: failed to load recent messages", recentMsgsError.message);
@@ -522,6 +582,20 @@ export async function getMatches(
     const readsByMatch = new Map<string, string>();
     for (const r of (reads || []) as { match_id: string; last_read_at: string }[]) {
       readsByMatch.set(r.match_id, r.last_read_at);
+    }
+
+    const peerReadsByMatch = new Map<string, string>();
+    if (peerReads.error) {
+      // Expected on a database without 06_messaging.sql; "Seen" simply
+      // doesn't render. Not worth an error banner.
+      console.warn("getMatches: match_peer_reads unavailable", peerReads.error.message);
+    } else {
+      for (const r of (peerReads.data || []) as {
+        match_id: string;
+        peer_last_read_at: string;
+      }[]) {
+        peerReadsByMatch.set(r.match_id, r.peer_last_read_at);
+      }
     }
 
     const enriched: MatchWithPost[] = [];
@@ -556,6 +630,7 @@ export async function getMatches(
         other_creator: creators.get(otherUserId) || UNKNOWN_CREATOR,
         last_message: latestByMatch.get(match.id) || null,
         last_read_at: readsByMatch.get(match.id) || null,
+        peer_last_read_at: peerReadsByMatch.get(match.id) || null,
       });
     }
 
@@ -570,6 +645,29 @@ export function isMatchUnread(match: MatchWithPost, userId: string): boolean {
   if (match.last_message.sender_id === userId) return false;
   if (!match.last_read_at) return true;
   return match.last_message.created_at > match.last_read_at;
+}
+
+/**
+ * True when the last message is one you sent AND the other person has opened
+ * the thread since. False covers both "sent, not read yet" and "we can't tell"
+ * (no receipt data), so callers should render this as a positive "Seen" only.
+ */
+export function isLastMessageSeen(match: MatchWithPost, userId: string): boolean {
+  if (!match.last_message) return false;
+  if (match.last_message.sender_id !== userId) return false;
+  if (!match.peer_last_read_at) return false;
+  return match.peer_last_read_at >= match.last_message.created_at;
+}
+
+export async function unmatch(matchId: string): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("unmatch", { p_match_id: matchId });
+    if (error) return { error: error.message };
+    if (data === false) return { error: "That match no longer exists." };
+    return { error: null };
+  } catch (err) {
+    return { error: errMsg(err) };
+  }
 }
 
 // ============================================================

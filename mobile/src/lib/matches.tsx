@@ -13,6 +13,7 @@ import {
   getMatches,
   isMatchUnread,
   markMatchRead,
+  unmatch as unmatchRpc,
   type MatchWithPost,
   type Message,
 } from "./db";
@@ -24,6 +25,7 @@ type Ctx = {
   error: string | null;
   refresh: () => Promise<void>;
   markRead: (matchId: string) => Promise<void>;
+  unmatch: (matchId: string) => Promise<{ error: string | null }>;
 };
 
 const MatchesCtx = createContext<Ctx>({
@@ -33,6 +35,7 @@ const MatchesCtx = createContext<Ctx>({
   error: null,
   refresh: async () => {},
   markRead: async () => {},
+  unmatch: async () => ({ error: null }),
 });
 
 export function MatchesProvider({ children }: { children: ReactNode }) {
@@ -111,12 +114,25 @@ export function MatchesProvider({ children }: { children: ReactNode }) {
     [userId]
   );
 
+  const unmatch = useCallback(async (matchId: string) => {
+    // Drop it from the list first — the row is already gone from the user's
+    // point of view, and a failure puts it back via refresh().
+    const previous = matches;
+    setMatches((prev) => prev.filter((m) => m.id !== matchId));
+    const { error: err } = await unmatchRpc(matchId);
+    if (err) {
+      setMatches(previous);
+      return { error: err };
+    }
+    return { error: null };
+  }, [matches]);
+
   const unreadCount = useMemo(() => {
     if (!userId) return 0;
     return matches.filter((m) => isMatchUnread(m, userId)).length;
   }, [matches, userId]);
 
-  const value: Ctx = { matches, unreadCount, loading, error, refresh, markRead };
+  const value: Ctx = { matches, unreadCount, loading, error, refresh, markRead, unmatch };
   return <MatchesCtx.Provider value={value}>{children}</MatchesCtx.Provider>;
 }
 

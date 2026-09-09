@@ -9,8 +9,9 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Heart, Plus, Search, X } from "lucide-react-native";
+import { Heart, Plus, RotateCcw, Search, X } from "lucide-react-native";
 
+import { MatchCelebration } from "@/components/MatchCelebration";
 import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCard";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -22,7 +23,10 @@ import { trackEvent } from "@/lib/analytics";
 import {
   checkAndCreateMatch,
   getFeedPosts,
+  getProfile,
   recordSwipe,
+  undoSwipe,
+  type CreatorInfo,
   type PostWithCreator,
 } from "@/lib/db";
 
@@ -39,7 +43,19 @@ export default function ConnectScreen() {
   const [search, setSearch] = useState("");
   const [swiping, setSwiping] = useState(false);
   const [pendingButtonSwipe, setPendingButtonSwipe] = useState<SwipeDir | null>(null);
-  const [matchToast, setMatchToast] = useState<string | null>(null);
+
+  // The match moment, and who it was with.
+  const [celebration, setCelebration] = useState<
+    { creator: CreatorInfo; matchId: string } | null
+  >(null);
+  const [me, setMe] = useState<Pick<CreatorInfo, "name" | "avatar_url">>({
+    name: "You",
+    avatar_url: null,
+  });
+
+  // The last card that left the deck, so it can be brought back.
+  const [lastSwipe, setLastSwipe] = useState<{ post: PostWithCreator; dir: SwipeDir } | null>(null);
+  const [rewinding, setRewinding] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -57,6 +73,15 @@ export default function ConnectScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Only needed for the two faces in the match moment; a failure here just
+  // means the placeholder initial, so it stays quiet.
+  useEffect(() => {
+    if (!userId) return;
+    getProfile(userId).then(({ data }) => {
+      if (data) setMe({ name: data.name, avatar_url: data.avatar_url ?? null });
+    });
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -110,6 +135,8 @@ export default function ConnectScreen() {
         owner_id: post.owner_id,
       });
 
+      setLastSwipe({ post, dir });
+
       if (dir === "right") {
         const { match, error: matchErr } = await checkAndCreateMatch(userId, post.id);
         if (matchErr) setError(matchErr);
@@ -117,8 +144,7 @@ export default function ConnectScreen() {
           trackEvent("match_created", { match_id: match.id, post_id: post.id });
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           await refreshMatches();
-          setMatchToast(`You matched with ${post.creator.name}!`);
-          setTimeout(() => setMatchToast(null), 2800);
+          setCelebration({ creator: post.creator, matchId: match.id });
         }
       }
 
@@ -128,14 +154,43 @@ export default function ConnectScreen() {
     [userId, current, swiping, refreshMatches, advance]
   );
 
+  /**
+   * Put the last card back. The swipe row has to go server-side too, or the
+   * feed query filters the post straight back out on the next refresh.
+   */
+  const rewind = useCallback(async () => {
+    if (!lastSwipe || rewinding || swiping) return;
+    setRewinding(true);
+    setError(null);
+
+    const { error: undoErr } = await undoSwipe(lastSwipe.post.id);
+    if (undoErr) {
+      setError(undoErr);
+      setLastSwipe(null);
+      setRewinding(false);
+      return;
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    trackEvent("swipe_undo", { post_id: lastSwipe.post.id });
+    setIndex((i) => Math.max(0, i - 1));
+    setLastSwipe(null);
+    setRewinding(false);
+  }, [lastSwipe, rewinding, swiping]);
+
   return (
     <View style={styles.root}>
-      {matchToast ? (
-        <View style={styles.toast}>
-          <Heart size={16} color={colors.white} fill={colors.white} />
-          <Text style={styles.toastText}>{matchToast}</Text>
-        </View>
-      ) : null}
+      <MatchCelebration
+        visible={!!celebration}
+        me={me}
+        them={celebration?.creator ?? null}
+        onMessage={() => {
+          const matchId = celebration?.matchId;
+          setCelebration(null);
+          if (matchId) router.push({ pathname: "/chat/[matchId]", params: { matchId } });
+        }}
+        onKeepSwiping={() => setCelebration(null)}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -231,6 +286,21 @@ export default function ConnectScreen() {
             <View style={styles.actions}>
               <Pressable
                 style={({ pressed }) => [
+                  styles.rewindBtn,
+                  pressed && styles.actionBtnPressed,
+                  !lastSwipe && styles.rewindBtnOff,
+                ]}
+                onPress={rewind}
+                disabled={!lastSwipe || rewinding || swiping}
+                accessibilityLabel="Undo last swipe"
+              >
+                <RotateCcw
+                  size={18}
+                  color={lastSwipe ? colors.warning : colors.textFaint}
+                />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
                   styles.actionBtn,
                   styles.passBtn,
                   pressed && styles.actionBtnPressed,
@@ -297,18 +367,30 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    gap: 16,
+    gap: 12,
     marginTop: 4,
   },
+  rewindBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rewindBtnOff: { opacity: 0.45 },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: radii.pill,
-    minWidth: 130,
+    minWidth: 112,
     justifyContent: "center",
   },
   actionBtnPressed: { transform: [{ scale: 0.94 }], opacity: 0.9 },
@@ -335,19 +417,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   emptyCtaText: { color: colors.white, fontWeight: "700" },
-  toast: {
-    position: "absolute",
-    top: 8,
-    left: 16,
-    right: 16,
-    zIndex: 10,
-    backgroundColor: colors.like,
-    borderRadius: radii.pill,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  toastText: { color: colors.white, fontWeight: "700" },
 });

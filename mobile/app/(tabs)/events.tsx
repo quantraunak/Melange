@@ -14,11 +14,11 @@ import * as Haptics from "expo-haptics";
 import { Calendar, Check, Clock, MapPin, Plus, Star, Users, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { BrowseGrid } from "@/components/BrowseGrid";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, radii, shadows } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { getExplorePosts, type PostWithCreator } from "@/lib/db";
 import {
   cancelRsvp,
   categoryDisplay,
@@ -27,7 +27,7 @@ import {
   type EventWithDetails,
 } from "@/lib/events";
 
-type SubTab = "ideas" | "events";
+type SubTab = "browse" | "events";
 
 function formatEventTime(iso: string): { day: string; time: string } {
   const d = new Date(iso);
@@ -47,11 +47,7 @@ function formatEventTime(iso: string): { day: string; time: string } {
 export default function ExploreScreen() {
   const router = useRouter();
   const { userId } = useAuth();
-  const [subTab, setSubTab] = useState<SubTab>("ideas");
-
-  const [ideas, setIdeas] = useState<PostWithCreator[]>([]);
-  const [ideasLoading, setIdeasLoading] = useState(true);
-  const [ideasError, setIdeasError] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<SubTab>("browse");
 
   const [events, setEvents] = useState<EventWithDetails[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -59,15 +55,6 @@ export default function ExploreScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cityFilter, setCityFilter] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  const loadIdeas = useCallback(async () => {
-    if (!userId) return;
-    setIdeasError(null);
-    const { data, error: err } = await getExplorePosts(userId);
-    if (err) setIdeasError(err);
-    setIdeas(data || []);
-    setIdeasLoading(false);
-  }, [userId]);
 
   const loadEvents = useCallback(async () => {
     if (!userId) return;
@@ -80,20 +67,16 @@ export default function ExploreScreen() {
   }, [userId, cityFilter]);
 
   // Initial/tab-switch load. Deliberately keyed on [subTab, userId] (not
-  // loadIdeas/loadEvents) so that typing in the city filter — which changes
-  // loadEvents's identity — never re-triggers the full-screen loading gate.
+  // loadEvents) so that typing in the city filter — which changes loadEvents's
+  // identity — never re-triggers the full-screen loading gate.
   useEffect(() => {
     if (!userId) {
       // No fallback: make sure the spinner can't hang forever if userId is
       // transiently null when this effect fires (e.g. an auth race).
-      setIdeasLoading(false);
       setEventsLoading(false);
       return;
     }
-    if (subTab === "ideas") {
-      setIdeasLoading(true);
-      loadIdeas();
-    } else {
+    if (subTab === "events") {
       setEventsLoading(true);
       loadEvents();
     }
@@ -117,12 +100,9 @@ export default function ExploreScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    if (subTab === "ideas") {
-      loadIdeas().finally(() => setRefreshing(false));
-    } else {
-      loadEvents();
-    }
-  }, [subTab, loadIdeas, loadEvents]);
+    if (subTab === "browse") setRefreshing(false);
+    else loadEvents();
+  }, [subTab, loadEvents]);
 
   const handleRsvp = async (event: EventWithDetails, next: "going" | "interested" | null) => {
     if (!userId) return;
@@ -168,24 +148,13 @@ export default function ExploreScreen() {
     return Array.from(map.entries());
   })();
 
-  const loading = subTab === "ideas" ? ideasLoading : eventsLoading;
-
-  if (loading && !refreshing) {
+  // Browse renders its own skeletons — it loads independently of this screen.
+  if (subTab === "events" && eventsLoading && !refreshing) {
     return (
       <View style={styles.scroll}>
         <Skeleton height={40} radius={radii.md} />
-        {subTab === "ideas" ? (
-          <>
-            <IdeaCardSkeleton />
-            <IdeaCardSkeleton />
-            <IdeaCardSkeleton />
-          </>
-        ) : (
-          <>
-            <EventCardSkeleton />
-            <EventCardSkeleton />
-          </>
-        )}
+        <EventCardSkeleton />
+        <EventCardSkeleton />
       </View>
     );
   }
@@ -199,14 +168,14 @@ export default function ExploreScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.subTabRow}>
-        {(["ideas", "events"] as SubTab[]).map((key) => (
+        {(["browse", "events"] as SubTab[]).map((key) => (
           <Pressable
             key={key}
             onPress={() => setSubTab(key)}
             style={[styles.subTab, subTab === key && styles.subTabOn]}
           >
             <Text style={[styles.subTabText, subTab === key && styles.subTabTextOn]}>
-              {key === "ideas" ? "Ideas" : "Events"}
+              {key === "browse" ? "Browse" : "Events"}
             </Text>
           </Pressable>
         ))}
@@ -216,62 +185,20 @@ export default function ExploreScreen() {
         <Pressable
           style={styles.hostBtn}
           onPress={() =>
-            subTab === "ideas"
-              ? router.push("/post/new")
-              : router.push("/event/new")
+            subTab === "browse" ? router.push("/post/new") : router.push("/event/new")
           }
         >
           <Plus size={16} color={colors.white} />
-          <Text style={styles.hostBtnText}>{subTab === "ideas" ? "New idea" : "Host event"}</Text>
+          <Text style={styles.hostBtnText}>
+            {subTab === "browse" ? "Post a collab" : "Host event"}
+          </Text>
         </Pressable>
       </View>
 
-      {subTab === "ideas" ? (
-        <>
-          <ErrorBanner message={ideasError} />
-          {ideas.length === 0 && !ideasError ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No collaboration ideas yet</Text>
-              <Text style={styles.emptyBody}>
-                Post what you are looking for, or check back when more creators join your city.
-              </Text>
-              <Pressable style={styles.hostBtn} onPress={() => router.push("/post/new")}>
-                <Plus size={16} color={colors.white} />
-                <Text style={styles.hostBtnText}>New idea</Text>
-              </Pressable>
-            </View>
-          ) : (
-            ideas.map((post) => {
-              const thumb = post.media_urls?.[0];
-              return (
-                <Pressable
-                  key={post.id}
-                  style={({ pressed }) => [styles.ideaCard, pressed && styles.pressedCard]}
-                  onPress={() => router.push({ pathname: "/post/[id]", params: { id: post.id } })}
-                >
-                  {thumb ? (
-                    <Image source={{ uri: thumb }} style={styles.ideaThumb} />
-                  ) : (
-                    <View style={[styles.ideaThumb, styles.ideaThumbEmpty]} />
-                  )}
-                  <View style={styles.ideaBody}>
-                    <Text style={styles.ideaTitle} numberOfLines={1}>
-                      {post.title}
-                    </Text>
-                    <Text style={styles.ideaCreator} numberOfLines={1}>
-                      {post.creator.name}
-                    </Text>
-                    {post.location ? (
-                      <Text style={styles.ideaMeta} numberOfLines={1}>
-                        {post.location}
-                      </Text>
-                    ) : null}
-                  </View>
-                </Pressable>
-              );
-            })
-          )}
-        </>
+      {subTab === "browse" ? (
+        userId ? (
+          <BrowseGrid userId={userId} />
+        ) : null
       ) : (
         <>
           <View style={styles.searchWrap}>
@@ -325,19 +252,6 @@ export default function ExploreScreen() {
         </>
       )}
     </ScrollView>
-  );
-}
-
-function IdeaCardSkeleton() {
-  return (
-    <View style={styles.ideaCard}>
-      <Skeleton width={64} height={64} radius={radii.md} />
-      <View style={styles.ideaBody}>
-        <Skeleton width="70%" height={13} />
-        <Skeleton width="45%" height={11} style={{ marginTop: 6 }} />
-        <Skeleton width="55%" height={11} style={{ marginTop: 6 }} />
-      </View>
-    </View>
   );
 }
 
@@ -497,23 +411,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
   emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: "center", maxWidth: 280 },
-  ideaCard: {
-    flexDirection: "row",
-    gap: 12,
-    padding: 10,
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pressedCard: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   pressedOpacity: { opacity: 0.75 },
-  ideaThumb: { width: 64, height: 64, borderRadius: radii.md },
-  ideaThumbEmpty: { backgroundColor: colors.brandSoft },
-  ideaBody: { flex: 1, justifyContent: "center", gap: 2 },
-  ideaTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
-  ideaCreator: { fontSize: 12, color: colors.accent },
-  ideaMeta: { fontSize: 11, color: colors.textSubtle },
   dayGroup: { gap: 10, marginTop: 4 },
   dayLabel: {
     fontSize: 11,

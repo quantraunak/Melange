@@ -7,6 +7,7 @@ export type AnalyticsEvent =
   | "post_created"
   | "swipe_left"
   | "swipe_right"
+  | "swipe_undo"
   | "match_created"
   | "message_sent"
   | "review_submitted"
