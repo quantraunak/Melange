@@ -88,12 +88,26 @@ Open warnings, none urgent:
 
 ## App Store: what is actually left
 
-The build pipeline works and the app record exists (`ascAppId 6774481477`, bundle `com.melange.app`, build 8). It has **not been submitted**.
+**Correction (2026-09-08):** this section previously said the app had "not
+been submitted". That was wrong, and it had been wrong for a while — App
+Store Connect shows **1.0 as Ready for Distribution**. Melange is live. A
+**1.1** version record is open in Prepare for Submission. Anyone reading this
+file for the release status should check App Store Connect, not this file.
 
-**Blocking:**
+App record: `ascAppId 6774481477`, bundle `com.melange.app`.
 
-1. ~~**Screenshots.**~~ Done on 2026-09-08. Five framed 6.9" (1320x2868) screenshots were captured from the simulator and composited; they live in `mobile/store/screenshots/`.
-2. **Upgrade the database off the free plan.** See above — a sleeping database during review means rejection.
+**In flight for 1.1:**
+
+1. ~~**Screenshots.**~~ Done on 2026-09-08. Five framed 6.9" (1320x2868)
+   screenshots captured from the simulator and composited; they live in
+   `mobile/store/screenshots/en-US/` and upload with `fastlane deliver`
+   (`mobile/fastlane/Deliverfile`). `eas submit` does not carry screenshots.
+2. **Upgrade the database off the free plan.** See above — a sleeping database
+   during review means rejection.
+3. **Version strings must match exactly.** `expo.version` in `mobile/app.json`
+   has to equal the App Store Connect version record character for character.
+   Build 9 was stamped 1.0.0 against a 1.1 record and was unusable; 1.1 is now
+   set in app.json.
 
 **Should do first:**
 

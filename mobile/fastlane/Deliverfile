@@ -1,0 +1,48 @@
+# fastlane deliver — upload screenshots and submit for review.
+#
+# eas submit uploads the binary and nothing else, so the store listing side
+# (screenshots, and the actual "Submit for Review" click) goes through here.
+#
+# Auth is an App Store Connect API key rather than an Apple ID, because an
+# Apple ID login needs a 2FA code from the account holder's device every time
+# the session expires — which is exactly what happened to the cached session in
+# ~/.app-store/auth (expired 2026-08-26).
+#
+# Usage:
+#   cd mobile
+#   ASC_KEY_ID=... ASC_ISSUER_ID=... ASC_KEY_PATH=/path/to/AuthKey_XXX.p8 \
+#     bundle exec fastlane deliver --verbose
+#
+# Dry run first — this uploads nothing and just reports what it would do:
+#   ... bundle exec fastlane deliver --verify_only
+
+app_identifier "com.melange.app"
+
+api_key_path ENV["ASC_KEY_PATH"]
+
+# The screenshots live under store/screenshots, one directory per locale.
+# deliver requires the locale subdirectory; the 6.9" (1320x2868) size is
+# inferred from the image dimensions.
+screenshots_path "./store/screenshots"
+
+# Only touch screenshots. Description, keywords and URLs are managed in
+# store.config.json via `eas metadata:push`, and overwriting them from two
+# places is how listings drift.
+skip_binary_upload true
+skip_metadata true
+skip_app_version_update false
+
+# Never submit silently. Flip this to true (or pass --submit_for_review) only
+# when the listing has been eyeballed in App Store Connect.
+submit_for_review false
+
+# Apple requires these answered before a review submission goes through.
+submission_information({
+  export_compliance_uses_encryption: false,
+  content_rights_contains_third_party_content: false,
+  add_id_info_uses_idfa: false
+})
+
+force true          # skip the interactive HTML preview confirmation
+overwrite_screenshots true
+run_precheck_before_submit false

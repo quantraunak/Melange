@@ -112,6 +112,13 @@ You can safely run any of them more than once.
 
 ## App Store status
 
-The app builds and the submission pipeline works, but it is **not submitted yet**. Screenshots are the main thing missing. The full checklist is in [`docs/STATUS.md`](./docs/STATUS.md#app-store-what-is-actually-left).
+**Melange is live on the App Store** — version 1.0 is Ready for Distribution.
+Version 1.1 is in Prepare for Submission. Check App Store Connect for the
+current state rather than any file in this repo; `docs/STATUS.md` claimed for
+weeks that the app had never been submitted, long after it had.
+
+Screenshots live in [`mobile/store/screenshots/en-US/`](./mobile/store/screenshots)
+and are uploaded with `fastlane deliver` — `eas submit` ships the binary only.
+The checklist is in [`docs/STATUS.md`](./docs/STATUS.md#app-store-what-is-actually-left).
 
 Apple requires certain safety features for any app with user-generated content. All of them are done: reporting, blocking, a privacy policy and terms, in-app account deletion, an 18+ age gate at signup, and a contact email for moderation.
