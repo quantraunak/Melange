@@ -811,7 +811,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               <h1 className="melange-wordmark text-[19px] font-extrabold italic -skew-x-3">
                 Melange
               </h1>
-              <p className="text-[10px] font-medium text-indigo-400/90 mt-0.5 tracking-wide">
+              <p className="text-[10px] font-medium text-indigo-700/70 mt-0.5 tracking-wide">
                 Creative Collaborations
               </p>
             </div>
@@ -844,18 +844,18 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                     <motion.span
                       layoutId="tabPill"
                       transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                      className="absolute inset-0 rounded-full bg-white shadow-sm"
+                      className="melange-segment-pill absolute inset-0 rounded-full"
                     />
                   ) : null}
                   <span
                     className={`relative z-10 transition-colors ${
-                      active ? "text-blue-800" : "text-blue-100/80"
+                      active ? "text-indigo-900" : "text-indigo-900/55"
                     }`}
                   >
                     {t.label}
                   </span>
                   {t.badge && t.badge > 0 ? (
-                    <span className="absolute top-0.5 right-1.5 z-20 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 ring-2 ring-blue-800">
+                    <span className="absolute top-0.5 right-1.5 z-20 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 ring-2 ring-white">
                       {t.badge > 9 ? "9+" : t.badge}
                     </span>
                   ) : null}
@@ -867,7 +867,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
         {/* Match toast */}
         {matchToast ? (
-          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-full bg-green-500 text-white text-xs font-semibold flex items-center gap-2 shadow-sm">
+          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg ring-1 ring-white/40">
             <Heart className="h-3.5 w-3.5 fill-white" />
             {matchToast}
           </div>
@@ -881,12 +881,12 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
             <div className="pt-3">
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-400" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-indigo-500/70" />
                   <input
                     value={connectSearch}
                     onChange={(e) => setConnectSearch(e.target.value)}
                     placeholder="Role, location, skill..."
-                    className="w-full pl-8 pr-8 py-2 text-xs bg-blue-50 border border-blue-200 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    className="glass-input w-full pl-8 pr-8 py-2 text-xs rounded-full"
                   />
                   {connectSearch && (
                     <button type="button" onClick={() => setConnectSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -983,14 +983,14 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
           {/* ======================== MESSAGES TAB ======================== */}
           {activeTab === "messages" && (
             <div className="pt-2">
-              <div className="grid grid-cols-2 bg-blue-800 rounded-lg overflow-hidden mb-3">
+              <div className="melange-segment grid grid-cols-2 gap-1 rounded-full border-b-0 p-1 mb-3">
                 {(["messages", "matches"] as MessagesSubTab[]).map((key) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setMessagesSubTab(key)}
-                    className={`text-xs font-medium py-2 capitalize transition-colors ${
-                      messagesSubTab === key ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-gray-200"
+                    className={`text-xs font-semibold py-2 capitalize rounded-full transition-colors ${
+                      messagesSubTab === key ? "melange-segment-pill text-indigo-900" : "text-indigo-900/60 hover:text-indigo-900"
                     }`}
                   >
                     {key}
@@ -1005,7 +1005,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               {matchesLoading ? (
                 <div className="space-y-2">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex items-center gap-3 bg-white border border-blue-100 rounded-xl p-3">
+                    <div key={i} className="glass-row flex items-center gap-3 rounded-2xl p-3">
                       <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-3 w-1/3" />
@@ -1036,8 +1036,8 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                       <div
                         key={match.id}
                         onClick={() => openChat(match)}
-                        className={`melange-card flex items-center gap-3 rounded-2xl p-3 cursor-pointer ${
-                          unread ? "!border-violet-300 bg-violet-50/40" : ""
+                        className={`glass-row flex items-center gap-3 rounded-2xl p-3 cursor-pointer ${
+                          unread ? "!border-violet-300 !bg-violet-50/70" : ""
                         }`}
                       >
                         <div className="relative flex-shrink-0">
@@ -1384,7 +1384,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
 
       {/* ======================== CHAT DIALOG ======================== */}
       <Dialog open={!!chatMatch} onOpenChange={(open) => { if (!open) { setChatMatch(null); setChatMenuOpen(false); } }}>
-        <DialogContent className="max-w-[440px] h-[80vh] flex flex-col p-0 rounded-2xl">
+        <DialogContent className="glass-strong max-w-[440px] h-[80vh] flex flex-col p-0 rounded-3xl">
           <div className="flex items-center gap-3 p-3 border-b border-gray-100">
             <button onClick={() => setChatMatch(null)} className="text-gray-400 hover:text-gray-600">
               <ArrowLeft className="h-4 w-4" />
@@ -1468,7 +1468,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   return (
                     <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
-                        isMe ? "bg-violet-500 text-white rounded-br-md" : "bg-gray-100 text-gray-800 rounded-bl-md"
+                        isMe ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md shadow-md" : "glass-row text-gray-800 rounded-bl-md"
                       }`}>
                         <p>{msg.content}</p>
                         <p className={`text-[10px] mt-1 ${isMe ? "text-violet-200" : "text-gray-400"}`}>
@@ -1491,13 +1491,13 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+              className="glass-input flex-1 px-3 py-2 text-sm rounded-xl"
               autoFocus
             />
             <button
               type="submit"
               disabled={sending || !messageText.trim()}
-              className="w-9 h-9 flex items-center justify-center bg-violet-500 text-white rounded-full hover:bg-violet-600 disabled:opacity-40 transition-colors"
+              className="melange-btn-primary w-9 h-9 flex items-center justify-center text-white rounded-full disabled:opacity-40"
             >
               <Send className="h-4 w-4" />
             </button>
@@ -1585,7 +1585,7 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
             <button
               type="submit"
               disabled={creatingPost || !newPostTitle.trim() || !newPostDescription.trim()}
-              className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="melange-btn-primary w-full py-2.5 text-white text-sm font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {creatingPost ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {creatingPost ? "Creating..." : "Create Post"}

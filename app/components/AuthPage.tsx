@@ -190,7 +190,7 @@ export default function AuthPage() {
   return (
     <div className="melange-bg min-h-screen flex flex-col items-center justify-center p-4">
       <Card className="melange-frame w-full max-w-[500px] rounded-[28px] overflow-hidden border-0 py-0 gap-0">
-        <CardHeader className="text-white px-6 py-7 flex items-center gap-4 bg-gradient-to-br from-blue-900 via-indigo-800 to-violet-800 [&]:space-y-0">
+        <CardHeader className="text-white px-6 py-7 flex items-center gap-4 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 [&]:space-y-0">
           <Logo size="lg" stroke="#C4B5FD" center="#C4B5FD" />
           <div>
             <CardTitle className="text-3xl font-extrabold italic transform -skew-x-6 tracking-tight">
@@ -203,7 +203,7 @@ export default function AuthPage() {
                 Melange
               </span>
             </CardTitle>
-            <p className="text-sm text-indigo-200 mt-1.5 tracking-wide">Where creative work begins</p>
+            <p className="text-sm text-white/80 mt-1.5 tracking-wide">Where creative work begins</p>
           </div>
         </CardHeader>
 
@@ -219,6 +219,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="login-email">Email</Label>
                   <Input
+                    className="glass-input"
                     id="login-email"
                     type="email"
                     value={loginForm.email}
@@ -229,6 +230,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="login-password">Password</Label>
                   <Input
+                    className="glass-input"
                     id="login-password"
                     type="password"
                     value={loginForm.password}
@@ -262,7 +264,7 @@ export default function AuthPage() {
               </form>
 
               {resetOpen && (
-                <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="glass-row mt-4 rounded-xl p-4">
                   {resetSent ? (
                     <div className="space-y-1.5">
                       <p className="text-sm font-semibold text-gray-900">Check your email</p>
@@ -281,6 +283,7 @@ export default function AuthPage() {
                       <div>
                         <Label htmlFor="reset-email">Email</Label>
                         <Input
+                          className="glass-input"
                           id="reset-email"
                           type="email"
                           value={loginForm.email}
@@ -314,6 +317,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-name">Name</Label>
                   <Input
+                    className="glass-input"
                     id="signup-name"
                     value={signupForm.name}
                     onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
@@ -324,6 +328,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
+                    className="glass-input"
                     id="signup-email"
                     type="email"
                     value={signupForm.email}
@@ -335,6 +340,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
+                    className="glass-input"
                     id="signup-password"
                     type="password"
                     value={signupForm.password}
@@ -346,6 +352,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-confirm-password">Confirm Password</Label>
                   <Input
+                    className="glass-input"
                     id="signup-confirm-password"
                     type="password"
                     value={signupForm.confirmPassword}
@@ -357,7 +364,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-role">Role</Label>
                   <Select value={signupForm.role} onValueChange={(value) => setSignupForm({ ...signupForm, role: value })}>
-                    <SelectTrigger id="signup-role">
+                    <SelectTrigger id="signup-role" className="glass-input">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -374,6 +381,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-skills">Skills (comma-separated)</Label>
                   <Input
+                    className="glass-input"
                     id="signup-skills"
                     value={signupForm.skills}
                     onChange={(e) => setSignupForm({ ...signupForm, skills: e.target.value })}
@@ -384,6 +392,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-current-project">Current Project</Label>
                   <Input
+                    className="glass-input"
                     id="signup-current-project"
                     value={signupForm.currentProject}
                     onChange={(e) => setSignupForm({ ...signupForm, currentProject: e.target.value })}
@@ -394,6 +403,7 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="signup-bio">Bio</Label>
                   <Textarea
+                    className="glass-input"
                     id="signup-bio"
                     value={signupForm.bio}
                     onChange={(e) => setSignupForm({ ...signupForm, bio: e.target.value })}

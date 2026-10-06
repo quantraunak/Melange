@@ -128,80 +128,263 @@
 }
 
 /* ============================================================
-   Melange design system — premium chrome, classic brand
-   Blue/violet identity kept; execution elevated.
+   Melange design system — dynamic glass
+   One set of tokens, a handful of surface classes, used everywhere.
+   Dark environment (the backdrop), frosted surfaces on top of it.
    ============================================================ */
 
-/* Ambient backdrop the phone frame floats on */
+:root {
+  /* brand */
+  --mx-indigo: 79 70 229;      /* #4f46e5 */
+  --mx-violet: 139 92 246;     /* #8b5cf6 */
+  --mx-sky:    56 189 248;     /* #38bdf8 */
+  --mx-rose:   244 114 182;    /* #f472b6 */
+  /* backdrop */
+  --mx-bg-0: #0b1020;
+  --mx-bg-1: #141a3a;
+  --mx-bg-2: #1e1b4b;
+  /* glass */
+  --mx-glass-bg: rgba(255, 255, 255, 0.78);
+  --mx-glass-bg-strong: rgba(255, 255, 255, 0.9);
+  --mx-glass-bg-dark: rgba(10, 14, 32, 0.55);
+  --mx-glass-border: rgba(255, 255, 255, 0.55);
+  --mx-glass-border-dark: rgba(255, 255, 255, 0.14);
+  --mx-glass-highlight: rgba(255, 255, 255, 0.85);
+  --mx-glass-blur: 22px;
+  --mx-shadow: 0 1px 2px rgba(5, 8, 24, 0.25), 0 20px 50px -20px rgba(5, 8, 24, 0.7);
+  --mx-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Backdrop: deep gradient with slow drifting light ----------
+   Positioned relative by default; add Tailwind `fixed` to pin it behind a
+   scrolling page (the landing page does this). */
+.melange-bg:not(.fixed) { position: relative; }
 .melange-bg {
-  background-color: #eef2fb;
+  isolation: isolate;
+  background-color: var(--mx-bg-0);
   background-image:
-    radial-gradient(60rem 60rem at 15% -10%, rgba(129, 140, 248, 0.22), transparent 55%),
-    radial-gradient(50rem 50rem at 110% 10%, rgba(37, 99, 235, 0.18), transparent 50%),
-    radial-gradient(55rem 55rem at 50% 120%, rgba(167, 139, 250, 0.16), transparent 55%);
+    radial-gradient(80rem 60rem at 10% -20%, rgb(var(--mx-indigo) / 0.45), transparent 60%),
+    radial-gradient(60rem 60rem at 110% 0%, rgb(var(--mx-violet) / 0.35), transparent 55%),
+    radial-gradient(70rem 70rem at 50% 130%, rgb(var(--mx-sky) / 0.22), transparent 60%),
+    linear-gradient(180deg, var(--mx-bg-1), var(--mx-bg-0));
+  overflow: hidden;
+}
+.melange-bg::before,
+.melange-bg::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.55;
+  pointer-events: none;
+  will-change: transform;
+}
+.melange-bg::before {
+  width: 42rem; height: 42rem;
+  left: -12rem; top: -14rem;
+  background: radial-gradient(circle at 30% 30%, rgb(var(--mx-violet) / 0.9), rgb(var(--mx-indigo) / 0.4) 55%, transparent 72%);
+  animation: mx-drift-a 26s var(--mx-ease) infinite alternate;
+}
+.melange-bg::after {
+  width: 38rem; height: 38rem;
+  right: -10rem; bottom: -12rem;
+  background: radial-gradient(circle at 60% 60%, rgb(var(--mx-sky) / 0.8), rgb(var(--mx-rose) / 0.35) 55%, transparent 72%);
+  animation: mx-drift-b 32s var(--mx-ease) infinite alternate;
+}
+@keyframes mx-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(14rem, 10rem, 0) scale(1.15); }
+}
+@keyframes mx-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-12rem, -9rem, 0) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .melange-bg::before, .melange-bg::after { animation: none; }
 }
 
-/* The device-style app frame */
-.melange-frame {
-  background: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+/* ---------- Glass surfaces ---------- */
+.glass,
+.glass-strong,
+.glass-dark {
+  position: relative;
+  border: 1px solid var(--mx-glass-border);
+  -webkit-backdrop-filter: blur(var(--mx-glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--mx-glass-blur)) saturate(160%);
   box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.06),
-    0 12px 24px -8px rgba(30, 58, 138, 0.14),
-    0 40px 80px -24px rgba(30, 58, 138, 0.28);
+    inset 0 1px 0 var(--mx-glass-highlight),
+    var(--mx-shadow);
+}
+.glass { background: var(--mx-glass-bg); }
+.glass-strong { background: var(--mx-glass-bg-strong); }
+.glass-dark {
+  background: var(--mx-glass-bg-dark);
+  border-color: var(--mx-glass-border-dark);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    var(--mx-shadow);
+}
+/* A thin frosted row inside a glass container (lists, inputs) */
+.glass-row {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 6px 18px -12px rgba(30, 27, 75, 0.35);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: transform 0.25s var(--mx-ease), box-shadow 0.25s var(--mx-ease), background 0.2s ease;
+}
+.glass-row:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 14px 28px -14px rgba(30, 27, 75, 0.45);
+}
+/* Frosted input */
+.glass-input {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 2px rgba(30, 27, 75, 0.08);
+  transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+.glass-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 3px rgb(var(--mx-violet) / 0.35);
+}
+/* Soft colored glow for emphasis */
+.glow {
+  box-shadow:
+    0 0 0 1px rgb(var(--mx-violet) / 0.25),
+    0 10px 30px -10px rgb(var(--mx-violet) / 0.7),
+    0 0 60px -20px rgb(var(--mx-sky) / 0.6);
+}
+/* Light-catching sheen that sweeps once on hover */
+.sheen { position: relative; overflow: hidden; }
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: -40% -60%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+  transform: translateX(-70%);
+  transition: transform 0.9s var(--mx-ease);
+  pointer-events: none;
+}
+.sheen:hover::after { transform: translateX(70%); }
+@media (prefers-reduced-motion: reduce) {
+  .sheen::after { transition: none; }
 }
 
-/* Brand wordmark treatment */
+/* ---------- The device-style app frame ---------- */
+.melange-frame {
+  background: var(--mx-glass-bg);
+  border: 1px solid var(--mx-glass-border);
+  -webkit-backdrop-filter: blur(var(--mx-glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--mx-glass-blur)) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 var(--mx-glass-highlight),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 30px 80px -30px rgba(5, 8, 24, 0.9),
+    0 0 120px -40px rgb(var(--mx-violet) / 0.5);
+}
+
+/* ---------- Brand ---------- */
 .melange-wordmark {
-  background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 55%, #6d28d9 100%);
+  background: linear-gradient(135deg, #312e81 0%, #4f46e5 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+.melange-wordmark-light {
+  background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 45%, #e9d5ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.02em;
 }
 
-/* Header surface */
+/* Header surface inside the frame */
 .melange-header {
-  background: linear-gradient(180deg, #ffffff 0%, #f7f8fe 100%);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+  background: rgba(255, 255, 255, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 /* Segmented control track */
 .melange-segment {
-  background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+  background: rgba(30, 27, 75, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+}
+.melange-segment-pill {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 1px 0 #fff, 0 4px 14px -6px rgba(30, 27, 75, 0.5);
 }
 
-/* Premium primary button */
+/* Primary button: gradient glass with glow */
 .melange-btn-primary {
-  background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
     0 1px 2px rgba(67, 56, 202, 0.4),
-    0 6px 16px -4px rgba(79, 70, 229, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    0 10px 24px -8px rgba(124, 58, 237, 0.7);
+  transition: transform 0.15s var(--mx-ease), box-shadow 0.25s var(--mx-ease), filter 0.2s ease;
 }
 .melange-btn-primary:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.07);
   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 2px 4px rgba(67, 56, 202, 0.45),
-    0 10px 24px -4px rgba(79, 70, 229, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    0 16px 34px -10px rgba(124, 58, 237, 0.8);
 }
-.melange-btn-primary:active {
-  transform: scale(0.97);
-}
+.melange-btn-primary:active { transform: scale(0.97); }
+.melange-btn-primary:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-/* Elevated card surface */
+/* Secondary glass button */
+.melange-btn-glass {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: background 0.2s ease, transform 0.15s var(--mx-ease);
+}
+.melange-btn-glass:hover { background: rgba(255, 255, 255, 0.2); }
+.melange-btn-glass:active { transform: scale(0.97); }
+.melange-btn-glass:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Elevated card surface (used by lists, landing cards) */
 .melange-card {
-  background: #ffffff;
-  border: 1px solid rgba(99, 102, 241, 0.1);
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.04),
-    0 8px 20px -12px rgba(30, 58, 138, 0.18);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  background: var(--mx-glass-bg);
+  border: 1px solid var(--mx-glass-border);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 var(--mx-glass-highlight), 0 10px 30px -18px rgba(30, 27, 75, 0.5);
+  transition: box-shadow 0.25s var(--mx-ease), transform 0.25s var(--mx-ease);
 }
 .melange-card:hover {
-  box-shadow:
-    0 2px 4px rgba(30, 58, 138, 0.06),
-    0 14px 32px -12px rgba(30, 58, 138, 0.26);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 var(--mx-glass-highlight), 0 20px 44px -18px rgba(30, 27, 75, 0.6);
 }
+
+/* Focus rings everywhere, on glass too */
+.melange-frame :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid rgb(var(--mx-violet) / 0.9);
+  outline-offset: 2px;
+}
+
+/* Swipe action buttons */
+.melange-action {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: inset 0 1px 0 #fff, 0 10px 24px -12px rgba(30, 27, 75, 0.5);
+  transition: transform 0.15s var(--mx-ease), box-shadow 0.25s var(--mx-ease), background 0.2s ease;
+}
+.melange-action:hover { transform: translateY(-2px); background: #fff; }
+.melange-action.is-like:hover { box-shadow: inset 0 1px 0 #fff, 0 0 0 4px rgb(var(--mx-violet) / 0.18), 0 14px 30px -10px rgb(var(--mx-violet) / 0.8); }
+.melange-action.is-pass:hover { box-shadow: inset 0 1px 0 #fff, 0 0 0 4px rgb(var(--mx-rose) / 0.16), 0 14px 30px -10px rgb(var(--mx-rose) / 0.7); }

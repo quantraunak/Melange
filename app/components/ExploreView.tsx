@@ -40,14 +40,14 @@ export default function ExploreView({
 
   return (
     <div className="pt-2">
-      <div className="grid grid-cols-2 bg-blue-800 rounded-lg overflow-hidden mb-3">
+      <div className="melange-segment grid grid-cols-2 gap-1 rounded-full border-b-0 p-1 mb-3">
         {subTabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setSubTab(t.key)}
-            className={`text-[11px] font-medium py-2 px-1 transition-colors ${
-              subTab === t.key ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-gray-200"
+            className={`text-[11px] font-semibold py-2 px-1 rounded-full transition-colors ${
+              subTab === t.key ? "melange-segment-pill text-indigo-900" : "text-indigo-900/60 hover:text-indigo-900"
             }`}
           >
             {t.label}
@@ -61,7 +61,7 @@ export default function ExploreView({
             <button
               type="button"
               onClick={onNewIdea}
-              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 bg-violet-400 text-white rounded-full hover:bg-violet-500 transition-colors"
+              className="melange-btn-primary flex items-center gap-1 text-xs font-semibold px-3 py-1.5 text-white rounded-full"
             >
               <Plus className="h-3.5 w-3.5" /> New Idea
             </button>
@@ -82,7 +82,7 @@ export default function ExploreView({
               <button
                 type="button"
                 onClick={onNewIdea}
-                className="text-xs font-medium px-4 py-2 bg-blue-800 text-white rounded-full hover:bg-blue-900"
+                className="melange-btn-primary text-xs font-semibold px-4 py-2 text-white rounded-full"
               >
                 New Idea
               </button>
@@ -96,16 +96,16 @@ export default function ExploreView({
                     key={post.id}
                     type="button"
                     onClick={() => onOpenPost(post)}
-                    className="w-full flex gap-3 p-2.5 bg-white border border-blue-100 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all text-left"
+                    className="glass-row w-full flex gap-3 p-2.5 rounded-2xl text-left"
                   >
                     {thumb ? (
                       <img
                         src={thumb}
                         alt=""
-                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0 border border-gray-100"
+                        className="w-16 h-16 rounded-xl object-cover flex-shrink-0 ring-1 ring-white/70"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-violet-100 flex-shrink-0" />
+                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-200 to-violet-200 flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-blue-900 line-clamp-1">{post.title}</h3>
