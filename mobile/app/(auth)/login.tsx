@@ -51,7 +51,7 @@ export default function Login() {
           <View style={styles.header}>
             <Logo size={64} stroke={colors.white} />
             <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to keep collaborating.</Text>
+            <Text style={styles.subtitle}>Sign in to see who picked you.</Text>
           </View>
 
           <View style={styles.card}>

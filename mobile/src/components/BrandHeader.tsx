@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View, type ViewStyle } from "react-native";
-import { colors } from "@/lib/theme";
+import { colors, typography } from "@/lib/theme";
 import { Logo } from "./Logo";
 
 export function BrandHeader({
   right,
-  subtitle = "Creative Collaborations",
+  subtitle = "Crew calls",
   style,
 }: {
   right?: React.ReactNode;
@@ -14,8 +14,8 @@ export function BrandHeader({
   return (
     <View style={[styles.wrap, style]}>
       <View style={styles.left}>
-        <Logo size={36} stroke={colors.brandOutline} />
-        <View>
+        <Logo size={30} stroke={colors.accent} />
+        <View style={styles.titles}>
           <Text style={styles.title}>Melange</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
@@ -27,11 +27,9 @@ export function BrandHeader({
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(99,102,241,0.12)",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -39,20 +37,12 @@ const styles = StyleSheet.create({
   left: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 11,
+    gap: 10,
   },
-  title: {
-    color: colors.brandText,
-    fontSize: 21,
-    fontWeight: "800",
-    fontStyle: "italic",
-    letterSpacing: -0.6,
-  },
+  titles: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  title: typography.brand,
   subtitle: {
-    color: "#818cf8",
-    fontSize: 10,
-    fontWeight: "500",
-    marginTop: 1,
-    letterSpacing: 0.4,
+    ...typography.eyebrow,
+    color: colors.accentMuted,
   },
 });

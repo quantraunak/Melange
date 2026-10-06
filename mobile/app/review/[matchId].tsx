@@ -110,7 +110,7 @@ export default function ReviewScreen() {
         <TextArea
           value={body}
           onChangeText={setBody}
-          placeholder="Optional note about the collab"
+          placeholder="Optional note about the shoot"
           numberOfLines={4}
         />
 

@@ -9,14 +9,15 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Heart, Plus, RotateCcw, Search, X } from "lucide-react-native";
+import { Check, Plus, RotateCcw, Search, X } from "lucide-react-native";
 
 import { MatchCelebration } from "@/components/MatchCelebration";
-import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCard";
+import { SwipeCard, SwipeCardBehind, CARD_HEIGHT, type SwipeDir } from "@/components/SwipeCard";
+import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { SwipeCardSkeleton } from "@/components/ui/Skeleton";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { trackEvent } from "@/lib/analytics";
@@ -25,12 +26,16 @@ import {
   getFeedPosts,
   getProfile,
   recordSwipe,
+  shootRoles,
   undoSwipe,
   type CreatorInfo,
   type PostWithCreator,
 } from "@/lib/db";
 
-export default function ConnectScreen() {
+/** Room for the floating tab bar. */
+export const TAB_BAR_CLEARANCE = 112;
+
+export default function ShootsScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const { refresh: refreshMatches } = useMatches();
@@ -41,12 +46,13 @@ export default function ConnectScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [swiping, setSwiping] = useState(false);
   const [pendingButtonSwipe, setPendingButtonSwipe] = useState<SwipeDir | null>(null);
 
   // The match moment, and who it was with.
   const [celebration, setCelebration] = useState<
-    { creator: CreatorInfo; matchId: string } | null
+    { creator: CreatorInfo; matchId: string; shootTitle: string } | null
   >(null);
   const [me, setMe] = useState<Pick<CreatorInfo, "name" | "avatar_url">>({
     name: "You",
@@ -85,7 +91,7 @@ export default function ConnectScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      // Refresh whenever returning to this tab — picks up newly created posts.
+      // Refresh whenever returning to this tab — picks up newly posted shoots.
       if (!loading) load();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [load])
@@ -104,7 +110,7 @@ export default function ConnectScreen() {
         (p.description?.toLowerCase().includes(q) ?? false) ||
         (p.location?.toLowerCase().includes(q) ?? false) ||
         (p.compensation?.toLowerCase().includes(q) ?? false) ||
-        (p.looking_for?.some((lf) => lf.toLowerCase().includes(q)) ?? false) ||
+        shootRoles(p).some((r) => r.toLowerCase().includes(q)) ||
         p.creator.name.toLowerCase().includes(q) ||
         (p.creator.role?.toLowerCase().includes(q) ?? false)
     );
@@ -144,7 +150,7 @@ export default function ConnectScreen() {
           trackEvent("match_created", { match_id: match.id, post_id: post.id });
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           await refreshMatches();
-          setCelebration({ creator: post.creator, matchId: match.id });
+          setCelebration({ creator: post.creator, matchId: match.id, shootTitle: post.title });
         }
       }
 
@@ -156,7 +162,7 @@ export default function ConnectScreen() {
 
   /**
    * Put the last card back. The swipe row has to go server-side too, or the
-   * feed query filters the post straight back out on the next refresh.
+   * feed query filters the shoot straight back out on the next refresh.
    */
   const rewind = useCallback(async () => {
     if (!lastSwipe || rewinding || swiping) return;
@@ -178,12 +184,15 @@ export default function ConnectScreen() {
     setRewinding(false);
   }, [lastSwipe, rewinding, swiping]);
 
+  const remaining = Math.max(0, filtered.length - index);
+
   return (
     <View style={styles.root}>
       <MatchCelebration
         visible={!!celebration}
         me={me}
         them={celebration?.creator ?? null}
+        shootTitle={celebration?.shootTitle}
         onMessage={() => {
           const matchId = celebration?.matchId;
           setCelebration(null);
@@ -201,18 +210,42 @@ export default function ConnectScreen() {
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.brand}
+            tintColor={colors.text}
           />
         }
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.topRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>Open crew calls</Text>
+            <Text style={styles.heading}>
+              {loading ? "Loading shoots" : remaining === 1 ? "1 shoot" : `${remaining} shoots`}
+              {search ? " match" : ""}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setSearchOpen((v) => !v)}
+            style={[styles.iconBtn, searchOpen && styles.iconBtnOn]}
+            accessibilityLabel="Filter shoots"
+          >
+            <Search size={17} color={colors.text} />
+          </Pressable>
+          <Pressable
+            style={styles.postBtn}
+            onPress={() => router.push("/post/new")}
+            accessibilityLabel="Post a shoot"
+          >
+            <Plus size={15} color={colors.onBrand} strokeWidth={2.5} />
+            <Text style={styles.postBtnText}>Post a shoot</Text>
+          </Pressable>
+        </View>
+
+        {searchOpen ? (
           <Input
             value={search}
             onChangeText={setSearch}
-            placeholder="Filter by role, location, skill..."
-            containerStyle={{ flex: 1 }}
-            style={styles.searchInput}
+            placeholder="Role, city, title…"
+            autoFocus
             leading={<Search size={16} color={colors.textSubtle} />}
             trailing={
               search ? (
@@ -223,47 +256,36 @@ export default function ConnectScreen() {
             }
             autoCapitalize="none"
           />
-          <Pressable
-            style={styles.newPostBtn}
-            onPress={() => router.push("/post/new")}
-            accessibilityLabel="New post"
-          >
-            <Plus size={14} color={colors.brandText} />
-            <Text style={styles.newPostText}>New Post</Text>
-          </Pressable>
-        </View>
+        ) : null}
 
         <ErrorBanner message={error} />
 
         {loading ? (
           <SwipeCardSkeleton />
         ) : !current ? (
-          <View style={styles.empty}>
+          <Glass style={styles.empty}>
             <Text style={styles.emptyTitle}>
-              {search ? "No posts match your filter." : "No new posts to swipe on."}
+              {search ? "No shoots match that." : "No open crew calls right now."}
             </Text>
             <Text style={styles.emptyBody}>
               {search
-                ? "Try a different search term."
-                : "Pull to refresh, or post one of your own so others can find you."}
+                ? "Try a role or a city instead."
+                : "Pull to refresh, or post your own shoot so crew can find you."}
             </Text>
             {search ? (
               <Pressable onPress={() => setSearch("")}>
                 <Text style={styles.emptyLink}>Clear filter</Text>
               </Pressable>
             ) : (
-              <Pressable
-                onPress={() => router.push("/post/new")}
-                style={styles.emptyCta}
-              >
-                <Plus size={14} color={colors.white} />
-                <Text style={styles.emptyCtaText}>Create a post</Text>
+              <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
+                <Plus size={14} color={colors.onBrand} />
+                <Text style={styles.emptyCtaText}>Post a shoot</Text>
               </Pressable>
             )}
-          </View>
+          </Glass>
         ) : (
           <View style={styles.deck}>
-            <View style={styles.cardStack}>
+            <View style={[styles.cardStack, { height: CARD_HEIGHT }]}>
               {filtered[index + 1] ? <SwipeCardBehind post={filtered[index + 1]} /> : null}
               <SwipeCard
                 key={current.id}
@@ -278,58 +300,46 @@ export default function ConnectScreen() {
               />
             </View>
 
-            <Text style={styles.remaining}>
-              {filtered.length - index - 1} posts remaining
-              {search ? " (filtered)" : ""}
-            </Text>
-
             <View style={styles.actions}>
               <Pressable
                 style={({ pressed }) => [
-                  styles.rewindBtn,
-                  pressed && styles.actionBtnPressed,
-                  !lastSwipe && styles.rewindBtnOff,
+                  styles.roundBtn,
+                  pressed && styles.pressed,
+                  !lastSwipe && styles.roundBtnOff,
                 ]}
                 onPress={rewind}
                 disabled={!lastSwipe || rewinding || swiping}
                 accessibilityLabel="Undo last swipe"
               >
-                <RotateCcw
-                  size={18}
-                  color={lastSwipe ? colors.warning : colors.textFaint}
-                />
+                <RotateCcw size={18} color={lastSwipe ? colors.warning : colors.textFaint} />
               </Pressable>
+
               <Pressable
-                style={({ pressed }) => [
-                  styles.actionBtn,
-                  styles.passBtn,
-                  pressed && styles.actionBtnPressed,
-                ]}
+                style={({ pressed }) => [styles.passBtn, pressed && styles.pressed]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setPendingButtonSwipe("left");
                 }}
                 disabled={swiping}
+                accessibilityLabel="Pass"
               >
-                <X size={20} color={colors.dangerText} />
-                <Text style={styles.passText}>Pass</Text>
+                <X size={22} color={colors.text} />
               </Pressable>
+
               <Pressable
-                style={({ pressed }) => [
-                  styles.actionBtn,
-                  styles.likeBtn,
-                  pressed && styles.actionBtnPressed,
-                ]}
+                style={({ pressed }) => [styles.applyBtn, pressed && styles.pressed]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   setPendingButtonSwipe("right");
                 }}
                 disabled={swiping}
+                accessibilityLabel="Apply"
               >
-                <Heart size={20} color={colors.white} />
-                <Text style={styles.likeText}>Like</Text>
+                <Check size={20} color={colors.white} strokeWidth={2.75} />
+                <Text style={styles.applyText}>Apply</Text>
               </Pressable>
             </View>
+            <Text style={styles.hint}>Swipe right to apply. A chat opens only if they pick you too.</Text>
           </View>
         )}
       </ScrollView>
@@ -341,71 +351,81 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingTop: 6,
+    paddingBottom: TAB_BAR_CLEARANCE,
     gap: 12,
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  searchInput: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radii.pill },
-  newPostBtn: {
+  eyebrow: typography.eyebrow,
+  heading: { ...typography.h2, marginTop: 2 },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconBtnOn: { backgroundColor: colors.surfaceStrong, borderColor: colors.borderStrong },
+  postBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.brand,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    height: 40,
     borderRadius: radii.pill,
   },
-  newPostText: { color: colors.brandText, fontWeight: "700", fontSize: 13 },
-  deck: { gap: 12 },
+  postBtnText: { color: colors.onBrand, fontWeight: "700", fontSize: 13 },
+  deck: { gap: 14 },
   cardStack: { position: "relative" },
-  remaining: {
-    textAlign: "center",
-    fontSize: 11,
-    color: colors.textFaint,
-    marginTop: 4,
-  },
   actions: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    marginTop: 4,
+    gap: 14,
+    marginTop: 2,
   },
-  rewindBtn: {
+  pressed: { transform: [{ scale: 0.94 }], opacity: 0.9 },
+  roundBtn: {
     width: 46,
     height: 46,
     borderRadius: 23,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.card,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  rewindBtnOff: { opacity: 0.45 },
-  actionBtn: {
+  roundBtnOff: { opacity: 0.4 },
+  passBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceStrong,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  applyBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: radii.pill,
-    minWidth: 112,
-    justifyContent: "center",
+    height: 60,
+    paddingHorizontal: 28,
+    borderRadius: 30,
+    backgroundColor: colors.accent,
+    ...shadows.glow,
   },
-  actionBtnPressed: { transform: [{ scale: 0.94 }], opacity: 0.9 },
-  passBtn: {
-    backgroundColor: colors.card,
-    borderColor: colors.borderStrong,
-    borderWidth: 1,
-  },
-  passText: { color: colors.dangerText, fontWeight: "700", fontSize: 14 },
-  likeBtn: { backgroundColor: colors.like },
-  likeText: { color: colors.white, fontWeight: "700", fontSize: 14 },
-  empty: { paddingVertical: 64, alignItems: "center", gap: 8 },
-  emptyTitle: { color: colors.textMuted, fontSize: 15, fontWeight: "600" },
-  emptyBody: { color: colors.textSubtle, fontSize: 13, textAlign: "center", paddingHorizontal: 32 },
-  emptyLink: { color: colors.brandText, fontSize: 13, fontWeight: "700", marginTop: 4 },
+  applyText: { color: colors.white, fontWeight: "800", fontSize: 16 },
+  hint: { ...typography.tiny, textAlign: "center" },
+  empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
+  emptyTitle: { ...typography.h3, textAlign: "center" },
+  emptyBody: { ...typography.small, textAlign: "center", lineHeight: 19 },
+  emptyLink: { color: colors.accentMuted, fontSize: 13, fontWeight: "700", marginTop: 4 },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
@@ -416,5 +436,5 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     marginTop: 8,
   },
-  emptyCtaText: { color: colors.white, fontWeight: "700" },
+  emptyCtaText: { color: colors.onBrand, fontWeight: "700" },
 });

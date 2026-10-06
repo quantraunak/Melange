@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import {
   Camera,
   ChevronRight,
+  Clapperboard,
   LogOut,
   Pencil,
   ShieldOff,
@@ -24,26 +25,38 @@ import {
 
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Chip, ChipRow } from "@/components/ui/Chip";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import {
+  getCredits,
   getMyPosts,
   getProfile,
   PORTFOLIO_MAX_IMAGES,
+  ROLES,
+  shootDates,
+  shootRoles,
   updatePortfolio,
   updateProfile,
   uploadFile,
   VIBE_PRESETS,
   type CollabPost,
+  type Credit,
   type Profile,
 } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
 import { normalizeSocialUrl } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
+
+function normalizeReel(raw: string): string {
+  const v = raw.trim();
+  if (!v) return v;
+  return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -51,6 +64,7 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myPosts, setMyPosts] = useState<CollabPost[]>([]);
+  const [credits, setCredits] = useState<Credit[]>([]);
   const [form, setForm] = useState({
     name: "",
     role: "",
@@ -59,6 +73,7 @@ export default function ProfileScreen() {
     skills: "",
     instagram: "",
     linkedin: "",
+    reel: "",
   });
   const [vibes, setVibes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -73,10 +88,8 @@ export default function ProfileScreen() {
     if (!userId) return;
     setLoading(true);
     setLoadError(null);
-    const [{ data: profileData, error: profileErr }, { data: postsData }] = await Promise.all([
-      getProfile(userId),
-      getMyPosts(userId),
-    ]);
+    const [{ data: profileData, error: profileErr }, { data: postsData }, { data: creditData }] =
+      await Promise.all([getProfile(userId), getMyPosts(userId), getCredits(userId)]);
     if (profileData) {
       setProfile(profileData);
       setForm({
@@ -87,12 +100,14 @@ export default function ProfileScreen() {
         skills: profileData.skills?.join(", ") || "",
         instagram: profileData.instagram_url || "",
         linkedin: profileData.linkedin_url || "",
+        reel: profileData.reel_url || "",
       });
       setVibes(profileData.vibes ?? []);
     } else {
       setLoadError(profileErr || "We couldn't load your profile.");
     }
     setMyPosts(postsData || []);
+    setCredits(creditData || []);
     setLoading(false);
   }, [userId]);
 
@@ -115,9 +130,15 @@ export default function ProfileScreen() {
       vibes: vibes.length ? vibes : [],
       instagram_url: normalizeSocialUrl("instagram", form.instagram),
       linkedin_url: normalizeSocialUrl("linkedin", form.linkedin),
+      reel_url: form.reel.trim() ? normalizeReel(form.reel) : null,
     });
     setSaving(false);
-    if (err) setError(err);
+    if (err && err.startsWith("Saved.")) {
+      // The row saved; only the reel column is missing on this database.
+      setError(err);
+      trackEvent("profile_saved");
+      await load();
+    } else if (err) setError(err);
     else {
       trackEvent("profile_saved");
       await supabase.rpc("refresh_profile_verification", { p_user_id: userId });
@@ -236,7 +257,7 @@ export default function ProfileScreen() {
     if (loading) {
       return (
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.brand} />
+          <ActivityIndicator color={colors.text} />
         </View>
       );
     }
@@ -273,8 +294,46 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{profile.name}</Text>
             {profile.role ? <Text style={styles.profileRole}>{profile.role}</Text> : null}
-            <Text style={styles.profileHint}>Tap to change avatar</Text>
+            <Text style={styles.profileHint}>
+              {credits.length === 0
+                ? "No credits yet"
+                : `${credits.length} ${credits.length === 1 ? "credit" : "credits"} through Melange`}
+            </Text>
           </View>
+        </View>
+
+        {/* Credits */}
+        <View style={styles.section}>
+          <View style={styles.portfolioHeader}>
+            <Text style={styles.sectionTitle}>Credits</Text>
+            <Clapperboard size={16} color={colors.accentMuted} />
+          </View>
+          {credits.length === 0 ? (
+            <Text style={styles.muted}>
+              Apply to a shoot. When the production picks you too and you work together, it lands here.
+            </Text>
+          ) : (
+            credits.map((c) => (
+              <View key={c.match_id} style={styles.creditRow}>
+                <View style={[styles.creditDot, c.confirmed && styles.creditDotOn]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.creditTitle} numberOfLines={1}>
+                    {c.title}
+                  </Text>
+                  <Text style={styles.creditMeta} numberOfLines={1}>
+                    {c.role ? `${c.role} · ` : ""}with {c.with_name}
+                    {c.confirmed ? "" : " · pending review"}
+                  </Text>
+                </View>
+                <Text style={styles.creditDate}>
+                  {new Date(c.date.length === 10 ? `${c.date}T12:00:00` : c.date).toLocaleDateString([], {
+                    month: "short",
+                    year: "2-digit",
+                  })}
+                </Text>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Portfolio */}
@@ -291,7 +350,7 @@ export default function ProfileScreen() {
               </Text>
             </Pressable>
           </View>
-          <Text style={styles.muted}>Show your best work (up to {PORTFOLIO_MAX_IMAGES} images).</Text>
+          <Text style={styles.muted}>Stills from things you shot or were in (up to {PORTFOLIO_MAX_IMAGES}).</Text>
           {(profile.portfolio_urls?.length ?? 0) === 0 ? (
             <Pressable style={styles.portfolioEmpty} onPress={onAddPortfolio} disabled={portfolioBusy}>
               <Text style={styles.portfolioEmptyText}>Tap to add images</Text>
@@ -319,18 +378,40 @@ export default function ProfileScreen() {
           <Field label="Name">
             <Input value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
           </Field>
-          <Field label="Role">
+          <Field label="What you do" hint="Pick one, or type your own below.">
+            <ChipRow>
+              {ROLES.map((r) => (
+                <Chip
+                  key={r}
+                  label={r}
+                  size="sm"
+                  selected={form.role === r}
+                  onPress={() => setForm({ ...form, role: form.role === r ? "" : r })}
+                />
+              ))}
+            </ChipRow>
             <Input
               value={form.role}
               onChangeText={(t) => setForm({ ...form, role: t })}
-              placeholder="e.g. Photographer"
+              placeholder="e.g. Production designer"
+              containerStyle={{ marginTop: 8 }}
             />
           </Field>
-          <Field label="Skills" hint="Comma-separated">
+          <Field label="Reel or portfolio link" hint="Vimeo, YouTube, your site. Productions look here first.">
+            <Input
+              value={form.reel}
+              onChangeText={(t) => setForm({ ...form, reel: t })}
+              placeholder="vimeo.com/you"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+          </Field>
+          <Field label="Skills and gear" hint="Comma-separated">
             <Input
               value={form.skills}
               onChangeText={(t) => setForm({ ...form, skills: t })}
-              placeholder="e.g. Portrait, Lighting, Posing"
+              placeholder="e.g. Steadicam, Resolve, own a C70"
             />
           </Field>
           <Field label="Bio">
@@ -345,7 +426,7 @@ export default function ProfileScreen() {
             <Input
               value={form.currentProject}
               onChangeText={(t) => setForm({ ...form, currentProject: t })}
-              placeholder="What you're working on right now"
+              placeholder="What you're shooting right now"
             />
           </Field>
           <Field label="Instagram">
@@ -364,7 +445,7 @@ export default function ProfileScreen() {
               autoCapitalize="none"
             />
           </Field>
-          <Field label="Creative vibes" hint="Improves feed ranking (up to 5)">
+          <Field label="Taste" hint="Helps rank shoots for you (up to 5)">
             <View style={styles.vibeRow}>
               {VIBE_PRESETS.map((v) => {
                 const on = vibes.includes(v);
@@ -395,11 +476,16 @@ export default function ProfileScreen() {
           <Button title="Save profile" variant="primary" loading={saving} onPress={onSave} />
         </View>
 
-        {/* My Posts */}
+        {/* My shoots */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your posts</Text>
+          <View style={styles.portfolioHeader}>
+            <Text style={styles.sectionTitle}>Your shoots</Text>
+            <Pressable onPress={() => router.push("/post/new")} style={styles.addPortfolioBtn}>
+              <Text style={styles.addPortfolioText}>+ Post a shoot</Text>
+            </Pressable>
+          </View>
           {myPosts.length === 0 ? (
-            <Text style={styles.muted}>You haven&apos;t created a post yet.</Text>
+            <Text style={styles.muted}>No crew calls posted yet.</Text>
           ) : (
             myPosts.map((p) => (
               <Pressable
@@ -414,7 +500,8 @@ export default function ProfileScreen() {
                     {p.title}
                   </Text>
                   <Text style={styles.postMeta} numberOfLines={1}>
-                    {new Date(p.created_at).toLocaleDateString()}
+                    {shootDates(p) ?? new Date(p.created_at).toLocaleDateString()}
+                    {shootRoles(p).length ? ` · ${shootRoles(p).slice(0, 3).join(", ")}` : ""}
                     {p.is_active ? "" : " · inactive"}
                   </Text>
                 </View>
@@ -441,7 +528,7 @@ export default function ProfileScreen() {
           </Pressable>
 
           <Pressable
-            style={[styles.linkRow, { borderColor: "#fecaca" }]}
+            style={[styles.linkRow, { borderColor: colors.dangerSoft }]}
             onPress={() => router.push("/account/delete")}
           >
             <Trash2 size={18} color={colors.dangerText} />
@@ -461,16 +548,16 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
-  scroll: { padding: 16, gap: 16, paddingBottom: 32 },
+  scroll: { padding: 16, paddingTop: 6, gap: 14, paddingBottom: 120 },
   avatarBlock: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
     backgroundColor: colors.card,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
   },
   avatarWrap: { position: "relative" },
   cameraBadge: {
@@ -480,7 +567,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -492,23 +579,29 @@ const styles = StyleSheet.create({
 
   section: {
     backgroundColor: colors.card,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
     gap: 12,
   },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
+  sectionTitle: { ...typography.eyebrow, color: colors.textMuted },
+  creditRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
+  creditDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.borderStrong },
+  creditDotOn: { backgroundColor: colors.accent },
+  creditTitle: { ...typography.h3 },
+  creditMeta: typography.small,
+  creditDate: typography.tiny,
   muted: { color: colors.textSubtle, fontSize: 13 },
   success: {
-    backgroundColor: "#dcfce7",
-    borderColor: "#bbf7d0",
-    borderWidth: 1,
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
-  successText: { color: "#15803d", fontSize: 13, fontWeight: "600" },
+  successText: { color: colors.success, fontSize: 13, fontWeight: "600" },
 
   postRow: {
     flexDirection: "row",
@@ -542,9 +635,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  vibeChipOn: { backgroundColor: colors.brandSoft, borderColor: colors.brandText },
+  vibeChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   vibeChipText: { fontSize: 12, color: colors.textMuted },
-  vibeChipTextOn: { color: colors.brandText, fontWeight: "600" },
+  vibeChipTextOn: { color: colors.white, fontWeight: "600" },
 
   portfolioHeader: {
     flexDirection: "row",
@@ -552,12 +645,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   addPortfolioBtn: {
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.surfaceStrong,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.pill,
   },
-  addPortfolioText: { color: colors.brandText, fontWeight: "700", fontSize: 12 },
+  addPortfolioText: { color: colors.text, fontWeight: "700", fontSize: 12 },
   portfolioEmpty: {
     borderWidth: 2,
     borderStyle: "dashed",

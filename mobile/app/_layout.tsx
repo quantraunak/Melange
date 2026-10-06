@@ -30,7 +30,7 @@ function Gate() {
 
   return (
     <MatchesProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#f3f4f6" } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0B0C10" } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />

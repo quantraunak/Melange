@@ -33,7 +33,7 @@ export default function DeleteAccount() {
     }
     Alert.alert(
       "Delete your account?",
-      "This permanently removes your profile, posts, matches, and messages. This cannot be undone.",
+      "This permanently removes your profile, shoots, matches, and messages. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {

@@ -5,14 +5,22 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import { Settings as SettingsIcon } from "lucide-react-native";
+import {
+  Clapperboard,
+  Compass,
+  MessageCircle,
+  Settings as SettingsIcon,
+  UserRound,
+} from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { BrandHeader } from "@/components/BrandHeader";
+import { Backdrop } from "@/components/ui/Backdrop";
+import { Glass } from "@/components/ui/Glass";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
@@ -52,18 +60,32 @@ function Header() {
           hitSlop={12}
           onPress={() => router.push("/account/settings")}
           accessibilityLabel="Settings"
+          style={styles.settingsBtn}
         >
-          <SettingsIcon size={20} color="#60a5fa" />
+          <SettingsIcon size={18} color={colors.textMuted} />
         </Pressable>
       }
     />
   );
 }
 
-const TAB_BAR_PAD = 4;
+const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
+  connect: (p) => <Clapperboard {...p} />,
+  events: (p) => <Compass {...p} />,
+  messages: (p) => <MessageCircle {...p} />,
+  profile: (p) => <UserRound {...p} />,
+};
 
-function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+const TAB_BAR_PAD = 6;
+
+/**
+ * Floating glass tab bar. The active tab is a lighter pill that springs to
+ * its position; icons carry the meaning and the label sits under them so the
+ * bar reads at a glance over any poster behind it.
+ */
+function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { unreadCount } = useMatches();
+  const insets = useSafeAreaInsets();
   const [barWidth, setBarWidth] = useState(0);
 
   const tabCount = state.routes.length;
@@ -84,129 +106,127 @@ function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   }));
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.tabBarOuter}>
-      <View
-        style={styles.tabBar}
-        onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
-      >
-        {pillWidth > 0 ? <Animated.View style={[styles.pill, pillStyle]} /> : null}
-        {state.routes.map((route, idx) => {
-          const focused = state.index === idx;
-          const { options } = descriptors[route.key];
-          const label = (options.tabBarLabel as string) ?? options.title ?? route.name;
-          const badge = route.name === "messages" ? unreadCount : 0;
+    <View style={[styles.tabBarOuter, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <Glass variant="strong" radius={radii.xxl} elevated style={styles.tabBarGlass}>
+        <View style={styles.tabBar} onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}>
+          {pillWidth > 0 ? <Animated.View style={[styles.pill, pillStyle]} /> : null}
+          {state.routes.map((route, idx) => {
+            const focused = state.index === idx;
+            const { options } = descriptors[route.key];
+            const label = (options.tabBarLabel as string) ?? options.title ?? route.name;
+            const badge = route.name === "messages" ? unreadCount : 0;
+            const color = focused ? colors.text : colors.textSubtle;
 
-          const onPress = () => {
-            const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-            if (!focused && !event.defaultPrevented) {
-              Haptics.selectionAsync();
-              navigation.navigate(route.name);
-            }
-          };
+            const onPress = () => {
+              const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+              if (!focused && !event.defaultPrevented) {
+                Haptics.selectionAsync();
+                navigation.navigate(route.name);
+              }
+            };
 
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityState={focused ? { selected: true } : {}}
-              onPress={onPress}
-              style={styles.tab}
-            >
-              <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-                {label}
-              </Text>
-              {badge > 0 ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </View>
-    </SafeAreaView>
+            return (
+              <Pressable
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={focused ? { selected: true } : {}}
+                accessibilityLabel={label}
+                onPress={onPress}
+                style={styles.tab}
+              >
+                {TAB_ICONS[route.name]?.({ color, size: 20 })}
+                <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+                {badge > 0 ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Glass>
+    </View>
   );
 }
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   return (
-    <>
+    <View style={styles.root}>
+      <Backdrop />
       <PushBootstrap />
-      <View style={[styles.safe, { paddingTop: insets.top }]}>
+      <View style={{ paddingTop: insets.top }}>
         <Header />
       </View>
       <Tabs
-        tabBar={(props) => <PillTabBar {...props} />}
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
+        tabBar={(props) => <GlassTabBar {...props} />}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "transparent" } }}
       >
-        <Tabs.Screen name="connect" options={{ title: "Connect" }} />
+        <Tabs.Screen name="connect" options={{ title: "Shoots" }} />
         <Tabs.Screen name="events" options={{ title: "Explore" }} />
-        <Tabs.Screen name="messages" options={{ title: "Messages" }} />
+        <Tabs.Screen name="messages" options={{ title: "Matches" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: colors.white },
-  tabBarOuter: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
+  root: { flex: 1, backgroundColor: colors.bg },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  tabBarOuter: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 0,
+  },
+  tabBarGlass: {},
   tabBar: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.pill,
     padding: TAB_BAR_PAD,
     flexDirection: "row",
     position: "relative",
-    shadowColor: colors.brand,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
   },
   pill: {
     position: "absolute",
     top: TAB_BAR_PAD,
     bottom: TAB_BAR_PAD,
     left: 0,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 9,
+    paddingVertical: 8,
     alignItems: "center",
-    borderRadius: radii.pill,
+    gap: 3,
+    borderRadius: radii.xl,
     position: "relative",
   },
   tabLabel: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.75)",
+    fontSize: 11,
     fontWeight: "600",
-  },
-  tabLabelActive: {
-    color: colors.brandText,
-    fontWeight: "700",
   },
   badge: {
     position: "absolute",
-    top: -2,
-    right: 10,
+    top: 2,
+    right: 14,
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,
     borderRadius: 9,
-    backgroundColor: colors.danger,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },

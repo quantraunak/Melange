@@ -190,7 +190,7 @@ export default function ExploreScreen() {
         >
           <Plus size={16} color={colors.white} />
           <Text style={styles.hostBtnText}>
-            {subTab === "browse" ? "Post a collab" : "Host event"}
+            {subTab === "browse" ? "Post a shoot" : "Host event"}
           </Text>
         </Pressable>
       </View>

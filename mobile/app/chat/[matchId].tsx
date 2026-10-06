@@ -162,7 +162,7 @@ export default function ChatScreen() {
     const confirmBlock = () => {
       Alert.alert(
         `Block ${match.other_creator.name}?`,
-        "You will no longer see their posts and they will no longer see yours. This cannot be undone here.",
+        "You will no longer see their shoots and they will no longer see yours. This cannot be undone here.",
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -427,10 +427,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 8,
     padding: 10,
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.accentSoft,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: "#c4b5fd",
+    borderColor: colors.accent,
   },
   reviewBannerText: { flex: 1, fontSize: 12, color: "#5b21b6", marginRight: 8 },
   reviewBannerCta: { fontSize: 12, fontWeight: "700", color: colors.accent },
