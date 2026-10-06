@@ -80,11 +80,11 @@ export function Button({
 function variantPalette(v: Variant) {
   switch (v) {
     case "primary":
-      return { bg: colors.brand, fg: colors.white, border: undefined };
+      return { bg: colors.brand, fg: colors.onBrand, border: undefined };
     case "secondary":
-      return { bg: colors.brandSoft, fg: colors.brandText, border: undefined };
+      return { bg: colors.brandSoft, fg: colors.text, border: colors.border };
     case "outline":
-      return { bg: colors.card, fg: colors.text, border: colors.borderStrong };
+      return { bg: "transparent" as const, fg: colors.text, border: colors.borderStrong };
     case "ghost":
       return { bg: "transparent" as const, fg: colors.text, border: undefined };
     case "danger":

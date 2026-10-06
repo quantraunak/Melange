@@ -7,6 +7,14 @@ import { getReputationForUsers } from "./reviews";
 // Types
 // ============================================================
 
+export type PayType = "paid" | "tfp" | "credit";
+
+/**
+ * A shoot (crew call). The table is still called collab_posts and the old
+ * free-text columns stay for rows written before 08_shoots.sql; the new UI
+ * reads `roles`, `shoot_start`, `shoot_end` and `pay_type` first and falls
+ * back to `looking_for` and `compensation`.
+ */
 export type CollabPost = {
   id: string;
   owner_id: string;
@@ -18,6 +26,66 @@ export type CollabPost = {
   media_urls: string[] | null;
   is_active: boolean;
   created_at: string;
+  shoot_start?: string | null;
+  shoot_end?: string | null;
+  roles?: string[] | null;
+  pay_type?: PayType | null;
+};
+
+/** Open roles vocabulary. Order is display order in the picker. */
+export const ROLES = [
+  "Director",
+  "Producer",
+  "DP",
+  "1st AC",
+  "Gaffer",
+  "Sound",
+  "Editor",
+  "Colorist",
+  "Actor",
+  "PA",
+  "Stylist",
+  "MUA",
+  "Photographer",
+  "Model",
+  "Other",
+] as const;
+
+export const PAY_TYPES: { key: PayType; label: string; hint: string }[] = [
+  { key: "paid", label: "Paid", hint: "Day rate or flat fee" },
+  { key: "tfp", label: "TFP", hint: "Time for footage or prints" },
+  { key: "credit", label: "Credit", hint: "Credit, meals, a copy of the film" },
+];
+
+/** Roles on a shoot, reading the structured column first. */
+export function shootRoles(post: Pick<CollabPost, "roles" | "looking_for">): string[] {
+  if (post.roles?.length) return post.roles;
+  return post.looking_for ?? [];
+}
+
+/** "Oct 12" or "Oct 12 to 14" or null when no dates were set. */
+export function shootDates(post: Pick<CollabPost, "shoot_start" | "shoot_end">): string | null {
+  if (!post.shoot_start) return null;
+  const fmt = (iso: string) =>
+    new Date(`${iso}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" });
+  const start = fmt(post.shoot_start);
+  if (!post.shoot_end || post.shoot_end === post.shoot_start) return start;
+  return `${start} to ${fmt(post.shoot_end)}`;
+}
+
+export function payLabel(post: Pick<CollabPost, "pay_type" | "compensation">): string | null {
+  const t = PAY_TYPES.find((x) => x.key === post.pay_type);
+  if (t) return t.label;
+  return post.compensation || null;
+}
+
+export type Credit = {
+  match_id: string;
+  title: string;
+  with_name: string;
+  role: string | null;
+  date: string;
+  confirmed: boolean;
 };
 
 export type CreatorInfo = {
@@ -90,6 +158,7 @@ export type Profile = {
   vibes: string[] | null;
   instagram_url: string | null;
   linkedin_url: string | null;
+  reel_url?: string | null;
   verification_status: "none" | "pending" | "verified";
   verified_at: string | null;
   created_at: string;
@@ -221,6 +290,10 @@ export async function createPost(
     location?: string;
     compensation?: string;
     media_urls?: string[];
+    roles?: string[];
+    shoot_start?: string;
+    shoot_end?: string;
+    pay_type?: PayType;
   }
 ): Promise<{ data: CollabPost | null; error: string | null }> {
   try {
@@ -229,12 +302,25 @@ export async function createPost(
     if (opts?.location) row.location = opts.location;
     if (opts?.compensation) row.compensation = opts.compensation;
     if (opts?.media_urls?.length) row.media_urls = opts.media_urls;
+    if (opts?.roles?.length) row.roles = opts.roles;
+    if (opts?.shoot_start) row.shoot_start = opts.shoot_start;
+    if (opts?.shoot_end) row.shoot_end = opts.shoot_end;
+    if (opts?.pay_type) row.pay_type = opts.pay_type;
 
-    const { data, error } = await supabase
-      .from("collab_posts")
-      .insert(row)
-      .select()
-      .single();
+    let res = await supabase.from("collab_posts").insert(row).select().single();
+    if (res.error && isMissingShootColumns(res.error.message)) {
+      // Database without 08_shoots.sql: keep the shoot readable through the
+      // legacy columns rather than failing the post.
+      const legacy = { ...row };
+      delete legacy.roles;
+      delete legacy.shoot_start;
+      delete legacy.shoot_end;
+      delete legacy.pay_type;
+      if (opts?.roles?.length && !legacy.looking_for) legacy.looking_for = opts.roles;
+      if (opts?.pay_type && !legacy.compensation) legacy.compensation = opts.pay_type.toUpperCase();
+      res = await supabase.from("collab_posts").insert(legacy).select().single();
+    }
+    const { data, error } = res;
 
     if (error) return { data: null, error: error.message };
     return { data: data as CollabPost, error: null };
@@ -243,17 +329,29 @@ export async function createPost(
   }
 }
 
+/** PostgREST's wording when a column from 08_shoots.sql is not there yet. */
+function isMissingShootColumns(message: string): boolean {
+  const names = /(roles|shoot_start|shoot_end|pay_type|reel_url)/i;
+  return names.test(message) && /(column|schema cache)/i.test(message);
+}
+
 export async function updatePost(
   postId: string,
   patch: Partial<Omit<CollabPost, "id" | "owner_id" | "created_at">>
 ): Promise<{ data: CollabPost | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from("collab_posts")
-      .update(patch)
-      .eq("id", postId)
-      .select()
-      .single();
+    let res = await supabase.from("collab_posts").update(patch).eq("id", postId).select().single();
+    if (res.error && isMissingShootColumns(res.error.message)) {
+      const legacy: Record<string, unknown> = { ...patch };
+      delete legacy.roles;
+      delete legacy.shoot_start;
+      delete legacy.shoot_end;
+      delete legacy.pay_type;
+      if (patch.roles?.length) legacy.looking_for = patch.roles;
+      if (patch.pay_type && !patch.compensation) legacy.compensation = patch.pay_type.toUpperCase();
+      res = await supabase.from("collab_posts").update(legacy).eq("id", postId).select().single();
+    }
+    const { data, error } = res;
 
     if (error) return { data: null, error: error.message };
     return { data: data as CollabPost, error: null };
@@ -710,10 +808,16 @@ export async function updateProfile(
     vibes?: string[];
     instagram_url?: string | null;
     linkedin_url?: string | null;
+    reel_url?: string | null;
   }
 ): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase.from("profiles").update(updates).eq("user_id", userId);
+    let { error } = await supabase.from("profiles").update(updates).eq("user_id", userId);
+    if (error && "reel_url" in updates && isMissingShootColumns(error.message)) {
+      const { reel_url: _dropped, ...rest } = updates;
+      ({ error } = await supabase.from("profiles").update(rest).eq("user_id", userId));
+      if (!error) return { error: "Saved. Reel links need the latest database update (08_shoots.sql)." };
+    }
     return { error: error?.message ?? null };
   } catch (err) {
     return { error: errMsg(err) };
@@ -878,5 +982,72 @@ export async function deleteAccount(): Promise<{ error: string | null }> {
     return { error: null };
   } catch (err) {
     return { error: errMsg(err) };
+  }
+}
+
+// ============================================================
+// Credits
+// ============================================================
+
+/**
+ * What this person has worked on, through Melange.
+ *
+ * Confirmed credits come from the `credits` view (08_shoots.sql): a review on
+ * a match is the schema's only "we actually worked together" signal. On a
+ * database without the view, or for matches nobody has reviewed yet, the
+ * list falls back to the matches themselves, marked unconfirmed, so the
+ * profile is never empty for someone who has real matches.
+ */
+export async function getCredits(
+  userId: string
+): Promise<{ data: Credit[]; error: string | null }> {
+  try {
+    const confirmed = new Map<string, Credit>();
+    const view = await supabase
+      .from("credits")
+      .select("match_id,title,credited_by,created_at,shoot_start")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (!view.error) {
+      const rows = (view.data || []) as {
+        match_id: string;
+        title: string;
+        credited_by: string;
+        created_at: string;
+        shoot_start: string | null;
+      }[];
+      const names = await fetchCreators([...new Set(rows.map((r) => r.credited_by))]);
+      for (const r of rows) {
+        confirmed.set(r.match_id, {
+          match_id: r.match_id,
+          title: r.title,
+          with_name: names.get(r.credited_by)?.name ?? "Someone",
+          role: null,
+          date: r.shoot_start ?? r.created_at,
+          confirmed: true,
+        });
+      }
+    }
+
+    const { data: matches, error } = await getMatches(userId);
+    if (error && confirmed.size === 0) return { data: [], error };
+    const me = await getProfile(userId);
+    const myRole = me.data?.role ?? null;
+
+    const out: Credit[] = [...confirmed.values()].map((c) => ({ ...c, role: myRole }));
+    for (const m of matches ?? []) {
+      if (confirmed.has(m.id)) continue;
+      out.push({
+        match_id: m.id,
+        title: m.other_post.title,
+        with_name: m.other_creator.name,
+        role: myRole,
+        date: m.other_post.shoot_start ?? m.created_at,
+        confirmed: false,
+      });
+    }
+    return { data: out, error: null };
+  } catch (err) {
+    return { data: [], error: errMsg(err) };
   }
 }
