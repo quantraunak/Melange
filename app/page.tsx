@@ -71,7 +71,7 @@ function SecondaryCta({ className = "" }: { className?: string }) {
       className={`inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-medium text-indigo-900/80 backdrop-blur ${className}`}
     >
       <Sparkles className="h-4 w-4" />
-      iPhone app coming soon
+      iPhone app on the App Store
     </span>
   );
 }

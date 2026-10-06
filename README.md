@@ -100,6 +100,7 @@ Run these six files in order, in the Supabase SQL Editor:
 | `supabase/schema/04_reviews.sql` | Reviews, social links, feed ranking |
 | `supabase/schema/05_ranking.sql` | Analytics, verified badges, better ranking, live chat updates |
 | `supabase/schema/06_interactions.sql` | Read receipts, unmatch, undo a swipe |
+| `supabase/schema/07_matching.sql` | Match creation moved into the database: `create_match` verifies both right-swipes, direct INSERT removed |
 
 Or from the command line:
 

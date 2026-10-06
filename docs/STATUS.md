@@ -131,3 +131,11 @@ There is no fundraising case here today, because there is no evidence anyone wan
 The open strategic question is bigger than the product: the current design targets unpaid creative collaborations, where no money changes hands, which leaves no transaction to build a business on. The version of this that could be a real company points at paid work — brands and agencies booking creatives, with payments running through the platform. That is a different customer and a different sales motion, and it hasn't been tested.
 
 Test that before writing another line of code.
+
+---
+
+## 2026-10-05: mutual consent moved into the database
+
+Until this date the rule "a match exists only when both people swiped right" was enforced by the client. The `matches` INSERT policy allowed any signed-in user to insert a row naming themselves and anyone else, which would open a thread with that person. `supabase/schema/07_matching.sql` removes direct INSERT, adds a `user1_id < user2_id` CHECK, and moves creation into a `SECURITY DEFINER` function `create_match(post_id)` that verifies both right-swipes itself. `app/lib/db.ts` now calls it.
+
+**Not yet applied to the production Supabase project.** Until `07_matching.sql` is run there, the web and iOS clients will fail to create matches once this client code ships, so apply the schema first.

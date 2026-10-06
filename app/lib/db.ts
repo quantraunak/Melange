@@ -358,77 +358,25 @@ export async function recordSwipe(
   }
 }
 
+/**
+ * Create the match for a post the caller has just right-swiped, if and only
+ * if the post's owner has already right-swiped one of the caller's posts.
+ *
+ * The check lives in the database (create_match in 07_matching.sql, a
+ * SECURITY DEFINER function). The client cannot insert into matches directly,
+ * so a match row exists only when both people swiped right, regardless of
+ * what any client sends. `swiperId` is kept for the call site; the function
+ * uses auth.uid() and ignores anything the client claims about identity.
+ */
 export async function checkAndCreateMatch(
-  swiperId: string,
+  _swiperId: string,
   postId: string
 ): Promise<{ match: Match | null; error: string | null }> {
   try {
-    const { data: swipedPost, error: postError } = await supabase
-      .from("collab_posts")
-      .select("id, owner_id")
-      .eq("id", postId)
-      .single();
-
-    if (postError || !swipedPost) {
-      return { match: null, error: postError?.message || "Post not found" };
-    }
-
-    const postOwnerId = swipedPost.owner_id;
-
-    const { data: swiperPosts, error: swiperPostsError } = await supabase
-      .from("collab_posts")
-      .select("id")
-      .eq("owner_id", swiperId);
-
-    if (swiperPostsError || !swiperPosts?.length) {
-      return { match: null, error: null };
-    }
-
-    const swiperPostIds = swiperPosts.map((p) => p.id);
-
-    const { data: reciprocalSwipe, error: swipeError } = await supabase
-      .from("swipes")
-      .select("*")
-      .eq("swiper_id", postOwnerId)
-      .eq("direction", "right")
-      .in("post_id", swiperPostIds)
-      .limit(1)
-      .maybeSingle();
-
-    if (swipeError) return { match: null, error: swipeError.message };
-    if (!reciprocalSwipe) return { match: null, error: null };
-
-    const user1Id = swiperId < postOwnerId ? swiperId : postOwnerId;
-    const user2Id = swiperId < postOwnerId ? postOwnerId : swiperId;
-    const post1Id = swiperId < postOwnerId ? postId : reciprocalSwipe.post_id;
-    const post2Id = swiperId < postOwnerId ? reciprocalSwipe.post_id : postId;
-
-    const { data: newMatch, error: insertError } = await supabase
-      .from("matches")
-      .insert({ user1_id: user1Id, user2_id: user2Id, post1_id: post1Id, post2_id: post2Id })
-      .select()
-      .single();
-
-    if (newMatch && !insertError) return { match: newMatch as Match, error: null };
-
-    if (
-      insertError &&
-      (insertError.code === "23505" ||
-        insertError.message.includes("duplicate") ||
-        insertError.message.includes("unique"))
-    ) {
-      const { data: existingMatch, error: fetchError } = await supabase
-        .from("matches")
-        .select("*")
-        .eq("user1_id", user1Id)
-        .eq("user2_id", user2Id)
-        .single();
-
-      if (fetchError) return { match: null, error: fetchError.message };
-      return { match: existingMatch as Match, error: null };
-    }
-
-    return { match: null, error: insertError?.message || "Failed to create match" };
+    const { data, error } = await supabase.rpc("create_match", { p_post_id: postId });
+    if (error) return { match: null, error: error.message };
+    const rows = (Array.isArray(data) ? data : data ? [data] : []) as Match[];
+    return { match: rows[0] ?? null, error: null };
   } catch (err) {
     return { match: null, error: errMsg(err) };
   }
