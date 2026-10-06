@@ -10,41 +10,34 @@ Nothing about the UI, the ranker or the events tab changes that until there are 
 in one place who need each other this week. So the plan is ordered: users first, design
 system in parallel, marketing at volume only once there is a story.
 
-## 2. The wedge, sharpened
+## 2. The product: a fun app for any creative person (decided 2026-10-06)
 
-STRATEGY.md's wedge is "creative people in a major city": photographers, models,
-filmmakers. That is three two-sided markets at once, spread over a metro. Too thin to
-start, which is what the numbers say.
+Raunak's call: Melange stays broad. It is where creative people of any kind find
+their next collaboration: photographers, models, stylists, MUAs, filmmakers, actors,
+musicians, dancers, designers. It should feel fun to open, not like a job board. The
+earlier idea of narrowing the whole product to film crew calls is dropped.
 
-**Sharpened wedge: crew calls for student and indie film.** A producer or director posts
-a shoot (title, roles needed, dates, location, pay or TFP). Actors and crew who want the
-credit swipe on it. Both say yes, a chat opens. The existing data model already is this:
-`collab_posts` has `looking_for`, `location`, `compensation`, media. We rename and
-re-skin, we do not rebuild.
+What survives from that idea is the mechanics, because they help every creative:
 
-Why film rather than photo/model first:
+- A post is a **project** with optional roles wanted, dates and pay type (paid, trade,
+  credit). The roles vocabulary is broad, not film-only. Nothing is required beyond a
+  title and a photo, so posting stays light.
+- **Credits**: when two people worked together, both profiles show it. Over time a
+  profile becomes a verified record of who made what with whom, which is the asset an
+  acquirer would value.
+- **Mutual consent** stays the core: a chat opens only when both people said yes.
 
-- **Frequency.** A film student runs 3 to 8 productions a year and each one needs 5 to 20
-  people. A model books 1 shoot a month. Film has the recurring need STRATEGY.md says the
-  marketplace lacks.
-- **Density.** A film school is a few hundred people who all need each other, on a
-  schedule the school sets. That is a market you can seed by walking around.
-- **Incumbents are weak at this tier.** Backstage and Mandy are paid and aimed at
-  professionals. Students use Facebook groups, Discord, school boards and Instagram DMs:
-  the exact "DM pile" Melange is built to replace. Mutual consent is the feature: an actor
-  only talks to productions that picked them too.
-- **The asset is the credit.** Every match that becomes a shoot becomes a credit on both
-  profiles. Over time a profile is a verified reel of who worked with whom. That is the
-  graph a LinkedIn or a Tinder would pay for, and it compounds; swipes do not.
+"Fun" is a product requirement: swipe motion that feels good, a match moment worth
+screenshotting, playful copy, a browse grid that looks like a magazine, events people
+actually go to. Light palette, original brand (see docs/DESIGN.md).
 
-Photographers, models and stylists stay in the product. They become the second scene
-once the first one works.
+## 3. Growth tactic: one dense community first (Chapman, then USC)
 
-## 3. Beachhead: Chapman, then USC
-
-**Chapman University, Dodge College of Film and Media Arts, Orange, CA.** About 1,500
-film and media students, production-heavy curriculum, hundreds of student films a year,
-thesis shoots clustered in fall and spring. Raunak has a Chapman affiliation (warm
+This is about where the first users come from, not what the product is. **Chapman
+University, Orange, CA**: Dodge film students, plus the art, dance, music and theatre
+programs, all within walking distance of each other and all constantly needing
+collaborators (films need actors and crew; photographers need models; musicians need
+video; dancers need both). Raunak has a Chapman affiliation (warm
 contacts) and Orange County is far less saturated with tools and recruiters than LA.
 Theatre and acting students at Chapman, Cal State Fullerton and OC community colleges are
 the supply side and live within 20 minutes.
@@ -63,40 +56,42 @@ Target by day 30, all real people, no seeded accounts:
 
 | metric | target |
 |---|---|
-| productions posted (real shoots with dates) | 15 |
-| actors/crew signed up | 60 |
+| projects posted by real people | 20 |
+| real sign-ups | 80 |
 | posts with at least one match within 48h | 10 |
-| shoots that actually filled a role through Melange | 5 |
-| producers who post a second shoot | 3 |
+| collaborations that actually happened through Melange | 5 |
+| people who post a second project | 3 |
 
 The last row is the PMF signal. If it is 0 at day 30 the wedge is wrong and we switch
 to one of the fallbacks in section 7. If it is 3 or more, we go to USC.
 
 How to get there:
 
-1. **Demand first, by hand.** Find the ten most active Dodge producers and directors with
-   shoots this semester. Onboard them personally; enter their crew calls for them if they
-   let us. Ten real posts with dates is the whole feed on day one.
-2. **Supply through the channels they already use.** Post each crew call where actors and
-   crew already look (Chapman and OC casting Facebook groups, Dodge Discord, Instagram),
-   with the Melange link as the better version: one tap, match, chat, no DM pile.
-3. **Close the loop manually.** When a match happens, message both sides and ask if the
-   shoot got filled. Record it. That number is the pitch.
+1. **Seed the feed by hand.** Find the twenty most active creatives at Chapman across
+   film, photo, music and dance with a project this semester. Onboard them personally;
+   post for them if they let us. Twenty real projects is the whole feed on day one.
+2. **Reach their counterparts where they already look.** Share each project where
+   actors, models, crew and musicians already browse (Chapman and OC Facebook groups,
+   Dodge Discord, Instagram), with the Melange link as the fun version: swipe, match,
+   chat, no DM pile.
+3. **Close the loop manually.** When a match happens, ask both sides if the collab
+   happened. Record it. That number is the pitch.
 4. **Weekly:** a status note in STATUS.md with the real numbers, read live from the database.
 
 ## 5. Product changes this implies
 
 In order, each as a PR:
 
-1. Language: "post" becomes "shoot" or "production" in the UI; `looking_for` becomes
-   roles with a fixed vocabulary (DP, 1st AC, gaffer, sound, editor, actor, PA, ...);
-   add shoot dates. Schema change: nullable `shoot_start`, `shoot_end`, `roles TEXT[]`.
+1. Projects: optional roles (broad vocabulary across photo, film, music, dance, design),
+   optional dates and pay type on a post. Schema change: nullable dates, `roles TEXT[]`,
+   `pay_type`. UI copy stays "project" and "collab", never film-specific.
 2. Credits: when a match is marked "worked together", both profiles get a credit line
    (title, role, date). Reuse the existing reviews table as the confirmation.
-3. Glass design system (in progress on `design/glass-ui`), applied to the shoot card,
-   feed, matches, auth and landing.
-4. Landing page rewritten for the wedge: "Crew your student film without the DM pile."
-5. iOS 1.1 with the above, since actors live on their phones.
+3. Craft pass on the original light design: swipe motion, match moment, card and grid
+   polish, consistent components. No dark theme (owner's call, 2026-10-06).
+4. Landing page: fun, broad, light. "Find your next collaboration" with the swipe demo
+   front and centre.
+5. iOS 1.1 with the above.
 
 ## 6. What runs autonomously and what does not
 

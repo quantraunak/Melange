@@ -4,13 +4,13 @@
 
 **To the Dodge production office / student production coordinator**
 
-Subject: a free crew-call board for Dodge productions this semester
+Subject: a free way for Dodge productions to find cast and crew this semester
 
 Hi [name],
 
-I'm building Melange, a crew-call app for student and independent film. Productions
-post roles and dates; actors and crew swipe; a chat opens only when both sides pick each
-other. It replaces the Facebook-group-and-DM pile that every Dodge shoot currently runs on.
+I'm building Melange, an app where creative people find collaborators: film students,
+actors, photographers, models, musicians, dancers. You post a project; people swipe; a
+chat opens only when both sides pick each other. It replaces the Facebook-group-and-DM pile that every Dodge shoot currently runs on.
 
 I'm seeding it with Dodge productions this fall at no cost, and I'd like to ask two things:
 could I post a one-paragraph note on the production board or newsletter, and is there a
