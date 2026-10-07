@@ -378,7 +378,7 @@ export default function ProfileScreen() {
           <Field label="Name">
             <Input value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
           </Field>
-          <Field label="What you do" hint="Pick one, or type your own below.">
+          <Field label="What you do" hint="Pick one, or type your own.">
             <ChipRow>
               {ROLES.map((r) => (
                 <Chip
@@ -390,11 +390,11 @@ export default function ProfileScreen() {
                 />
               ))}
             </ChipRow>
+            <Text style={styles.subLabel}>Or type your own</Text>
             <Input
               value={form.role}
               onChangeText={(t) => setForm({ ...form, role: t })}
-              placeholder="e.g. Photographer, Model, Stylist"
-              containerStyle={{ marginTop: 8 }}
+              placeholder="e.g. Set designer, Creative director"
             />
           </Field>
           <Field label="Reel or portfolio link" hint="Instagram, Vimeo, your site. People look here first.">
@@ -548,7 +548,8 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
-  scroll: { padding: 16, paddingTop: 6, gap: 14, paddingBottom: 120 },
+  scroll: { padding: 16, paddingTop: 6, gap: 14, paddingBottom: 150 },
+  subLabel: { fontSize: 12, fontWeight: "600", color: colors.textMuted, marginTop: 10 },
   avatarBlock: {
     flexDirection: "row",
     alignItems: "center",

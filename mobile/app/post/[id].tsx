@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { BlurView } from "expo-blur";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -30,7 +29,7 @@ import { MatchCelebration } from "@/components/MatchCelebration";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Glass } from "@/components/ui/Glass";
-import { colors, glass, radii, shadows, typography } from "@/lib/theme";
+import { colors, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { supabase } from "@/lib/supabase";
@@ -48,7 +47,7 @@ import {
 } from "@/lib/db";
 
 const { width } = Dimensions.get("window");
-const HERO_H = 340;
+const HERO_H = 400;
 
 type Loaded = {
   post: CollabPost;
@@ -188,7 +187,7 @@ export default function ProjectDetailScreen() {
         }}
       />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.hero}>
           {post.media_urls?.length ? (
             <FlatList
@@ -263,6 +262,37 @@ export default function ProjectDetailScreen() {
           <Text style={styles.posted}>Posted {new Date(post.created_at).toLocaleDateString()}</Text>
           <ErrorBanner message={error} />
         </View>
+
+        {/* Action bar: flows after the content, and sits at the bottom when the
+            content is short, so there is never a dead gap above it. */}
+        {!isMine ? (
+          <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            {swiped === "right" ? (
+              <View style={styles.applied}>
+                <Check size={18} color={colors.success} strokeWidth={2.75} />
+                <Text style={styles.appliedText}>Liked. If they like you back, a chat opens.</Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={apply}
+                disabled={applying}
+                style={({ pressed }) => [styles.applyBtn, pressed && { transform: [{ scale: 0.97 }] }]}
+                accessibilityRole="button"
+              >
+                {applying ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <>
+                    <Check size={20} color={colors.white} strokeWidth={2.75} />
+                    <Text style={styles.applyText}>Like this project</Text>
+                  </>
+                )}
+              </Pressable>
+            )}
+          </View>
+        ) : (
+          <View style={{ height: Math.max(insets.bottom, 16) }} />
+        )}
       </ScrollView>
 
       {/* Top bar over the poster */}
@@ -281,36 +311,6 @@ export default function ProjectDetailScreen() {
         ) : null}
       </View>
 
-      {/* Apply bar */}
-      {!isMine ? (
-        <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-          <BlurView intensity={glass.intensityStrong} tint="light" style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(255,255,255,0.82)" }]} />
-          <View pointerEvents="none" style={styles.applyEdge} />
-          {swiped === "right" ? (
-            <View style={styles.applied}>
-              <Check size={18} color={colors.success} strokeWidth={2.75} />
-              <Text style={styles.appliedText}>Liked. If they like you back, a chat opens.</Text>
-            </View>
-          ) : (
-            <Pressable
-              onPress={apply}
-              disabled={applying}
-              style={({ pressed }) => [styles.applyBtn, pressed && { transform: [{ scale: 0.97 }] }]}
-              accessibilityRole="button"
-            >
-              {applying ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <>
-                  <Check size={20} color={colors.white} strokeWidth={2.75} />
-                  <Text style={styles.applyText}>Like this project</Text>
-                </>
-              )}
-            </Pressable>
-          )}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
   closeInline: { paddingVertical: 8 },
   closeInlineText: { color: colors.textMuted, fontWeight: "600" },
-  hero: { height: HERO_H, width, backgroundColor: colors.bgElevated },
+  hero: { height: HERO_H, width, backgroundColor: colors.brandSoft },
   heroImg: { width, height: HERO_H },
   placeholder: { alignItems: "center", justifyContent: "center" },
   heroFade: {
@@ -374,16 +374,12 @@ const styles = StyleSheet.create({
   byName: { ...typography.h3, marginTop: 2 },
   byRole: typography.small,
   posted: { ...typography.tiny, marginTop: 4 },
+  scrollContent: { flexGrow: 1 },
   applyBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
+    marginTop: "auto",
     paddingHorizontal: 16,
-    paddingTop: 12,
-    overflow: "hidden",
+    paddingTop: 20,
   },
-  applyEdge: { position: "absolute", top: 0, left: 0, right: 0, height: 1, backgroundColor: colors.border },
   applyBtn: {
     flexDirection: "row",
     alignItems: "center",

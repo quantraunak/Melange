@@ -279,7 +279,7 @@ export default function MatchesScreen() {
       renderItem={({ item }) =>
         item.kind === "project" ? (
           <View style={styles.projectHead}>
-            <Sparkles size={13} color={colors.accentMuted} />
+            <Sparkles size={14} color={colors.accentMuted} />
             <Text style={styles.projectTitle} numberOfLines={1}>
               {item.title}
             </Text>
@@ -398,8 +398,17 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     paddingHorizontal: 4,
   },
-  projectTitle: { ...typography.eyebrow, color: colors.textMuted, flex: 1 },
-  projectCount: { ...typography.tiny, color: colors.textFaint },
+  projectTitle: { fontSize: 15, fontWeight: "600", color: colors.text, flex: 1, letterSpacing: -0.2 },
+  projectCount: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textMuted,
+    backgroundColor: colors.surfaceStrong,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    overflow: "hidden",
+  },
 
   row: {
     flexDirection: "row",

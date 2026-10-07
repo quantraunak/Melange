@@ -32,7 +32,7 @@ const SLIDES: Slide[] = [
     icon: <Logo size={96} stroke={colors.brandOutline} />,
     title: "Find your next collaboration",
     body:
-      "Photographers, models, stylists, filmmakers, musicians, dancers, designers. Melange is where creative people find each other and make things.",
+      "Photographers, models, musicians, filmmakers and dancers, matched only when you both say yes.",
   },
   {
     key: "swipe",

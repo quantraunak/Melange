@@ -158,11 +158,12 @@ export default function TabsLayout() {
         <Header />
       </View>
       <Tabs
+        initialRouteName="events"
         tabBar={(props) => <GlassTabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "transparent" } }}
       >
-        <Tabs.Screen name="connect" options={{ title: "Discover" }} />
         <Tabs.Screen name="events" options={{ title: "Explore" }} />
+        <Tabs.Screen name="connect" options={{ title: "Discover" }} />
         <Tabs.Screen name="messages" options={{ title: "Matches" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>

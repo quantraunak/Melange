@@ -363,7 +363,7 @@ function EventCard({
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { padding: 16, paddingBottom: 32, gap: 12 },
+  scroll: { padding: 16, paddingBottom: 120, gap: 12 },
   subTabRow: {
     flexDirection: "row",
     backgroundColor: colors.brand,
