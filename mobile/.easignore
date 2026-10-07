@@ -1,0 +1,7 @@
+ios/build
+.expo
+node_modules/.cache
+../docs
+../.claude
+../app
+../node_modules
