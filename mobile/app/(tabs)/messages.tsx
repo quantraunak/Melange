@@ -13,38 +13,37 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Check, CheckCheck, MessageSquarePlus, Search, X } from "lucide-react-native";
+import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { PushPrimer } from "@/components/PushPrimer";
+import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { MatchRowSkeleton } from "@/components/ui/Skeleton";
-import { colors, radii, shadows } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { isLastMessageSeen, isMatchUnread, type MatchWithPost } from "@/lib/db";
 import { formatListTime } from "@/lib/format";
 
-/**
- * Messages.
- *
- * Previously one flat list where a brand-new match and a months-old thread
- * looked identical, and the only thing on screen was a stack of grey cards.
- * Now it splits the two states that actually behave differently:
- *
- *   - New matches (nobody has said anything yet) go in a horizontal row at the
- *     top. They're the ones that need an action, and a row of faces reads as an
- *     invitation in a way a list row doesn't.
- *   - Conversations go below, newest first, with the timestamp and unread count
- *     on the right where the eye already scans, and a "Seen" marker so you know
- *     whether your last message landed.
- *
- * Long-pressing a row gives you unmatch, which the app previously had no way to
- * do at all — blocking was the only exit from a match.
- */
+/** Room for the floating tab bar. */
+const TAB_BAR_CLEARANCE = 112;
 
-export default function MessagesScreen() {
+type Row =
+  | { kind: "project"; key: string; title: string; count: number }
+  | { kind: "match"; key: string; match: MatchWithPost };
+
+/**
+ * Matches.
+ *
+ * New matches (nobody has written yet) sit in a row of faces at the top: they
+ * are the ones that need a first message. Conversations below are grouped by
+ * the project they came from, because someone with three roles filling has
+ * three threads that belong together, and a person on two projects wants to see
+ * which is which.
+ */
+export default function MatchesScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const { matches, loading, error, refresh, unmatch } = useMatches();
@@ -58,7 +57,7 @@ export default function MessagesScreen() {
     setRefreshing(false);
   }, [refresh]);
 
-  const { newMatches, conversations } = useMemo(() => {
+  const { newMatches, rows } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const matching = q
       ? matches.filter(
@@ -78,7 +77,21 @@ export default function MessagesScreen() {
           a.last_message?.created_at ?? a.created_at
         )
       );
-    return { newMatches: fresh, conversations: talking };
+
+    // Group by project, keeping groups in order of their most recent message.
+    const groups = new Map<string, MatchWithPost[]>();
+    for (const m of talking) {
+      const key = m.other_post.title || "Untitled project";
+      const list = groups.get(key);
+      if (list) list.push(m);
+      else groups.set(key, [m]);
+    }
+    const flat: Row[] = [];
+    for (const [title, list] of groups) {
+      flat.push({ kind: "project", key: `project-${title}`, title, count: list.length });
+      for (const m of list) flat.push({ kind: "match", key: m.id, match: m });
+    }
+    return { newMatches: fresh, rows: flat };
   }, [matches, query]);
 
   const confirmUnmatch = useCallback(
@@ -145,8 +158,7 @@ export default function MessagesScreen() {
   );
 
   const openChat = useCallback(
-    (matchId: string) =>
-      router.push({ pathname: "/chat/[matchId]", params: { matchId } }),
+    (matchId: string) => router.push({ pathname: "/chat/[matchId]", params: { matchId } }),
     [router]
   );
 
@@ -160,27 +172,24 @@ export default function MessagesScreen() {
     );
   }
 
-  // Nothing at all — a different problem from "no search results", and it
-  // deserves a route out rather than an apology.
   if (matches.length === 0) {
     return (
       <ScrollView
         contentContainerStyle={styles.emptyScroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
         }
       >
         {error ? <ErrorBanner message={error} /> : null}
         <View style={styles.emptyIcon}>
-          <MessageSquarePlus size={30} color={colors.brandText} />
+          <Sparkles size={28} color={colors.accent} />
         </View>
         <Text style={styles.emptyTitle}>No matches yet</Text>
         <Text style={styles.emptyBody}>
-          When you and another creative both like each other&apos;s posts, the conversation opens
-          up here.
+          When you apply to a project and they pick you too, the conversation opens here.
         </Text>
         <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/connect")}>
-          <Text style={styles.emptyBtnText}>Start swiping</Text>
+          <Text style={styles.emptyBtnText}>See open projects</Text>
         </Pressable>
       </ScrollView>
     );
@@ -188,12 +197,12 @@ export default function MessagesScreen() {
 
   return (
     <FlatList
-      data={conversations}
-      keyExtractor={(m) => m.id}
+      data={rows}
+      keyExtractor={(r) => r.key}
       contentContainerStyle={styles.list}
       keyboardShouldPersistTaps="handled"
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
       }
       ListHeaderComponent={
         <View style={styles.header}>
@@ -204,13 +213,11 @@ export default function MessagesScreen() {
               screen they have matches, which is the thing being offered. */}
           {userId ? <PushPrimer userId={userId} /> : null}
 
-          {/* The filter only earns its space once the list is long enough to
-              need it — below that it is one more thing to look past. */}
           {matches.length > 4 ? (
             <Input
               value={query}
               onChangeText={setQuery}
-              placeholder="Search matches and messages"
+              placeholder="Search people, projects, messages"
               autoCapitalize="none"
               autoCorrect={false}
               containerStyle={{ marginBottom: 4 }}
@@ -228,16 +235,13 @@ export default function MessagesScreen() {
           {newMatches.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHead}>
-                <Text style={styles.sectionTitle}>New matches</Text>
+                <Text style={styles.sectionTitle}>New</Text>
                 <View style={styles.countPill}>
                   <Text style={styles.countPillText}>{newMatches.length}</Text>
                 </View>
+                <Text style={styles.sectionHint}>Nobody has written yet</Text>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.newRow}
-              >
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newRow}>
                 {newMatches.map((m) => (
                   <Pressable
                     key={m.id}
@@ -251,14 +255,13 @@ export default function MessagesScreen() {
                     <Text style={styles.newName} numberOfLines={1}>
                       {m.other_creator.name.split(" ")[0]}
                     </Text>
+                    <Text style={styles.newProject} numberOfLines={1}>
+                      {m.other_post.title}
+                    </Text>
                   </Pressable>
                 ))}
               </ScrollView>
             </View>
-          ) : null}
-
-          {conversations.length > 0 ? (
-            <Text style={[styles.sectionTitle, styles.convHead]}>Conversations</Text>
           ) : null}
         </View>
       }
@@ -268,19 +271,29 @@ export default function MessagesScreen() {
             {query.trim()
               ? "Nothing matches that search."
               : newMatches.length > 0
-                ? "No conversations yet — say hello to one of your new matches above."
+                ? "No conversations yet. Say hi to one of your new matches above."
                 : "No conversations yet."}
           </Text>
         </View>
       }
-      renderItem={({ item }) => (
-        <MatchRow
-          match={item}
-          currentUserId={userId}
-          onPress={() => openChat(item.id)}
-          onLongPress={() => openRowMenu(item)}
-        />
-      )}
+      renderItem={({ item }) =>
+        item.kind === "project" ? (
+          <View style={styles.projectHead}>
+            <Sparkles size={14} color={colors.accentMuted} />
+            <Text style={styles.projectTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.projectCount}>{item.count}</Text>
+          </View>
+        ) : (
+          <MatchRow
+            match={item.match}
+            currentUserId={userId}
+            onPress={() => openChat(item.match.id)}
+            onLongPress={() => openRowMenu(item.match)}
+          />
+        )
+      }
       ItemSeparatorComponent={() => <View style={styles.separator} />}
     />
   );
@@ -306,135 +319,145 @@ function MatchRow({
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={280}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surface }]}
+      style={({ pressed }) => [pressed && { opacity: 0.85 }]}
       accessibilityRole="button"
       accessibilityLabel={`Conversation with ${match.other_creator.name}${unread ? ", unread" : ""}`}
     >
-      <Avatar creator={match.other_creator} size="lg" />
+      <Glass radius={radii.lg} style={styles.row}>
+        <Avatar creator={match.other_creator} size="lg" />
 
-      <View style={styles.rowText}>
-        <View style={styles.rowTop}>
-          <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
-            {match.other_creator.name}
-          </Text>
-          <Text style={[styles.time, unread && styles.timeUnread]}>
-            {match.last_message
-              ? formatListTime(match.last_message.created_at)
-              : formatListTime(match.created_at)}
-          </Text>
+        <View style={styles.rowText}>
+          <View style={styles.rowTop}>
+            <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
+              {match.other_creator.name}
+              {match.other_creator.role ? (
+                <Text style={styles.role}>{`  ${match.other_creator.role}`}</Text>
+              ) : null}
+            </Text>
+            <Text style={[styles.time, unread && styles.timeUnread]}>
+              {match.last_message
+                ? formatListTime(match.last_message.created_at)
+                : formatListTime(match.created_at)}
+            </Text>
+          </View>
+
+          <View style={styles.rowBottom}>
+            {mine ? (
+              seen ? (
+                <CheckCheck size={13} color={colors.accentMuted} />
+              ) : (
+                <Check size={13} color={colors.textSubtle} />
+              )
+            ) : null}
+            <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
+              {match.last_message?.content ?? "Say hi. Nobody has written yet."}
+            </Text>
+            {unread ? <View style={styles.unreadDot} /> : null}
+          </View>
         </View>
-
-        <View style={styles.rowBottom}>
-          {/* Sent/seen only ever shows on your own last message — there's
-              nothing meaningful to say about the state of theirs. */}
-          {mine ? (
-            seen ? (
-              <CheckCheck size={13} color={colors.brandText} />
-            ) : (
-              <Check size={13} color={colors.textSubtle} />
-            )
-          ) : null}
-          <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
-            {match.last_message?.content ?? "Say hello — nobody's spoken yet."}
-          </Text>
-          {unread ? <View style={styles.unreadDot} /> : null}
-        </View>
-
-        <Text style={styles.context} numberOfLines={1}>
-          {match.other_creator.role ? `${match.other_creator.role} · ` : ""}
-          {match.other_post.title}
-        </Text>
-      </View>
+      </Glass>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, paddingTop: 12, flexGrow: 1 },
-  header: { gap: 12 },
+  list: { padding: 16, paddingTop: 6, paddingBottom: TAB_BAR_CLEARANCE, flexGrow: 1 },
+  header: { gap: 12, marginBottom: 4 },
 
   section: { gap: 8 },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sectionTitle: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  convHead: { marginTop: 4 },
+  sectionTitle: typography.eyebrow,
+  sectionHint: { ...typography.tiny, marginLeft: "auto" },
   countPill: {
     minWidth: 18,
     height: 18,
     borderRadius: radii.pill,
     paddingHorizontal: 6,
-    backgroundColor: colors.brandTabBg,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   countPillText: { color: colors.white, fontSize: 11, fontWeight: "800" },
 
   newRow: { gap: 14, paddingVertical: 2, paddingRight: 8 },
-  newItem: { alignItems: "center", width: 68, gap: 6 },
+  newItem: { alignItems: "center", width: 72, gap: 5 },
   newRing: {
     padding: 2.5,
     borderRadius: radii.pill,
     borderWidth: 2,
-    borderColor: colors.accentMuted,
+    borderColor: colors.accent,
   },
-  newName: { fontSize: 11, fontWeight: "600", color: colors.textMuted, maxWidth: 66 },
+  newName: { fontSize: 12, fontWeight: "700", color: colors.text, maxWidth: 70 },
+  newProject: { ...typography.tiny, maxWidth: 70 },
+
+  projectHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingTop: 10,
+    paddingBottom: 6,
+    paddingHorizontal: 4,
+  },
+  projectTitle: { fontSize: 15, fontWeight: "600", color: colors.text, flex: 1, letterSpacing: -0.2 },
+  projectCount: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textMuted,
+    backgroundColor: colors.surfaceStrong,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    overflow: "hidden",
+  },
 
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    ...shadows.soft,
   },
   separator: { height: 8 },
   rowText: { flex: 1, gap: 3 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { flex: 1, color: colors.text, fontSize: 15, fontWeight: "600" },
   nameUnread: { fontWeight: "800" },
-  time: { color: colors.textSubtle, fontSize: 11 },
-  timeUnread: { color: colors.brandText, fontWeight: "700" },
+  role: { ...typography.tiny, fontWeight: "500" },
+  time: { ...typography.tiny },
+  timeUnread: { color: colors.accentMuted, fontWeight: "700" },
   rowBottom: { flexDirection: "row", alignItems: "center", gap: 5 },
-  preview: { flex: 1, color: colors.textMuted, fontSize: 13 },
+  preview: { flex: 1, ...typography.small },
   previewUnread: { color: colors.text, fontWeight: "600" },
   unreadDot: {
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: colors.brandTabBg,
+    backgroundColor: colors.accent,
   },
-  context: { color: colors.textSubtle, fontSize: 11 },
 
   inlineEmpty: { paddingVertical: 28, alignItems: "center" },
-  inlineEmptyText: { color: colors.textSubtle, fontSize: 13, textAlign: "center" },
+  inlineEmptyText: { ...typography.small, textAlign: "center" },
 
   emptyScroll: {
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
+    paddingBottom: TAB_BAR_CLEARANCE,
     gap: 10,
   },
   emptyIcon: {
     width: 62,
     height: 62,
     borderRadius: radii.pill,
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
   },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: "800" },
+  emptyTitle: typography.h2,
   emptyBody: {
-    color: colors.textMuted,
-    fontSize: 13,
+    ...typography.small,
     textAlign: "center",
     lineHeight: 19,
     maxWidth: 280,
@@ -446,5 +469,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radii.pill,
   },
-  emptyBtnText: { color: colors.white, fontSize: 14, fontWeight: "700" },
+  emptyBtnText: { color: colors.onBrand, fontSize: 14, fontWeight: "700" },
 });

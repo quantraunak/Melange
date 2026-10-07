@@ -47,7 +47,7 @@ export default function BlockedUsersScreen() {
     if (!userId || !target.user_id) return;
     Alert.alert(
       `Unblock ${target.name}?`,
-      "They will be able to see your posts again.",
+      "They will be able to see your projects again.",
       [
         { text: "Cancel", style: "cancel" },
         {

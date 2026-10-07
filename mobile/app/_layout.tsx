@@ -7,6 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { MatchesProvider } from "@/lib/matches";
+import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -24,19 +25,19 @@ function Gate() {
     if (!session && !inAuth) {
       router.replace("/(auth)/welcome");
     } else if (session && inAuth) {
-      router.replace("/(tabs)/connect");
+      router.replace("/(tabs)/events");
     }
   }, [loading, session, segments, router]);
 
   return (
     <MatchesProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#f3f4f6" } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
-        <Stack.Screen name="post/new" options={{ presentation: "modal" }} />
-        <Stack.Screen name="post/edit/[id]" options={{ presentation: "modal" }} />
-        <Stack.Screen name="post/[id]" options={{ presentation: "modal" }} />
+        <Stack.Screen name="post/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="post/edit/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="post/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="report/[kind]/[id]" options={{ presentation: "modal" }} />
         <Stack.Screen name="account/blocked" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="account/delete" options={{ presentation: "modal" }} />
@@ -49,7 +50,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <AuthProvider>
           <Gate />
         </AuthProvider>

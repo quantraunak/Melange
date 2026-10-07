@@ -185,7 +185,7 @@ export default function Signup() {
               <Input
                 value={project}
                 onChangeText={setProject}
-                placeholder="e.g. Editorial shoot in Brooklyn"
+                placeholder="e.g. Editorial series in Brooklyn"
               />
             </Field>
 

@@ -18,6 +18,11 @@ export type CollabPost = {
   created_at: string;
   updated_at?: string;
   vibes?: string[] | null;
+  // 08_projects.sql: structured project fields; absent on older databases.
+  project_start?: string | null;
+  project_end?: string | null;
+  roles?: string[] | null;
+  pay_type?: "paid" | "tfp" | "credit" | null;
 };
 
 export type CreatorInfo = {
@@ -86,6 +91,7 @@ export type Profile = {
   verification_status: "none" | "pending" | "verified";
   verified_at: string | null;
   created_at: string;
+  reel_url?: string | null;
 };
 
 export const VIBE_PRESETS = [

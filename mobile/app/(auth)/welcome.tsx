@@ -29,31 +29,31 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "intro",
-    icon: <Logo size={96} stroke={colors.accent} />,
-    title: "Welcome to Melange",
+    icon: <Logo size={96} stroke={colors.brandOutline} />,
+    title: "Find your next collaboration",
     body:
-      "The home for creative collaborations — photographers, models, MUAs, stylists, and designers finding each other.",
+      "Photographers, models, musicians, filmmakers and dancers, matched only when you both say yes.",
   },
   {
     key: "swipe",
-    icon: <Sparkles size={72} color="#fde68a" />,
-    title: "Post & Swipe",
+    icon: <Sparkles size={72} color={colors.warning} />,
+    title: "Post a project. Swipe to join.",
     body:
-      "Share what you're working on. Swipe through other creatives' projects to find the right people for yours.",
+      "Share what you're making and who you'd love on it. Swipe right on the ones you want in on. Nobody's inbox fills up.",
   },
   {
     key: "match",
-    icon: <Heart size={72} color="#fda4af" />,
-    title: "Match & Message",
+    icon: <Heart size={72} color={colors.accentMuted} />,
+    title: "Both say yes, then you talk",
     body:
-      "When two people like each other's posts, you match instantly. Chat in realtime to plan the collaboration.",
+      "A chat opens only when you both say yes. No cold DMs, in either direction.",
   },
   {
     key: "ready",
-    icon: <MessageCircle size={72} color="#a5b4fc" />,
-    title: "Let's create",
+    icon: <MessageCircle size={72} color={colors.textMuted} />,
+    title: "Credits that follow you",
     body:
-      "Sign up in under a minute. You can always edit your profile, projects, and notification preferences later.",
+      "Every collab you do through Melange becomes a credit on your profile. Sign up takes a minute.",
   },
 ];
 
@@ -115,10 +115,9 @@ export default function Welcome() {
           variant="primary"
           size="lg"
           fullWidth
-          style={{ backgroundColor: colors.white }}
           onPress={next}
         >
-          <Text style={{ color: colors.brand, fontWeight: "700", fontSize: 16 }}>
+          <Text style={{ color: colors.onBrand, fontWeight: "700", fontSize: 16 }}>
             {page === SLIDES.length - 1 ? "Get started" : "Next"}
           </Text>
         </Button>
@@ -133,7 +132,7 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.bg,
   },
   topBar: {
     flexDirection: "row",
@@ -141,7 +140,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   skip: {
-    color: "#bfdbfe",
+    color: colors.brandText,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -155,7 +154,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    color: colors.white,
+    color: colors.brand,
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
@@ -163,7 +162,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   body: {
-    color: "#dbeafe",
+    color: colors.textMuted,
     fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
@@ -178,11 +177,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.35)",
+    backgroundColor: colors.borderStrong,
   },
   dotActive: {
     width: 24,
-    backgroundColor: colors.white,
+    backgroundColor: colors.brandText,
   },
   actions: {
     paddingHorizontal: 24,
@@ -190,7 +189,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   foot: {
-    color: "#bfdbfe",
+    color: colors.textMuted,
     fontSize: 13,
     textAlign: "center",
   },

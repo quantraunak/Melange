@@ -3,6 +3,7 @@ import {
   Dimensions,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import { Check, Heart, MapPin, Search, SlidersHorizontal, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, radii, shadows } from "@/lib/theme";
@@ -21,6 +23,7 @@ import {
   checkAndCreateMatch,
   getExplorePosts,
   getMySwipes,
+  projectRoles,
   recordSwipe,
   type PostWithCreator,
 } from "@/lib/db";
@@ -150,13 +153,15 @@ export function BrowseGrid({ userId }: { userId: string }) {
 
   return (
     <View style={{ gap: 12 }}>
+      <OpenCollabsStrip posts={posts} onOpen={(id) => router.push({ pathname: "/post/[id]", params: { id } })} />
+
       <View style={styles.searchRow}>
         <View style={styles.searchWrap}>
           <Search size={16} color={colors.textSubtle} style={styles.searchIcon} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search collabs, roles, cities…"
+            placeholder="Search projects, roles, cities…"
             placeholderTextColor={colors.textSubtle}
             style={styles.search}
             autoCapitalize="none"
@@ -211,7 +216,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
 
       <View style={styles.metaLine}>
         <Text style={styles.metaText}>
-          {visible.length} {visible.length === 1 ? "collab" : "collabs"}
+          {visible.length} {visible.length === 1 ? "project" : "projects"}
           {filtersActive || query.trim() ? " matching" : " open right now"}
         </Text>
       </View>
@@ -223,7 +228,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
           </Text>
           <Text style={styles.emptyBody}>
             {posts.length === 0
-              ? "Post what you're looking for and it'll show up here for everyone else."
+              ? "Post a project and it shows up here for everyone else."
               : "Try widening the pay filter, or clearing the search."}
           </Text>
           {posts.length > 0 ? (
@@ -268,7 +273,12 @@ export function BrowseGrid({ userId }: { userId: string }) {
                         swiped === "right" ? styles.statusLiked : styles.statusPassed,
                       ]}
                     >
-                      <Text style={styles.statusText}>
+                      <Text
+                        style={[
+                          styles.statusText,
+                          swiped === "right" ? styles.statusTextLiked : styles.statusTextPassed,
+                        ]}
+                      >
                         {swiped === "right" ? "Liked" : "Passed"}
                       </Text>
                     </View>
@@ -331,7 +341,89 @@ export function BrowseGrid({ userId }: { userId: string }) {
   );
 }
 
+/**
+ * The newest projects, as a horizontal strip above the grid: the fastest
+ * answer to "what's going on this week" before any searching or filtering.
+ */
+function OpenCollabsStrip({
+  posts,
+  onOpen,
+}: {
+  posts: PostWithCreator[];
+  onOpen: (id: string) => void;
+}) {
+  const newest = useMemo(
+    () => [...posts].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 8),
+    [posts]
+  );
+  if (newest.length === 0) return null;
+  return (
+    <View style={styles.strip}>
+      <View style={styles.stripHead}>
+        <Text style={styles.stripTitle}>Open collabs this week</Text>
+        <Text style={styles.stripCount}>{newest.length}</Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stripRow}>
+        {newest.map((p) => {
+          const thumb = p.media_urls?.[0];
+          const role = projectRoles(p)[0];
+          return (
+            <Pressable
+              key={p.id}
+              onPress={() => onOpen(p.id)}
+              style={({ pressed }) => [styles.stripCard, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+              accessibilityRole="button"
+              accessibilityLabel={p.title}
+            >
+              {thumb ? (
+                <Image source={{ uri: thumb }} style={styles.stripImg} />
+              ) : (
+                <View style={[styles.stripImg, styles.thumbEmpty]}>
+                  <Text style={styles.thumbEmptyText}>{p.title.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              <View style={styles.stripBody}>
+                <Text style={styles.stripCardTitle} numberOfLines={2}>
+                  {p.title}
+                </Text>
+                {role ? <Chip label={role} tone="accent" size="sm" style={{ alignSelf: "flex-start" }} /> : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const STRIP_W = 150;
+
 const styles = StyleSheet.create({
+  strip: { gap: 8 },
+  stripHead: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 2 },
+  stripTitle: { fontSize: 15, fontWeight: "700", color: colors.text, letterSpacing: -0.2 },
+  stripCount: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.accentMuted,
+    backgroundColor: colors.accentSoft,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    overflow: "hidden",
+  },
+  stripRow: { gap: 10, paddingRight: 4 },
+  stripCard: {
+    width: STRIP_W,
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    overflow: "hidden",
+    ...shadows.soft,
+  },
+  stripImg: { width: STRIP_W, height: 110, backgroundColor: colors.brandSoft },
+  stripBody: { padding: 10, gap: 6 },
+  stripCardTitle: { fontSize: 13, fontWeight: "700", color: colors.text, lineHeight: 17 },
+
   searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   searchWrap: { flex: 1, position: "relative", justifyContent: "center" },
   searchIcon: { position: "absolute", left: 12, zIndex: 1 },
@@ -401,9 +493,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: radii.pill,
   },
-  statusLiked: { backgroundColor: "rgba(34,197,94,0.92)" },
-  statusPassed: { backgroundColor: "rgba(17,24,39,0.6)" },
-  statusText: { color: colors.white, fontSize: 10, fontWeight: "800" },
+  statusLiked: { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentSoft },
+  statusPassed: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  statusText: { fontSize: 10, fontWeight: "700" },
+  statusTextLiked: { color: colors.accentMuted },
+  statusTextPassed: { color: colors.textMuted },
 
   payPill: {
     position: "absolute",

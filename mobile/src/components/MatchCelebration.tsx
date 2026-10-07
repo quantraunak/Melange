@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { BlurView } from "expo-blur";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -8,43 +9,41 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { Heart, X } from "lucide-react-native";
+import { Sparkles, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, shadows, typography } from "@/lib/theme";
 import type { CreatorInfo } from "@/lib/db";
 
 /**
- * The "it's a match" moment.
+ * The match moment: both people said yes to each other's project.
  *
- * A match used to be a green toast that slid in for 2.8 seconds and left — the
- * single best thing that can happen in the app, announced the same way as a
- * form error. It also left the person on the deck with no route to the
- * conversation they'd just earned; they had to find it in Messages themselves.
- *
- * This takes over the screen for as long as they want it, shows both faces, and
- * puts the message they're going to send next one tap away.
+ * A full-screen frosted sheet, both faces, the project it happened on, and the
+ * message they are about to send one tap away. It stays up as long as they
+ * want it; the single best thing that can happen in the app is not a toast.
  */
 export function MatchCelebration({
   visible,
   me,
   them,
+  projectTitle,
   onMessage,
   onKeepSwiping,
 }: {
   visible: boolean;
   me: Pick<CreatorInfo, "name" | "avatar_url">;
   them: Pick<CreatorInfo, "name" | "avatar_url"> | null;
+  projectTitle?: string;
   onMessage: () => void;
   onKeepSwiping: () => void;
 }) {
-  const scale = useSharedValue(0.8);
-  const heart = useSharedValue(0);
+  const scale = useSharedValue(0.86);
+  const badge = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      scale.value = withSpring(1, { damping: 12, stiffness: 160 });
-      heart.value = withDelay(
+      scale.value = withSpring(1, { damping: 14, stiffness: 170 });
+      badge.value = withDelay(
         160,
         withSequence(
           withSpring(1.15, { damping: 8, stiffness: 220 }),
@@ -52,16 +51,16 @@ export function MatchCelebration({
         )
       );
     } else {
-      scale.value = 0.8;
-      heart.value = 0;
+      scale.value = 0.86;
+      badge.value = 0;
     }
-  }, [visible, scale, heart]);
+  }, [visible, scale, badge]);
 
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     opacity: withTiming(visible ? 1 : 0, { duration: 160 }),
   }));
-  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heart.value }] }));
+  const badgeStyle = useAnimatedStyle(() => ({ transform: [{ scale: badge.value }] }));
 
   if (!them) return null;
 
@@ -70,25 +69,25 @@ export function MatchCelebration({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onKeepSwiping}>
       <View style={styles.backdrop}>
-        <Pressable
-          style={styles.close}
-          onPress={onKeepSwiping}
-          hitSlop={12}
-          accessibilityLabel="Close"
-        >
-          <X size={24} color="rgba(255,255,255,0.75)" />
+        <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]} />
+
+        <Pressable style={styles.close} onPress={onKeepSwiping} hitSlop={12} accessibilityLabel="Close">
+          <X size={24} color={colors.text} />
         </Pressable>
 
         <Animated.View style={[styles.card, cardStyle]}>
-          <Text style={styles.kicker}>It&apos;s a match</Text>
-          <Text style={styles.title}>You and {firstName} liked each other</Text>
+          <Text style={styles.kicker}>You&apos;re on the list</Text>
+          <Text style={styles.title}>
+            {firstName} picked you{projectTitle ? ` for ${projectTitle}` : " too"}
+          </Text>
 
           <View style={styles.avatars}>
             <View style={styles.avatarRing}>
               <Avatar creator={me} size="xl" />
             </View>
-            <Animated.View style={[styles.heartBadge, heartStyle]}>
-              <Heart size={20} color={colors.white} fill={colors.white} />
+            <Animated.View style={[styles.badge, badgeStyle]}>
+              <Sparkles size={20} color={colors.white} />
             </Animated.View>
             <View style={styles.avatarRing}>
               <Avatar creator={them} size="xl" />
@@ -96,15 +95,15 @@ export function MatchCelebration({
           </View>
 
           <Text style={styles.body}>
-            Say what you&apos;re thinking for the shoot — the ones that turn into real
-            collaborations almost always start the same day.
+            Say when you&apos;re free and what you&apos;d bring. Collabs that happen are the ones where
+            someone writes first, today.
           </Text>
 
           <Pressable style={styles.primary} onPress={onMessage} accessibilityRole="button">
-            <Text style={styles.primaryText}>Send a message</Text>
+            <Text style={styles.primaryText}>Say hi</Text>
           </Pressable>
           <Pressable style={styles.secondary} onPress={onKeepSwiping} accessibilityRole="button">
-            <Text style={styles.secondaryText}>Keep swiping</Text>
+            <Text style={styles.secondaryText}>Keep looking</Text>
           </Pressable>
         </Animated.View>
       </View>
@@ -115,27 +114,27 @@ export function MatchCelebration({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.92)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
   },
   close: { position: "absolute", top: 56, right: 24 },
-  card: { alignItems: "center", width: "100%", maxWidth: 360, gap: 14 },
-  kicker: {
-    color: colors.accentMuted,
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 2,
-    textTransform: "uppercase",
+  card: {
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 360,
+    gap: 14,
+    backgroundColor: colors.card,
+    borderRadius: radii.xxl,
+    paddingVertical: 28,
+    paddingHorizontal: 22,
+    ...shadows.lift,
   },
+  kicker: { ...typography.eyebrow, color: colors.accentMuted },
   title: {
-    color: colors.white,
-    fontSize: 26,
-    fontWeight: "800",
+    ...typography.display,
+    color: colors.brand,
     textAlign: "center",
-    letterSpacing: -0.5,
-    lineHeight: 32,
   },
   avatars: {
     flexDirection: "row",
@@ -147,23 +146,23 @@ const styles = StyleSheet.create({
     padding: 3,
     borderRadius: radii.pill,
     borderWidth: 2,
-    borderColor: colors.accentMuted,
+    borderColor: colors.accent,
   },
-  heartBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  badge: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: -14,
     zIndex: 1,
     borderWidth: 3,
-    borderColor: "rgba(15,23,42,0.92)",
+    borderColor: colors.card,
+    ...shadows.soft,
   },
   body: {
-    color: "#cbd5e1",
-    fontSize: 13,
+    ...typography.small,
     textAlign: "center",
     lineHeight: 19,
     paddingHorizontal: 8,
@@ -171,12 +170,12 @@ const styles = StyleSheet.create({
   primary: {
     marginTop: 4,
     width: "100%",
-    backgroundColor: colors.white,
+    backgroundColor: colors.brand,
     paddingVertical: 15,
     borderRadius: radii.pill,
     alignItems: "center",
   },
-  primaryText: { color: colors.brand, fontSize: 16, fontWeight: "800" },
+  primaryText: { color: colors.onBrand, fontSize: 16, fontWeight: "800" },
   secondary: { paddingVertical: 10 },
-  secondaryText: { color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: "600" },
+  secondaryText: { color: colors.textMuted, fontSize: 14, fontWeight: "600" },
 });

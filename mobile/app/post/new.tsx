@@ -4,12 +4,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 
-import { PostForm } from "@/components/PostForm";
-import { colors } from "@/lib/theme";
+import { ProjectForm } from "@/components/ProjectForm";
+import { colors, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { createPost } from "@/lib/db";
 
-export default function NewPostScreen() {
+export default function NewProjectsScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -20,27 +20,27 @@ export default function NewPostScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>New post</Text>
-        <Pressable hitSlop={12} onPress={() => router.back()}>
+        <Text style={styles.headerTitle}>Post a project</Text>
+        <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
           <X size={22} color={colors.text} />
         </Pressable>
       </View>
 
-      <PostForm
+      <ProjectForm
         userId={userId}
-        submitLabel="Create post"
+        submitLabel="Post project"
         busy={busy}
-        onSubmit={async (values) => {
+        onSubmit={async (v) => {
           setBusy(true);
-          const lookingFor = values.lookingFor
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-          const { error } = await createPost(userId, values.title, values.description, {
-            looking_for: lookingFor.length ? lookingFor : undefined,
-            location: values.location || undefined,
-            compensation: values.compensation || undefined,
-            media_urls: values.mediaUrls.length ? values.mediaUrls : undefined,
+          const { error } = await createPost(userId, v.title, v.description, {
+            roles: v.roles,
+            looking_for: v.roles,
+            project_start: v.projectStart ?? undefined,
+            project_end: v.projectEnd ?? undefined,
+            location: v.location || undefined,
+            pay_type: v.payType ?? undefined,
+            compensation: v.compensation || undefined,
+            media_urls: v.mediaUrls.length ? v.mediaUrls : undefined,
           });
           setBusy(false);
           if (!error) router.back();
@@ -52,15 +52,12 @@ export default function NewPostScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: colors.bgElevated },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.card,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.text },
+  headerTitle: { ...typography.h3, flex: 1, textAlign: "center" },
 });

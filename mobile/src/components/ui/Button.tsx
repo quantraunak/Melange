@@ -80,7 +80,7 @@ export function Button({
 function variantPalette(v: Variant) {
   switch (v) {
     case "primary":
-      return { bg: colors.brand, fg: colors.white, border: undefined };
+      return { bg: colors.brand, fg: colors.onBrand, border: undefined };
     case "secondary":
       return { bg: colors.brandSoft, fg: colors.brandText, border: undefined };
     case "outline":

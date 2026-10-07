@@ -10,32 +10,64 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { DollarSign, Flag, MapPin, Users, X } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
+import {
+  CalendarDays,
+  Check,
+  Sparkles,
+  Flag,
+  MapPin,
+  Pencil,
+  Wallet,
+  X,
+} from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { MatchCelebration } from "@/components/MatchCelebration";
+import { Chip, ChipRow } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors } from "@/lib/theme";
+import { Glass } from "@/components/ui/Glass";
+import { colors, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { useMatches } from "@/lib/matches";
 import { supabase } from "@/lib/supabase";
-import type { CollabPost, CreatorInfo } from "@/lib/db";
+import { trackEvent } from "@/lib/analytics";
+import {
+  checkAndCreateMatch,
+  getMySwipes,
+  getProfile,
+  payLabel,
+  recordSwipe,
+  projectDates,
+  projectRoles,
+  type CollabPost,
+  type CreatorInfo,
+} from "@/lib/db";
 
 const { width } = Dimensions.get("window");
+const HERO_H = 400;
 
 type Loaded = {
   post: CollabPost;
   creator: CreatorInfo | null;
 };
 
-export default function PostDetailScreen() {
+export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { userId } = useAuth();
+  const { refresh: refreshMatches } = useMatches();
 
   const [data, setData] = useState<Loaded | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [swiped, setSwiped] = useState<"left" | "right" | null>(null);
+  const [applying, setApplying] = useState(false);
+  const [celebration, setCelebration] = useState<{ matchId: string } | null>(null);
+  const [me, setMe] = useState<Pick<CreatorInfo, "name" | "avatar_url">>({ name: "You", avatar_url: null });
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -46,13 +78,13 @@ export default function PostDetailScreen() {
       .eq("id", id)
       .single();
     if (pErr || !post) {
-      setError(pErr?.message || "Post not found");
+      setError(pErr?.message || "Project not found");
       setLoading(false);
       return;
     }
     const { data: prof } = await supabase
       .from("profiles")
-      .select("user_id,name,role,avatar_url")
+      .select("user_id,name,role,avatar_url,verification_status")
       .eq("user_id", (post as CollabPost).owner_id)
       .maybeSingle();
     setData({
@@ -63,6 +95,7 @@ export default function PostDetailScreen() {
             name: prof.name,
             role: prof.role,
             avatar_url: prof.avatar_url,
+            verification_status: prof.verification_status ?? "none",
           }
         : null,
     });
@@ -73,11 +106,44 @@ export default function PostDetailScreen() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!userId || !id) return;
+    getMySwipes(userId).then(({ data: map }) => setSwiped(map.get(id) ?? null));
+    getProfile(userId).then(({ data: p }) => {
+      if (p) setMe({ name: p.name, avatar_url: p.avatar_url ?? null });
+    });
+  }, [userId, id]);
+
+  const apply = async () => {
+    if (!userId || !data || applying) return;
+    setApplying(true);
+    setError(null);
+    const { error: swErr } = await recordSwipe(userId, data.post.id, "right");
+    if (swErr && !/duplicate|unique/i.test(swErr)) {
+      setError(swErr);
+      setApplying(false);
+      return;
+    }
+    trackEvent("swipe_right", { post_id: data.post.id, owner_id: data.post.owner_id, from: "detail" });
+    setSwiped("right");
+    const { match, error: mErr } = await checkAndCreateMatch(userId, data.post.id);
+    if (mErr) setError(mErr);
+    if (match) {
+      trackEvent("match_created", { match_id: match.id, post_id: data.post.id });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refreshMatches();
+      setCelebration({ matchId: match.id });
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setApplying(false);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.brand} />
+          <ActivityIndicator color={colors.text} />
         </View>
       </SafeAreaView>
     );
@@ -86,154 +152,245 @@ export default function PostDetailScreen() {
   if (!data) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <Header onClose={() => router.back()} />
         <View style={styles.loading}>
           <ErrorBanner message={error || "Not found"} />
+          <Pressable onPress={() => router.back()} style={styles.closeInline}>
+            <Text style={styles.closeInlineText}>Close</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
   }
 
   const { post, creator } = data;
-  const isMine = userId && post.owner_id === userId;
+  const isMine = !!userId && post.owner_id === userId;
+  const roles = projectRoles(post);
+  const dates = projectDates(post);
+  const pay = payLabel(post);
+  const detail = post.pay_type && post.compensation ? post.compensation : null;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <Header
-        title={post.title}
-        onClose={() => router.back()}
-        right={
-          !isMine ? (
-            <Pressable
-              hitSlop={10}
-              onPress={() =>
-                router.push({
-                  pathname: "/report/[kind]/[id]",
-                  params: { kind: "post", id: post.id },
-                })
-              }
-            >
-              <Flag size={18} color={colors.dangerText} />
-            </Pressable>
-          ) : null
-        }
+    <View style={styles.safe}>
+      <MatchCelebration
+        visible={!!celebration}
+        me={me}
+        them={creator}
+        projectTitle={post.title}
+        onMessage={() => {
+          const matchId = celebration?.matchId;
+          setCelebration(null);
+          if (matchId) router.replace({ pathname: "/chat/[matchId]", params: { matchId } });
+        }}
+        onKeepSwiping={() => {
+          setCelebration(null);
+          router.back();
+        }}
       />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {post.media_urls?.length ? (
-          <FlatList
-            data={post.media_urls}
-            keyExtractor={(u, i) => `${i}-${u}`}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={styles.gallery}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={styles.galleryImg} contentFit="cover" />
-            )}
-          />
-        ) : (
-          <View style={styles.placeholder}>
-            <Text style={{ fontSize: 56, opacity: 0.25 }}>🎨</Text>
-          </View>
-        )}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.hero}>
+          {post.media_urls?.length ? (
+            <FlatList
+              data={post.media_urls}
+              keyExtractor={(u, i) => `${i}-${u}`}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={styles.heroImg} contentFit="cover" />
+              )}
+            />
+          ) : (
+            <View style={[styles.heroImg, styles.placeholder]}>
+              <Sparkles size={64} color={colors.textFaint} strokeWidth={1.2} />
+            </View>
+          )}
+          <View pointerEvents="none" style={styles.heroFade} />
+        </View>
 
         <View style={styles.body}>
+          {roles.length ? (
+            <ChipRow>
+              {roles.map((r) => (
+                <Chip key={r} label={r} tone="accent" />
+              ))}
+            </ChipRow>
+          ) : null}
+          <Text style={styles.title}>{post.title}</Text>
+          {post.description ? <Text style={styles.logline}>{post.description}</Text> : null}
+
+          <Glass radius={radii.lg} style={styles.facts}>
+            {dates ? <Fact icon={<CalendarDays size={16} color={colors.textMuted} />} label="When" value={dates} /> : null}
+            {post.location ? <Fact icon={<MapPin size={16} color={colors.textMuted} />} label="Where" value={post.location} /> : null}
+            {pay ? (
+              <Fact
+                icon={<Wallet size={16} color={colors.textMuted} />}
+                label="Pay"
+                value={detail ? `${pay} · ${detail}` : pay}
+              />
+            ) : null}
+            {!dates && !post.location && !pay ? (
+              <Text style={styles.factsEmpty}>No dates or pay listed yet. Ask in chat.</Text>
+            ) : null}
+          </Glass>
+
           {creator ? (
-            <View style={styles.creatorRow}>
+            <Glass radius={radii.lg} style={styles.byCard}>
               <Avatar creator={creator} size="lg" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.creatorName}>{creator.name}</Text>
-                {creator.role ? <Text style={styles.creatorRole}>{creator.role}</Text> : null}
+                <Text style={styles.eyebrow}>Posted by</Text>
+                <Text style={styles.byName}>
+                  {creator.name}
+                  {creator.verification_status === "verified" ? " ✓" : ""}
+                </Text>
+                {creator.role ? <Text style={styles.byRole}>{creator.role}</Text> : null}
               </View>
-            </View>
+              {!isMine ? (
+                <Pressable
+                  hitSlop={10}
+                  accessibilityLabel="Report this project"
+                  onPress={() =>
+                    router.push({ pathname: "/report/[kind]/[id]", params: { kind: "post", id: post.id } })
+                  }
+                >
+                  <Flag size={18} color={colors.textSubtle} />
+                </Pressable>
+              ) : null}
+            </Glass>
           ) : null}
 
-          <Text style={styles.title}>{post.title}</Text>
-          {post.description ? <Text style={styles.description}>{post.description}</Text> : null}
-
-          {post.location ? <MetaRow icon={<MapPin size={14} color={colors.textMuted} />} text={post.location} /> : null}
-          {post.looking_for?.length ? (
-            <MetaRow
-              icon={<Users size={14} color={colors.textMuted} />}
-              text={`Looking for: ${post.looking_for.join(", ")}`}
-            />
-          ) : null}
-          {post.compensation ? (
-            <MetaRow icon={<DollarSign size={14} color={colors.textMuted} />} text={post.compensation} />
-          ) : null}
-
-          <Text style={styles.posted}>
-            Posted {new Date(post.created_at).toLocaleDateString()}
-          </Text>
+          <Text style={styles.posted}>Posted {new Date(post.created_at).toLocaleDateString()}</Text>
+          <ErrorBanner message={error} />
         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
 
-function Header({
-  title,
-  onClose,
-  right,
-}: {
-  title?: string;
-  onClose: () => void;
-  right?: React.ReactNode;
-}) {
-  return (
-    <View style={styles.header}>
-      <Pressable hitSlop={12} onPress={onClose}>
-        <X size={22} color={colors.text} />
-      </Pressable>
-      <Text style={styles.headerTitle} numberOfLines={1}>
-        {title ?? "Post"}
-      </Text>
-      <View style={{ width: 22 }}>{right}</View>
+        {/* Action bar: flows after the content, and sits at the bottom when the
+            content is short, so there is never a dead gap above it. */}
+        {!isMine ? (
+          <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            {swiped === "right" ? (
+              <View style={styles.applied}>
+                <Check size={18} color={colors.success} strokeWidth={2.75} />
+                <Text style={styles.appliedText}>Liked. If they like you back, a chat opens.</Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={apply}
+                disabled={applying}
+                style={({ pressed }) => [styles.applyBtn, pressed && { transform: [{ scale: 0.97 }] }]}
+                accessibilityRole="button"
+              >
+                {applying ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <>
+                    <Check size={20} color={colors.white} strokeWidth={2.75} />
+                    <Text style={styles.applyText}>Like this project</Text>
+                  </>
+                )}
+              </Pressable>
+            )}
+          </View>
+        ) : (
+          <View style={{ height: Math.max(insets.bottom, 16) }} />
+        )}
+      </ScrollView>
+
+      {/* Top bar over the poster */}
+      <View style={[styles.topBar, { top: insets.top + 8 }]}>
+        <Pressable onPress={() => router.back()} style={styles.glassBtn} accessibilityLabel="Close">
+          <X size={20} color={colors.text} />
+        </Pressable>
+        {isMine ? (
+          <Pressable
+            onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: post.id } })}
+            style={styles.glassBtn}
+            accessibilityLabel="Edit project"
+          >
+            <Pencil size={18} color={colors.text} />
+          </Pressable>
+        ) : null}
+      </View>
+
     </View>
   );
 }
 
-function MetaRow({ icon, text }: { icon: React.ReactNode; text: string }) {
+function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <View style={styles.metaRow}>
+    <View style={styles.fact}>
       {icon}
-      <Text style={styles.metaText}>{text}</Text>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={styles.factValue} numberOfLines={2}>
+        {value}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.card },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.card,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    gap: 12,
+  safe: { flex: 1, backgroundColor: colors.bg },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
+  closeInline: { paddingVertical: 8 },
+  closeInlineText: { color: colors.textMuted, fontWeight: "600" },
+  hero: { height: HERO_H, width, backgroundColor: colors.brandSoft },
+  heroImg: { width, height: HERO_H },
+  placeholder: { alignItems: "center", justifyContent: "center" },
+  heroFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -1,
+    height: 24,
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
-  headerTitle: { flex: 1, fontSize: 16, fontWeight: "700", color: colors.text },
-  scroll: { paddingBottom: 24 },
-  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  gallery: { width },
-  galleryImg: { width, height: 280, backgroundColor: "#dbeafe" },
-  placeholder: {
-    width,
-    height: 280,
-    backgroundColor: "#dbeafe",
+  topBar: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  glassBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
+    ...shadows.soft,
   },
-  body: { padding: 20, gap: 12 },
-  creatorRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  creatorName: { fontSize: 16, fontWeight: "700", color: colors.text },
-  creatorRole: { fontSize: 13, color: colors.textMuted },
-  title: { fontSize: 20, fontWeight: "800", color: colors.text, marginTop: 4 },
-  description: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
-  metaText: { color: colors.textMuted, fontSize: 13, flex: 1 },
-  posted: { color: colors.textSubtle, fontSize: 11, marginTop: 8 },
+  body: { paddingHorizontal: 20, gap: 14, marginTop: 16 },
+  title: { ...typography.display, fontSize: 26, lineHeight: 31, marginTop: 2 },
+  logline: { ...typography.body, color: colors.textMuted },
+  facts: { padding: 14, gap: 12 },
+  fact: { flexDirection: "row", alignItems: "center", gap: 10 },
+  factLabel: { ...typography.small, width: 64 },
+  factValue: { ...typography.body, flex: 1, fontWeight: "600" },
+  factsEmpty: typography.small,
+  byCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+  eyebrow: typography.eyebrow,
+  byName: { ...typography.h3, marginTop: 2 },
+  byRole: typography.small,
+  posted: { ...typography.tiny, marginTop: 4 },
+  scrollContent: { flexGrow: 1 },
+  applyBar: {
+    marginTop: "auto",
+    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+  applyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.like,
+    ...shadows.glow,
+  },
+  applyText: { color: colors.white, fontWeight: "800", fontSize: 16 },
+  applied: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 56 },
+  appliedText: { ...typography.small, color: colors.text, fontWeight: "600" },
 });

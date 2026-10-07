@@ -65,7 +65,7 @@ export function PushPrimer({ userId }: { userId: string }) {
       <View style={styles.body}>
         <Text style={styles.title}>Know when someone matches you</Text>
         <Text style={styles.text}>
-          Shoots get planned in the first few hours. Turn on notifications and we&apos;ll tell you
+          Collabs come together in the first few hours. Turn on notifications and we&apos;ll tell you
           about new matches and messages — nothing else.
         </Text>
         <Pressable onPress={enable} disabled={busy} style={styles.cta}>

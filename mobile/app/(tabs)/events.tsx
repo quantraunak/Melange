@@ -190,7 +190,7 @@ export default function ExploreScreen() {
         >
           <Plus size={16} color={colors.white} />
           <Text style={styles.hostBtnText}>
-            {subTab === "browse" ? "Post a collab" : "Host event"}
+            {subTab === "browse" ? "Post a project" : "Host event"}
           </Text>
         </Pressable>
       </View>
@@ -363,7 +363,7 @@ function EventCard({
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { padding: 16, paddingBottom: 32, gap: 12 },
+  scroll: { padding: 16, paddingBottom: 120, gap: 12 },
   subTabRow: {
     flexDirection: "row",
     backgroundColor: colors.brand,

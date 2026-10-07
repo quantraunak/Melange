@@ -11,14 +11,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Trash2, X } from "lucide-react-native";
 
-import { PostForm } from "@/components/PostForm";
+import { ProjectForm } from "@/components/ProjectForm";
 import { Button } from "@/components/ui/Button";
-import { colors } from "@/lib/theme";
+import { colors, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { deletePost, updatePost, type CollabPost } from "@/lib/db";
+import { deletePost, projectRoles, updatePost, type CollabPost } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 
-export default function EditPostScreen() {
+export default function EditProjectsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useAuth();
@@ -46,8 +46,8 @@ export default function EditPostScreen() {
 
   const onDelete = () => {
     Alert.alert(
-      "Delete this post?",
-      "Any matches created from this post will keep working, but the post will no longer be visible in the swipe feed.",
+      "Delete this project?",
+      "Matches already made from it keep their chats, but nobody new can apply.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -73,7 +73,7 @@ export default function EditPostScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.brand} />
+          <ActivityIndicator color={colors.text} />
         </View>
       </SafeAreaView>
     );
@@ -84,7 +84,7 @@ export default function EditPostScreen() {
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.header}>
           <View style={{ width: 24 }} />
-          <Text style={styles.headerTitle}>Post not found</Text>
+          <Text style={styles.headerTitle}>Project not found</Text>
           <Pressable hitSlop={12} onPress={() => router.back()}>
             <X size={22} color={colors.text} />
           </Pressable>
@@ -97,13 +97,13 @@ export default function EditPostScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Edit post</Text>
-        <Pressable hitSlop={12} onPress={() => router.back()}>
+        <Text style={styles.headerTitle}>Edit project</Text>
+        <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
           <X size={22} color={colors.text} />
         </Pressable>
       </View>
 
-      <PostForm
+      <ProjectForm
         userId={userId}
         submitLabel="Save changes"
         busy={busy}
@@ -111,24 +111,27 @@ export default function EditPostScreen() {
         initial={{
           title: post.title,
           description: post.description ?? "",
-          lookingFor: post.looking_for?.join(", ") ?? "",
+          roles: projectRoles(post),
+          projectStart: post.project_start ?? null,
+          projectEnd: post.project_end ?? null,
           location: post.location ?? "",
+          payType: post.pay_type ?? null,
           compensation: post.compensation ?? "",
           mediaUrls: post.media_urls ?? [],
         }}
-        onSubmit={async (values) => {
+        onSubmit={async (v) => {
           setBusy(true);
-          const lookingFor = values.lookingFor
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
           const { error } = await updatePost(post.id, {
-            title: values.title,
-            description: values.description,
-            looking_for: lookingFor.length ? lookingFor : null,
-            location: values.location || null,
-            compensation: values.compensation || null,
-            media_urls: values.mediaUrls.length ? values.mediaUrls : null,
+            title: v.title,
+            description: v.description,
+            roles: v.roles,
+            looking_for: v.roles,
+            project_start: v.projectStart,
+            project_end: v.projectEnd,
+            location: v.location || null,
+            pay_type: v.payType,
+            compensation: v.compensation || null,
+            media_urls: v.mediaUrls.length ? v.mediaUrls : null,
           });
           setBusy(false);
           if (!error) router.back();
@@ -138,7 +141,7 @@ export default function EditPostScreen() {
 
       <View style={styles.deleteBar}>
         <Button
-          title="Delete post"
+          title="Delete project"
           variant="danger"
           leadingIcon={<Trash2 size={16} color={colors.white} />}
           onPress={onDelete}
@@ -149,17 +152,14 @@ export default function EditPostScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: colors.bgElevated },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.card,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.text },
+  headerTitle: { ...typography.h3, flex: 1, textAlign: "center" },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  deleteBar: { padding: 16, borderTopColor: colors.border, borderTopWidth: 1, backgroundColor: colors.card },
+  deleteBar: { paddingHorizontal: 16, paddingBottom: 8 },
 });
