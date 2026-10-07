@@ -10,8 +10,8 @@ import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import {
-  Clapperboard,
   Compass,
+  Sparkles,
   MessageCircle,
   Settings as SettingsIcon,
   UserRound,
@@ -19,7 +19,6 @@ import {
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { BrandHeader } from "@/components/BrandHeader";
-import { Backdrop } from "@/components/ui/Backdrop";
 import { Glass } from "@/components/ui/Glass";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
@@ -62,7 +61,7 @@ function Header() {
           accessibilityLabel="Settings"
           style={styles.settingsBtn}
         >
-          <SettingsIcon size={18} color={colors.textMuted} />
+          <SettingsIcon size={18} color={colors.brandText} />
         </Pressable>
       }
     />
@@ -70,7 +69,7 @@ function Header() {
 }
 
 const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
-  connect: (p) => <Clapperboard {...p} />,
+  connect: (p) => <Sparkles {...p} />,
   events: (p) => <Compass {...p} />,
   messages: (p) => <MessageCircle {...p} />,
   profile: (p) => <UserRound {...p} />,
@@ -115,7 +114,7 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             const { options } = descriptors[route.key];
             const label = (options.tabBarLabel as string) ?? options.title ?? route.name;
             const badge = route.name === "messages" ? unreadCount : 0;
-            const color = focused ? colors.text : colors.textSubtle;
+            const color = focused ? colors.brandText : colors.textMuted;
 
             const onPress = () => {
               const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -154,7 +153,6 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
-      <Backdrop />
       <PushBootstrap />
       <View style={{ paddingTop: insets.top }}>
         <Header />
@@ -163,7 +161,7 @@ export default function TabsLayout() {
         tabBar={(props) => <GlassTabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "transparent" } }}
       >
-        <Tabs.Screen name="connect" options={{ title: "Shoots" }} />
+        <Tabs.Screen name="connect" options={{ title: "Discover" }} />
         <Tabs.Screen name="events" options={{ title: "Explore" }} />
         <Tabs.Screen name="messages" options={{ title: "Matches" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
@@ -178,7 +176,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: "center",
@@ -202,9 +200,7 @@ const styles = StyleSheet.create({
     bottom: TAB_BAR_PAD,
     left: 0,
     borderRadius: radii.xl,
-    backgroundColor: colors.surfaceStrong,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.brandSoft,
   },
   tab: {
     flex: 1,

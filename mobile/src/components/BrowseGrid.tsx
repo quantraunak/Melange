@@ -156,7 +156,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search shoots, roles, cities…"
+            placeholder="Search projects, roles, cities…"
             placeholderTextColor={colors.textSubtle}
             style={styles.search}
             autoCapitalize="none"
@@ -211,7 +211,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
 
       <View style={styles.metaLine}>
         <Text style={styles.metaText}>
-          {visible.length} {visible.length === 1 ? "shoot" : "shoots"}
+          {visible.length} {visible.length === 1 ? "project" : "projects"}
           {filtersActive || query.trim() ? " matching" : " open right now"}
         </Text>
       </View>
@@ -223,7 +223,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
           </Text>
           <Text style={styles.emptyBody}>
             {posts.length === 0
-              ? "Post a shoot and it shows up here for everyone else."
+              ? "Post a project and it shows up here for everyone else."
               : "Try widening the pay filter, or clearing the search."}
           </Text>
           {posts.length > 0 ? (

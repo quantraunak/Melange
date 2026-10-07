@@ -25,10 +25,16 @@ export function Chip({ label, tone = "neutral", size = "md", selected, onPress, 
     : tone === "accent"
       ? colors.accentSoft
       : tone === "outline"
-        ? "transparent"
+        ? colors.card
         : colors.surfaceStrong;
-  const fg = selected ? colors.white : tone === "accent" ? colors.accentMuted : colors.text;
-  const border = selected ? colors.accent : tone === "outline" ? colors.borderStrong : colors.border;
+  const fg = selected ? colors.white : tone === "accent" ? colors.accentMuted : colors.textMuted;
+  const border = selected
+    ? colors.accent
+    : tone === "accent"
+      ? colors.accentSoft
+      : tone === "outline"
+        ? colors.borderStrong
+        : colors.surfaceStrong;
   const dims = size === "sm" ? { py: 4, px: 9, font: 11 } : { py: 7, px: 12, font: 13 };
 
   const body = (

@@ -162,7 +162,7 @@ export default function ChatScreen() {
     const confirmBlock = () => {
       Alert.alert(
         `Block ${match.other_creator.name}?`,
-        "You will no longer see their shoots and they will no longer see yours. This cannot be undone here.",
+        "You will no longer see their projects and they will no longer see yours. This cannot be undone here.",
         [
           { text: "Cancel", style: "cancel" },
           {

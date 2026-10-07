@@ -3,19 +3,19 @@ import { BlurView } from "expo-blur";
 import { colors, glass as glassTokens, radii, shadows } from "@/lib/theme";
 
 type Props = ViewProps & {
-  /** "strong" blurs harder and sits higher; use for sheets, bars and the card caption. */
+  /** "strong" is frosted (blur behind) for bars that float over content; "soft" is a plain white card; "flat" is the grey surface. */
   variant?: "soft" | "strong" | "flat";
   radius?: number;
   style?: StyleProp<ViewStyle>;
-  /** Drop shadow (off by default: most glass sits on other glass). */
+  /** Drop shadow. */
   elevated?: boolean;
   children?: React.ReactNode;
 };
 
 /**
- * A translucent surface: real blur behind, a 1px lighter top edge, and a thin
- * border. Everything that floats over the ground (cards, rows, bars, sheets)
- * is one of these, so the whole app shares one material.
+ * A white surface with a hairline border. Cards, rows and sheets are one of
+ * these so the whole app shares one material. The "strong" variant adds a
+ * light frost behind it, used only for the floating tab bar.
  */
 export function Glass({
   variant = "soft",
@@ -25,8 +25,17 @@ export function Glass({
   children,
   ...rest
 }: Props) {
-  const intensity =
-    variant === "strong" ? glassTokens.intensityStrong : variant === "flat" ? 0 : glassTokens.intensity;
+  const frosted = variant === "strong";
+  // Layout that governs the children (direction, gap, padding) has to land on
+  // the inner content view; everything else (size, margins, flex in the parent,
+  // borders) stays on the outer frame. Without this split a row style on a
+  // Glass stacked its children vertically.
+  const flat = (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>;
+  const inner: Record<string, unknown> = {};
+  const outer: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(flat)) {
+    (CONTENT_KEYS.has(k) || k.startsWith("padding") ? inner : outer)[k] = v;
+  }
   return (
     <View
       {...rest}
@@ -34,40 +43,49 @@ export function Glass({
         styles.outer,
         { borderRadius: radius },
         elevated ? shadows.card : null,
-        style,
+        outer as ViewStyle,
       ]}
     >
       <View style={[styles.clip, { borderRadius: radius }]}>
-        {intensity > 0 ? (
-          <BlurView intensity={intensity} tint={glassTokens.tint} style={StyleSheet.absoluteFill} />
+        {frosted ? (
+          <BlurView intensity={glassTokens.intensityStrong} tint={glassTokens.tint} style={StyleSheet.absoluteFill} />
         ) : null}
         <View
           pointerEvents="none"
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: variant === "strong" ? colors.surfaceStrong : colors.card },
+            {
+              backgroundColor: frosted
+                ? "rgba(255,255,255,0.82)"
+                : variant === "flat"
+                  ? colors.surface
+                  : colors.card,
+            },
           ]}
         />
-        <View pointerEvents="none" style={styles.edge} />
-        <View style={styles.content}>{children}</View>
+        <View style={[styles.content, inner as ViewStyle]}>{children}</View>
       </View>
     </View>
   );
 }
 
+const CONTENT_KEYS = new Set([
+  "flexDirection",
+  "flexWrap",
+  "alignItems",
+  "justifyContent",
+  "alignContent",
+  "gap",
+  "rowGap",
+  "columnGap",
+]);
+
 const styles = StyleSheet.create({
   outer: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   clip: { overflow: "hidden" },
-  edge: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: colors.highlight,
-  },
   content: { position: "relative" },
 });

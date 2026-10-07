@@ -7,6 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { MatchesProvider } from "@/lib/matches";
+import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -30,7 +31,7 @@ function Gate() {
 
   return (
     <MatchesProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0B0C10" } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
@@ -49,7 +50,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <AuthProvider>
           <Gate />
         </AuthProvider>

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Check, CheckCheck, Clapperboard, Search, X } from "lucide-react-native";
+import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { PushPrimer } from "@/components/PushPrimer";
@@ -31,7 +31,7 @@ import { formatListTime } from "@/lib/format";
 const TAB_BAR_CLEARANCE = 112;
 
 type Row =
-  | { kind: "shoot"; key: string; title: string; count: number }
+  | { kind: "project"; key: string; title: string; count: number }
   | { kind: "match"; key: string; match: MatchWithPost };
 
 /**
@@ -39,8 +39,8 @@ type Row =
  *
  * New matches (nobody has written yet) sit in a row of faces at the top: they
  * are the ones that need a first message. Conversations below are grouped by
- * the shoot they came from, because a producer with three roles filling has
- * three threads that belong together, and an actor on two shoots wants to see
+ * the project they came from, because someone with three roles filling has
+ * three threads that belong together, and a person on two projects wants to see
  * which is which.
  */
 export default function MatchesScreen() {
@@ -78,17 +78,17 @@ export default function MatchesScreen() {
         )
       );
 
-    // Group by shoot, keeping groups in order of their most recent message.
+    // Group by project, keeping groups in order of their most recent message.
     const groups = new Map<string, MatchWithPost[]>();
     for (const m of talking) {
-      const key = m.other_post.title || "Untitled shoot";
+      const key = m.other_post.title || "Untitled project";
       const list = groups.get(key);
       if (list) list.push(m);
       else groups.set(key, [m]);
     }
     const flat: Row[] = [];
     for (const [title, list] of groups) {
-      flat.push({ kind: "shoot", key: `shoot-${title}`, title, count: list.length });
+      flat.push({ kind: "project", key: `project-${title}`, title, count: list.length });
       for (const m of list) flat.push({ kind: "match", key: m.id, match: m });
     }
     return { newMatches: fresh, rows: flat };
@@ -182,14 +182,14 @@ export default function MatchesScreen() {
       >
         {error ? <ErrorBanner message={error} /> : null}
         <View style={styles.emptyIcon}>
-          <Clapperboard size={28} color={colors.accent} />
+          <Sparkles size={28} color={colors.accent} />
         </View>
         <Text style={styles.emptyTitle}>No matches yet</Text>
         <Text style={styles.emptyBody}>
-          When you apply to a shoot and the production picks you too, the conversation opens here.
+          When you apply to a project and they pick you too, the conversation opens here.
         </Text>
         <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/connect")}>
-          <Text style={styles.emptyBtnText}>See open shoots</Text>
+          <Text style={styles.emptyBtnText}>See open projects</Text>
         </Pressable>
       </ScrollView>
     );
@@ -217,7 +217,7 @@ export default function MatchesScreen() {
             <Input
               value={query}
               onChangeText={setQuery}
-              placeholder="Search people, shoots, messages"
+              placeholder="Search people, projects, messages"
               autoCapitalize="none"
               autoCorrect={false}
               containerStyle={{ marginBottom: 4 }}
@@ -255,7 +255,7 @@ export default function MatchesScreen() {
                     <Text style={styles.newName} numberOfLines={1}>
                       {m.other_creator.name.split(" ")[0]}
                     </Text>
-                    <Text style={styles.newShoot} numberOfLines={1}>
+                    <Text style={styles.newProject} numberOfLines={1}>
                       {m.other_post.title}
                     </Text>
                   </Pressable>
@@ -277,13 +277,13 @@ export default function MatchesScreen() {
         </View>
       }
       renderItem={({ item }) =>
-        item.kind === "shoot" ? (
-          <View style={styles.shootHead}>
-            <Clapperboard size={13} color={colors.accentMuted} />
-            <Text style={styles.shootTitle} numberOfLines={1}>
+        item.kind === "project" ? (
+          <View style={styles.projectHead}>
+            <Sparkles size={13} color={colors.accentMuted} />
+            <Text style={styles.projectTitle} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={styles.shootCount}>{item.count}</Text>
+            <Text style={styles.projectCount}>{item.count}</Text>
           </View>
         ) : (
           <MatchRow
@@ -388,9 +388,9 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   newName: { fontSize: 12, fontWeight: "700", color: colors.text, maxWidth: 70 },
-  newShoot: { ...typography.tiny, maxWidth: 70 },
+  newProject: { ...typography.tiny, maxWidth: 70 },
 
-  shootHead: {
+  projectHead: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -398,8 +398,8 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     paddingHorizontal: 4,
   },
-  shootTitle: { ...typography.eyebrow, color: colors.textMuted, flex: 1 },
-  shootCount: { ...typography.tiny, color: colors.textFaint },
+  projectTitle: { ...typography.eyebrow, color: colors.textMuted, flex: 1 },
+  projectCount: { ...typography.tiny, color: colors.textFaint },
 
   row: {
     flexDirection: "row",

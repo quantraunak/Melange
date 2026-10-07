@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { BlurView } from "expo-blur";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -12,10 +11,10 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { CalendarDays, Clapperboard, Info, MapPin } from "lucide-react-native";
+import { CalendarDays, Sparkles, Info, MapPin } from "lucide-react-native";
 
-import { colors, glass, radii, shadows, typography } from "@/lib/theme";
-import { payLabel, shootDates, shootRoles, type PostWithCreator } from "@/lib/db";
+import { colors, radii, shadows, typography } from "@/lib/theme";
+import { payLabel, projectDates, projectRoles, type PostWithCreator } from "@/lib/db";
 import { Avatar } from "./Avatar";
 import { Chip, ChipRow } from "./ui/Chip";
 
@@ -27,44 +26,37 @@ export const CARD_HEIGHT = Math.min(Math.round(SCREEN_H * 0.6), 600);
 export type SwipeDir = "left" | "right";
 
 /**
- * The shoot card. A poster fills the whole card; the crew call sits on a
- * glass caption over its lower third: open roles first (that is what an
- * actor or crew member scans for), then the title, logline, dates, place and
- * pay, then who posted it. Swipe right to apply, left to pass.
+ * The project card. The photo on top, the collab on a white caption below
+ * it: who they're looking for first (that is what people scan for), then
+ * the title, logline, dates, place and pay, then who posted it. Swipe right
+ * to apply, left to pass.
  */
 
 function Poster({ post, dim }: { post: PostWithCreator; dim?: boolean }) {
   const uri = post.media_urls?.[0];
   return (
-    <View style={[StyleSheet.absoluteFill, dim && { opacity: 0.7 }]}>
+    <View style={[styles.poster, dim && { opacity: 0.7 }]}>
       {uri ? (
         <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
       ) : (
         <View style={styles.placeholder}>
-          <Clapperboard size={56} color={colors.textFaint} strokeWidth={1.2} />
+          <Sparkles size={56} color={colors.textFaint} strokeWidth={1.2} />
           <Text style={styles.placeholderText}>No poster yet</Text>
         </View>
       )}
-      {/* Scrim: three stacked bands fade the poster into the caption. */}
-      <View pointerEvents="none" style={[styles.scrimBand, { bottom: 0, height: "62%", opacity: 0.35 }]} />
-      <View pointerEvents="none" style={[styles.scrimBand, { bottom: 0, height: "46%", opacity: 0.5 }]} />
-      <View pointerEvents="none" style={[styles.scrimBand, { bottom: 0, height: "30%", opacity: 0.7 }]} />
     </View>
   );
 }
 
 function Caption({ post }: { post: PostWithCreator }) {
-  const roles = shootRoles(post);
-  const dates = shootDates(post);
+  const roles = projectRoles(post);
+  const dates = projectDates(post);
   const pay = payLabel(post);
   const shown = roles.slice(0, 3);
   const extra = roles.length - shown.length;
 
   return (
     <View style={styles.captionWrap}>
-      <BlurView intensity={glass.intensityStrong} tint="dark" style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(10,11,16,0.55)" }]} />
-      <View pointerEvents="none" style={styles.captionEdge} />
       <View style={styles.caption}>
         {roles.length ? (
           <ChipRow>
@@ -87,13 +79,13 @@ function Caption({ post }: { post: PostWithCreator }) {
         <View style={styles.metaRow}>
           {dates ? (
             <View style={styles.meta}>
-              <CalendarDays size={13} color={colors.textMuted} />
+              <CalendarDays size={14} color={colors.textSubtle} />
               <Text style={styles.metaText} numberOfLines={1}>{dates}</Text>
             </View>
           ) : null}
           {post.location ? (
             <View style={styles.meta}>
-              <MapPin size={13} color={colors.textMuted} />
+              <MapPin size={14} color={colors.textSubtle} />
               <Text style={styles.metaText} numberOfLines={1}>{post.location}</Text>
             </View>
           ) : null}
@@ -134,6 +126,7 @@ export function SwipeCardBehind({ post }: { post: PostWithCreator }) {
   return (
     <Animated.View style={[styles.card, styles.behindCard, animatedStyle]} pointerEvents="none">
       <Poster post={post} dim />
+      <Caption post={post} />
     </Animated.View>
   );
 }
@@ -239,19 +232,18 @@ export function SwipeCard({
 
         <Pressable
           onPress={onOpenDetails}
-          style={styles.infoBtn}
+          style={({ pressed }) => [styles.infoBtn, pressed && { opacity: 0.8 }]}
           hitSlop={10}
-          accessibilityLabel="Shoot details"
+          accessibilityLabel="Project details"
         >
-          <BlurView intensity={glass.intensity} tint="dark" style={StyleSheet.absoluteFill} />
-          <Info size={16} color={colors.text} />
+          <Info size={18} color={colors.brandText} />
         </Pressable>
 
         <Animated.View style={[styles.stamp, styles.stampApply, applyOverlay]} pointerEvents="none">
-          <Text style={[styles.stampText, { color: colors.accent }]}>APPLY</Text>
+          <Text style={[styles.stampText, { color: colors.like }]}>APPLY</Text>
         </Animated.View>
         <Animated.View style={[styles.stamp, styles.stampPass, passOverlay]} pointerEvents="none">
-          <Text style={[styles.stampText, { color: colors.text }]}>PASS</Text>
+          <Text style={[styles.stampText, { color: colors.passText }]}>PASS</Text>
         </Animated.View>
 
         <Caption post={post} />
@@ -263,11 +255,11 @@ export function SwipeCard({
 const styles = StyleSheet.create({
   card: {
     height: CARD_HEIGHT,
-    borderRadius: radii.xxl,
+    borderRadius: radii.xl,
     overflow: "hidden",
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
     ...shadows.lift,
   },
   behindCard: {
@@ -276,32 +268,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  poster: {
+    flex: 1,
+    backgroundColor: colors.surfaceStrong,
+  },
   placeholder: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.surfaceStrong,
   },
-  placeholderText: { ...typography.tiny, color: colors.textFaint },
-  scrimBand: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    backgroundColor: colors.bg,
-  },
+  placeholderText: { ...typography.tiny, color: colors.textSubtle },
   infoBtn: {
     position: "absolute",
     top: 14,
     right: 14,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
+    ...shadows.soft,
   },
   stamp: {
     position: "absolute",
@@ -310,44 +299,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: radii.sm,
+    backgroundColor: "rgba(255,255,255,0.85)",
   },
-  stampApply: { left: 20, borderColor: colors.accent, transform: [{ rotate: "-12deg" }] },
-  stampPass: { right: 20, borderColor: colors.text, transform: [{ rotate: "12deg" }] },
+  stampApply: { left: 20, borderColor: colors.like, transform: [{ rotate: "-12deg" }] },
+  stampPass: { right: 20, borderColor: colors.passText, transform: [{ rotate: "12deg" }] },
   stampText: { fontWeight: "900", fontSize: 24, letterSpacing: 3 },
   captionWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: "hidden",
-  },
-  captionEdge: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: colors.highlight,
+    backgroundColor: colors.card,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   caption: {
-    padding: 18,
-    paddingBottom: 20,
+    padding: 16,
+    paddingTop: 14,
     gap: 8,
   },
   title: {
     ...typography.h1,
-    marginTop: 2,
   },
   logline: {
     ...typography.small,
-    lineHeight: 18,
+    color: colors.textMuted,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 10,
-    marginTop: 2,
+    gap: 12,
   },
   meta: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "60%" },
   metaText: { ...typography.small, color: colors.textMuted },
@@ -355,7 +333,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: 4,
+    marginTop: 2,
   },
   byText: { ...typography.small, flex: 1 },
   byName: { color: colors.text, fontWeight: "700" },

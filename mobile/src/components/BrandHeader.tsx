@@ -4,7 +4,7 @@ import { Logo } from "./Logo";
 
 export function BrandHeader({
   right,
-  subtitle = "Crew calls",
+  subtitle = "Creative Collaborations",
   style,
 }: {
   right?: React.ReactNode;
@@ -14,7 +14,7 @@ export function BrandHeader({
   return (
     <View style={[styles.wrap, style]}>
       <View style={styles.left}>
-        <Logo size={30} stroke={colors.accent} />
+        <Logo size={34} stroke={colors.brandOutline} />
         <View style={styles.titles}>
           <Text style={styles.title}>Melange</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -39,10 +39,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  titles: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  titles: { gap: 1 },
   title: typography.brand,
   subtitle: {
-    ...typography.eyebrow,
-    color: colors.accentMuted,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.6,
+    color: colors.brandTabBg,
   },
 });

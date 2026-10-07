@@ -29,31 +29,31 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "intro",
-    icon: <Logo size={96} stroke={colors.accent} />,
-    title: "Crew your film",
+    icon: <Logo size={96} stroke={colors.brandOutline} />,
+    title: "Find your next collaboration",
     body:
-      "Melange is where student and indie productions find cast and crew, and where actors and crew find their next credit.",
+      "Photographers, models, stylists, filmmakers, musicians, dancers, designers. Melange is where creative people find each other and make things.",
   },
   {
     key: "swipe",
     icon: <Sparkles size={72} color={colors.warning} />,
-    title: "Post a shoot. Apply with a swipe.",
+    title: "Post a project. Swipe to join.",
     body:
-      "Producers post the roles, dates and pay. Crew swipe right to apply. Nobody's inbox fills up.",
+      "Share what you're making and who you'd love on it. Swipe right on the ones you want in on. Nobody's inbox fills up.",
   },
   {
     key: "match",
     icon: <Heart size={72} color={colors.accentMuted} />,
     title: "Both say yes, then you talk",
     body:
-      "A chat opens only when the production picks you too. No cold DMs, in either direction.",
+      "A chat opens only when you both say yes. No cold DMs, in either direction.",
   },
   {
     key: "ready",
     icon: <MessageCircle size={72} color={colors.textMuted} />,
     title: "Credits that follow you",
     body:
-      "Every shoot you work on through Melange becomes a credit on your profile. Sign up takes a minute.",
+      "Every collab you do through Melange becomes a credit on your profile. Sign up takes a minute.",
   },
 ];
 
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   skip: {
-    color: colors.textMuted,
+    color: colors.brandText,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    color: colors.white,
+    color: colors.brand,
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
@@ -177,11 +177,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.35)",
+    backgroundColor: colors.borderStrong,
   },
   dotActive: {
     width: 24,
-    backgroundColor: colors.white,
+    backgroundColor: colors.brandText,
   },
   actions: {
     paddingHorizontal: 24,
