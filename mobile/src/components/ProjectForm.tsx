@@ -28,12 +28,12 @@ import { PAY_TYPES, ROLES, uploadFile, type PayType } from "@/lib/db";
 
 const MAX_IMAGES = 5;
 
-export type ShootFormValues = {
+export type ProjectFormValues = {
   title: string;
   description: string;
   roles: string[];
-  shootStart: string | null; // YYYY-MM-DD
-  shootEnd: string | null;
+  projectStart: string | null; // YYYY-MM-DD
+  projectEnd: string | null;
   location: string;
   payType: PayType | null;
   compensation: string;
@@ -94,7 +94,7 @@ function prettyDate(iso: string | null): string {
   });
 }
 
-/** Quick picks for the two most common student-shoot answers. */
+/** Quick picks for the most common answers. */
 function weekendPicks(): { label: string; start: string; end: string }[] {
   const now = new Date();
   const day = now.getDay(); // 0 Sun
@@ -110,7 +110,7 @@ function weekendPicks(): { label: string; start: string; end: string }[] {
   ];
 }
 
-export function ShootForm({
+export function ProjectForm({
   userId,
   initial,
   submitLabel,
@@ -119,20 +119,20 @@ export function ShootForm({
   externalError,
 }: {
   userId: string;
-  initial?: Partial<ShootFormValues>;
+  initial?: Partial<ProjectFormValues>;
   submitLabel: string;
   busy?: boolean;
   externalError?: string | null;
-  onSubmit: (values: ShootFormValues) => Promise<{ error: string | null }>;
+  onSubmit: (values: ProjectFormValues) => Promise<{ error: string | null }>;
 }) {
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [roles, setRoles] = useState<string[]>(initial?.roles ?? []);
-  const [startText, setStartText] = useState(initial?.shootStart ? prettyDate(initial.shootStart) : "");
-  const [endText, setEndText] = useState(initial?.shootEnd ? prettyDate(initial.shootEnd) : "");
-  const [startIso, setStartIso] = useState<string | null>(initial?.shootStart ?? null);
-  const [endIso, setEndIso] = useState<string | null>(initial?.shootEnd ?? null);
+  const [startText, setStartText] = useState(initial?.projectStart ? prettyDate(initial.projectStart) : "");
+  const [endText, setEndText] = useState(initial?.projectEnd ? prettyDate(initial.projectEnd) : "");
+  const [startIso, setStartIso] = useState<string | null>(initial?.projectStart ?? null);
+  const [endIso, setEndIso] = useState<string | null>(initial?.projectEnd ?? null);
   const [location, setLocation] = useState(initial?.location ?? "");
   const [payType, setPayType] = useState<PayType | null>(initial?.payType ?? null);
   const [compensation, setCompensation] = useState(initial?.compensation ?? "");
@@ -160,7 +160,7 @@ export function ShootForm({
 
   const addImage = async () => {
     if (assets.length >= MAX_IMAGES) {
-      Alert.alert("That's the limit", `Up to ${MAX_IMAGES} images per shoot.`);
+      Alert.alert("That's the limit", `Up to ${MAX_IMAGES} images per project.`);
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -186,17 +186,14 @@ export function ShootForm({
   const removeAsset = (idx: number) => setAssets((prev) => prev.filter((_, i) => i !== idx));
 
   const validateStep = (s: number): string | null => {
-    if (s === 0) {
-      if (!title.trim()) return "Give the shoot a title.";
-      if (!description.trim()) return "One line on what it is. That's the logline.";
-    }
-    if (s === 1 && roles.length === 0) return "Pick at least one role you still need.";
+    // Only a title and a photo are required. Roles, dates and pay are optional.
+    if (s === 0 && !title.trim()) return "Give your project a title.";
     if (s === 2) {
       if (startText.trim() && !startIso) return "Start date: try 10/18 or Oct 18.";
       if (endText.trim() && !endIso) return "End date: try 10/19 or Oct 19.";
       if (startIso && endIso && endIso < startIso) return "The end date is before the start.";
     }
-    if (s === 3 && !payType) return "Say how people are paid, even if it's credit.";
+    if (s === 3 && assets.length === 0) return "Add at least one photo so people can see what you mean.";
     return null;
   };
 
@@ -245,8 +242,8 @@ export function ShootForm({
       title: title.trim(),
       description: description.trim(),
       roles,
-      shootStart: startIso,
-      shootEnd: endIso ?? startIso,
+      projectStart: startIso,
+      projectEnd: endIso ?? startIso,
       location: location.trim(),
       payType,
       compensation: compensation.trim(),
@@ -272,15 +269,15 @@ export function ShootForm({
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {step === 0 ? (
           <>
-            <Text style={styles.stepTitle}>What are you shooting?</Text>
+            <Text style={styles.stepTitle}>What are you making?</Text>
             <Field label="Title">
-              <Input value={title} onChangeText={setTitle} placeholder="e.g. Night Shift (thesis short)" autoFocus />
+              <Input value={title} onChangeText={setTitle} placeholder="e.g. Golden-hour rooftop editorial" autoFocus />
             </Field>
-            <Field label="Logline" hint="One or two lines. What it is, what the look is.">
+            <Field label="Description" hint="One or two lines. What it is, what the look is.">
               <TextArea
                 value={description}
                 onChangeText={setDescription}
-                placeholder="A 12-minute drama about a night nurse. 16mm look, two locations, small crew."
+                placeholder="Moody, warm, film-grain look. Looking for a model and a stylist."
                 numberOfLines={4}
               />
             </Field>
@@ -290,7 +287,7 @@ export function ShootForm({
         {step === 1 ? (
           <>
             <Text style={styles.stepTitle}>Who do you still need?</Text>
-            <Text style={styles.stepHint}>Tap every role that is open. People apply to the shoot, not to a role.</Text>
+            <Text style={styles.stepHint}>Optional. Tap who you&apos;d love to work with. People apply to the project, not to a role.</Text>
             <ChipRow style={{ marginTop: 4 }}>
               {ROLES.map((r) => (
                 <Chip key={r} label={r} selected={roles.includes(r)} onPress={() => toggleRole(r)} />
@@ -319,10 +316,10 @@ export function ShootForm({
               ))}
             </ChipRow>
             <View style={styles.twoCol}>
-              <Field label="First shoot day" style={{ flex: 1 }} hint={startIso ? prettyDate(startIso) : "e.g. 10/18"}>
+              <Field label="Starts" style={{ flex: 1 }} hint={startIso ? prettyDate(startIso) : "e.g. 10/18"}>
                 <Input value={startText} onChangeText={setStart} placeholder="10/18" autoCapitalize="none" />
               </Field>
-              <Field label="Last shoot day" style={{ flex: 1 }} hint={endIso ? prettyDate(endIso) : "optional"}>
+              <Field label="Ends" style={{ flex: 1 }} hint={endIso ? prettyDate(endIso) : "optional"}>
                 <Input value={endText} onChangeText={setEnd} placeholder="10/19" autoCapitalize="none" />
               </Field>
             </View>
@@ -348,7 +345,7 @@ export function ShootForm({
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                   >
-                    <Glass variant={on ? "strong" : "soft"} radius={radii.lg} style={[styles.payRow, on && styles.payRowOn]}>
+                    <Glass variant="soft" radius={radii.lg} style={[styles.payRow, on && styles.payRowOn]}>
                       <View style={[styles.radio, on && styles.radioOn]} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.payLabel}>{p.label}</Text>

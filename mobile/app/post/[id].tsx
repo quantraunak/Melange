@@ -17,7 +17,7 @@ import * as Haptics from "expo-haptics";
 import {
   CalendarDays,
   Check,
-  Clapperboard,
+  Sparkles,
   Flag,
   MapPin,
   Pencil,
@@ -41,8 +41,8 @@ import {
   getProfile,
   payLabel,
   recordSwipe,
-  shootDates,
-  shootRoles,
+  projectDates,
+  projectRoles,
   type CollabPost,
   type CreatorInfo,
 } from "@/lib/db";
@@ -55,7 +55,7 @@ type Loaded = {
   creator: CreatorInfo | null;
 };
 
-export default function ShootDetailScreen() {
+export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -79,7 +79,7 @@ export default function ShootDetailScreen() {
       .eq("id", id)
       .single();
     if (pErr || !post) {
-      setError(pErr?.message || "Shoot not found");
+      setError(pErr?.message || "Project not found");
       setLoading(false);
       return;
     }
@@ -165,8 +165,8 @@ export default function ShootDetailScreen() {
 
   const { post, creator } = data;
   const isMine = !!userId && post.owner_id === userId;
-  const roles = shootRoles(post);
-  const dates = shootDates(post);
+  const roles = projectRoles(post);
+  const dates = projectDates(post);
   const pay = payLabel(post);
   const detail = post.pay_type && post.compensation ? post.compensation : null;
 
@@ -176,7 +176,7 @@ export default function ShootDetailScreen() {
         visible={!!celebration}
         me={me}
         them={creator}
-        shootTitle={post.title}
+        projectTitle={post.title}
         onMessage={() => {
           const matchId = celebration?.matchId;
           setCelebration(null);
@@ -203,7 +203,7 @@ export default function ShootDetailScreen() {
             />
           ) : (
             <View style={[styles.heroImg, styles.placeholder]}>
-              <Clapperboard size={64} color={colors.textFaint} strokeWidth={1.2} />
+              <Sparkles size={64} color={colors.textFaint} strokeWidth={1.2} />
             </View>
           )}
           <View pointerEvents="none" style={styles.heroFade} />
@@ -221,7 +221,7 @@ export default function ShootDetailScreen() {
           {post.description ? <Text style={styles.logline}>{post.description}</Text> : null}
 
           <Glass radius={radii.lg} style={styles.facts}>
-            {dates ? <Fact icon={<CalendarDays size={16} color={colors.textMuted} />} label="Shooting" value={dates} /> : null}
+            {dates ? <Fact icon={<CalendarDays size={16} color={colors.textMuted} />} label="When" value={dates} /> : null}
             {post.location ? <Fact icon={<MapPin size={16} color={colors.textMuted} />} label="Where" value={post.location} /> : null}
             {pay ? (
               <Fact
@@ -249,7 +249,7 @@ export default function ShootDetailScreen() {
               {!isMine ? (
                 <Pressable
                   hitSlop={10}
-                  accessibilityLabel="Report this shoot"
+                  accessibilityLabel="Report this project"
                   onPress={() =>
                     router.push({ pathname: "/report/[kind]/[id]", params: { kind: "post", id: post.id } })
                   }
@@ -268,16 +268,14 @@ export default function ShootDetailScreen() {
       {/* Top bar over the poster */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.glassBtn} accessibilityLabel="Close">
-          <BlurView intensity={glass.intensity} tint="dark" style={StyleSheet.absoluteFill} />
           <X size={20} color={colors.text} />
         </Pressable>
         {isMine ? (
           <Pressable
             onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: post.id } })}
             style={styles.glassBtn}
-            accessibilityLabel="Edit shoot"
+            accessibilityLabel="Edit project"
           >
-            <BlurView intensity={glass.intensity} tint="dark" style={StyleSheet.absoluteFill} />
             <Pencil size={18} color={colors.text} />
           </Pressable>
         ) : null}
@@ -286,12 +284,13 @@ export default function ShootDetailScreen() {
       {/* Apply bar */}
       {!isMine ? (
         <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-          <BlurView intensity={glass.intensityStrong} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={glass.intensityStrong} tint="light" style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(255,255,255,0.82)" }]} />
           <View pointerEvents="none" style={styles.applyEdge} />
           {swiped === "right" ? (
             <View style={styles.applied}>
-              <Check size={18} color={colors.accent} strokeWidth={2.75} />
-              <Text style={styles.appliedText}>Applied. If they pick you too, a chat opens.</Text>
+              <Check size={18} color={colors.success} strokeWidth={2.75} />
+              <Text style={styles.appliedText}>Liked. If they like you back, a chat opens.</Text>
             </View>
           ) : (
             <Pressable
@@ -305,7 +304,7 @@ export default function ShootDetailScreen() {
               ) : (
                 <>
                   <Check size={20} color={colors.white} strokeWidth={2.75} />
-                  <Text style={styles.applyText}>Apply to this shoot</Text>
+                  <Text style={styles.applyText}>Like this project</Text>
                 </>
               )}
             </Pressable>
@@ -340,10 +339,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
-    height: 120,
+    bottom: -1,
+    height: 24,
     backgroundColor: colors.bg,
-    opacity: 0.75,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   topBar: {
     position: "absolute",
@@ -356,14 +356,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
+    ...shadows.soft,
   },
-  body: { paddingHorizontal: 20, gap: 14, marginTop: -28 },
-  title: { ...typography.display, marginTop: 2 },
+  body: { paddingHorizontal: 20, gap: 14, marginTop: 16 },
+  title: { ...typography.display, fontSize: 26, lineHeight: 31, marginTop: 2 },
   logline: { ...typography.body, color: colors.textMuted },
   facts: { padding: 14, gap: 12 },
   fact: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -384,7 +383,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     overflow: "hidden",
   },
-  applyEdge: { position: "absolute", top: 0, left: 0, right: 0, height: 1, backgroundColor: colors.highlight },
+  applyEdge: { position: "absolute", top: 0, left: 0, right: 0, height: 1, backgroundColor: colors.border },
   applyBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -392,7 +391,7 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.like,
     ...shadows.glow,
   },
   applyText: { color: colors.white, fontWeight: "800", fontSize: 16 },

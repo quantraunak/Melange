@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Check, Plus, RotateCcw, Search, X } from "lucide-react-native";
+import { Heart, Plus, RotateCcw, Search, X } from "lucide-react-native";
 
 import { MatchCelebration } from "@/components/MatchCelebration";
 import { SwipeCard, SwipeCardBehind, CARD_HEIGHT, type SwipeDir } from "@/components/SwipeCard";
@@ -26,7 +26,7 @@ import {
   getFeedPosts,
   getProfile,
   recordSwipe,
-  shootRoles,
+  projectRoles,
   undoSwipe,
   type CreatorInfo,
   type PostWithCreator,
@@ -35,7 +35,7 @@ import {
 /** Room for the floating tab bar. */
 export const TAB_BAR_CLEARANCE = 112;
 
-export default function ShootsScreen() {
+export default function ProjectsScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const { refresh: refreshMatches } = useMatches();
@@ -52,7 +52,7 @@ export default function ShootsScreen() {
 
   // The match moment, and who it was with.
   const [celebration, setCelebration] = useState<
-    { creator: CreatorInfo; matchId: string; shootTitle: string } | null
+    { creator: CreatorInfo; matchId: string; projectTitle: string } | null
   >(null);
   const [me, setMe] = useState<Pick<CreatorInfo, "name" | "avatar_url">>({
     name: "You",
@@ -91,7 +91,7 @@ export default function ShootsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      // Refresh whenever returning to this tab — picks up newly posted shoots.
+      // Refresh whenever returning to this tab — picks up newly posted projects.
       if (!loading) load();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [load])
@@ -110,7 +110,7 @@ export default function ShootsScreen() {
         (p.description?.toLowerCase().includes(q) ?? false) ||
         (p.location?.toLowerCase().includes(q) ?? false) ||
         (p.compensation?.toLowerCase().includes(q) ?? false) ||
-        shootRoles(p).some((r) => r.toLowerCase().includes(q)) ||
+        projectRoles(p).some((r) => r.toLowerCase().includes(q)) ||
         p.creator.name.toLowerCase().includes(q) ||
         (p.creator.role?.toLowerCase().includes(q) ?? false)
     );
@@ -150,7 +150,7 @@ export default function ShootsScreen() {
           trackEvent("match_created", { match_id: match.id, post_id: post.id });
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           await refreshMatches();
-          setCelebration({ creator: post.creator, matchId: match.id, shootTitle: post.title });
+          setCelebration({ creator: post.creator, matchId: match.id, projectTitle: post.title });
         }
       }
 
@@ -162,7 +162,7 @@ export default function ShootsScreen() {
 
   /**
    * Put the last card back. The swipe row has to go server-side too, or the
-   * feed query filters the shoot straight back out on the next refresh.
+   * feed query filters the project straight back out on the next refresh.
    */
   const rewind = useCallback(async () => {
     if (!lastSwipe || rewinding || swiping) return;
@@ -192,7 +192,7 @@ export default function ShootsScreen() {
         visible={!!celebration}
         me={me}
         them={celebration?.creator ?? null}
-        shootTitle={celebration?.shootTitle}
+        projectTitle={celebration?.projectTitle}
         onMessage={() => {
           const matchId = celebration?.matchId;
           setCelebration(null);
@@ -210,33 +210,33 @@ export default function ShootsScreen() {
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.text}
+            tintColor={colors.textMuted}
           />
         }
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>Open crew calls</Text>
+            <Text style={styles.eyebrow}>Open collabs</Text>
             <Text style={styles.heading}>
-              {loading ? "Loading shoots" : remaining === 1 ? "1 shoot" : `${remaining} shoots`}
+              {loading ? "Loading projects" : remaining === 1 ? "1 project" : `${remaining} projects`}
               {search ? " match" : ""}
             </Text>
           </View>
           <Pressable
             onPress={() => setSearchOpen((v) => !v)}
             style={[styles.iconBtn, searchOpen && styles.iconBtnOn]}
-            accessibilityLabel="Filter shoots"
+            accessibilityLabel="Filter projects"
           >
             <Search size={17} color={colors.text} />
           </Pressable>
           <Pressable
             style={styles.postBtn}
             onPress={() => router.push("/post/new")}
-            accessibilityLabel="Post a shoot"
+            accessibilityLabel="Post a project"
           >
-            <Plus size={15} color={colors.onBrand} strokeWidth={2.5} />
-            <Text style={styles.postBtnText}>Post a shoot</Text>
+            <Plus size={15} color={colors.brandText} strokeWidth={2.5} />
+            <Text style={styles.postBtnText}>New project</Text>
           </Pressable>
         </View>
 
@@ -265,12 +265,12 @@ export default function ShootsScreen() {
         ) : !current ? (
           <Glass style={styles.empty}>
             <Text style={styles.emptyTitle}>
-              {search ? "No shoots match that." : "No open crew calls right now."}
+              {search ? "No projects match that." : "No open collabs right now."}
             </Text>
             <Text style={styles.emptyBody}>
               {search
                 ? "Try a role or a city instead."
-                : "Pull to refresh, or post your own shoot so crew can find you."}
+                : "Pull to refresh, or post your own project so people can find you."}
             </Text>
             {search ? (
               <Pressable onPress={() => setSearch("")}>
@@ -279,7 +279,7 @@ export default function ShootsScreen() {
             ) : (
               <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
                 <Plus size={14} color={colors.onBrand} />
-                <Text style={styles.emptyCtaText}>Post a shoot</Text>
+                <Text style={styles.emptyCtaText}>Post a project</Text>
               </Pressable>
             )}
           </Glass>
@@ -323,7 +323,8 @@ export default function ShootsScreen() {
                 disabled={swiping}
                 accessibilityLabel="Pass"
               >
-                <X size={22} color={colors.text} />
+                <X size={20} color={colors.passText} strokeWidth={2.75} />
+                <Text style={styles.passText}>Pass</Text>
               </Pressable>
 
               <Pressable
@@ -333,13 +334,13 @@ export default function ShootsScreen() {
                   setPendingButtonSwipe("right");
                 }}
                 disabled={swiping}
-                accessibilityLabel="Apply"
+                accessibilityLabel="Like"
               >
-                <Check size={20} color={colors.white} strokeWidth={2.75} />
-                <Text style={styles.applyText}>Apply</Text>
+                <Heart size={20} color={colors.white} strokeWidth={2.75} />
+                <Text style={styles.applyText}>Like</Text>
               </Pressable>
             </View>
-            <Text style={styles.hint}>Swipe right to apply. A chat opens only if they pick you too.</Text>
+            <Text style={styles.hint}>Swipe right to like. A chat opens only when you both say yes.</Text>
           </View>
         )}
       </ScrollView>
@@ -362,23 +363,23 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconBtnOn: { backgroundColor: colors.surfaceStrong, borderColor: colors.borderStrong },
+  iconBtnOn: { backgroundColor: colors.brandSoft, borderColor: colors.brandSoft },
   postBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.brandSoft,
     paddingHorizontal: 14,
     height: 40,
     borderRadius: radii.pill,
   },
-  postBtnText: { color: colors.onBrand, fontWeight: "700", fontSize: 13 },
+  postBtnText: { color: colors.brandText, fontWeight: "700", fontSize: 14 },
   deck: { gap: 14 },
   cardStack: { position: "relative" },
   actions: {
@@ -390,34 +391,37 @@ const styles = StyleSheet.create({
   },
   pressed: { transform: [{ scale: 0.94 }], opacity: 0.9 },
   roundBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
   },
-  roundBtnOff: { opacity: 0.4 },
+  roundBtnOff: { opacity: 0.45 },
   passBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.surfaceStrong,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
+    height: 56,
+    paddingHorizontal: 26,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.pass,
+    ...shadows.soft,
   },
+  passText: { color: colors.passText, fontWeight: "800", fontSize: 16 },
   applyBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    height: 60,
-    paddingHorizontal: 28,
-    borderRadius: 30,
-    backgroundColor: colors.accent,
+    height: 56,
+    paddingHorizontal: 30,
+    borderRadius: 28,
+    backgroundColor: colors.like,
     ...shadows.glow,
   },
   applyText: { color: colors.white, fontWeight: "800", fontSize: 16 },
@@ -425,7 +429,7 @@ const styles = StyleSheet.create({
   empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
   emptyTitle: { ...typography.h3, textAlign: "center" },
   emptyBody: { ...typography.small, textAlign: "center", lineHeight: 19 },
-  emptyLink: { color: colors.accentMuted, fontSize: 13, fontWeight: "700", marginTop: 4 },
+  emptyLink: { color: colors.brandText, fontSize: 13, fontWeight: "700", marginTop: 4 },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",

@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import {
   Camera,
   ChevronRight,
-  Clapperboard,
+  Sparkles,
   LogOut,
   Pencil,
   ShieldOff,
@@ -38,8 +38,8 @@ import {
   getProfile,
   PORTFOLIO_MAX_IMAGES,
   ROLES,
-  shootDates,
-  shootRoles,
+  projectDates,
+  projectRoles,
   updatePortfolio,
   updateProfile,
   uploadFile,
@@ -306,11 +306,11 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.portfolioHeader}>
             <Text style={styles.sectionTitle}>Credits</Text>
-            <Clapperboard size={16} color={colors.accentMuted} />
+            <Sparkles size={16} color={colors.accentMuted} />
           </View>
           {credits.length === 0 ? (
             <Text style={styles.muted}>
-              Apply to a shoot. When the production picks you too and you work together, it lands here.
+              Apply to a project. When they pick you too and you work together, it lands here.
             </Text>
           ) : (
             credits.map((c) => (
@@ -350,7 +350,7 @@ export default function ProfileScreen() {
               </Text>
             </Pressable>
           </View>
-          <Text style={styles.muted}>Stills from things you shot or were in (up to {PORTFOLIO_MAX_IMAGES}).</Text>
+          <Text style={styles.muted}>Your best work, up to {PORTFOLIO_MAX_IMAGES} images.</Text>
           {(profile.portfolio_urls?.length ?? 0) === 0 ? (
             <Pressable style={styles.portfolioEmpty} onPress={onAddPortfolio} disabled={portfolioBusy}>
               <Text style={styles.portfolioEmptyText}>Tap to add images</Text>
@@ -393,11 +393,11 @@ export default function ProfileScreen() {
             <Input
               value={form.role}
               onChangeText={(t) => setForm({ ...form, role: t })}
-              placeholder="e.g. Production designer"
+              placeholder="e.g. Photographer, Model, Stylist"
               containerStyle={{ marginTop: 8 }}
             />
           </Field>
-          <Field label="Reel or portfolio link" hint="Vimeo, YouTube, your site. Productions look here first.">
+          <Field label="Reel or portfolio link" hint="Instagram, Vimeo, your site. People look here first.">
             <Input
               value={form.reel}
               onChangeText={(t) => setForm({ ...form, reel: t })}
@@ -426,7 +426,7 @@ export default function ProfileScreen() {
             <Input
               value={form.currentProject}
               onChangeText={(t) => setForm({ ...form, currentProject: t })}
-              placeholder="What you're shooting right now"
+              placeholder="What you're working on right now"
             />
           </Field>
           <Field label="Instagram">
@@ -445,7 +445,7 @@ export default function ProfileScreen() {
               autoCapitalize="none"
             />
           </Field>
-          <Field label="Taste" hint="Helps rank shoots for you (up to 5)">
+          <Field label="Taste" hint="Helps rank projects for you (up to 5)">
             <View style={styles.vibeRow}>
               {VIBE_PRESETS.map((v) => {
                 const on = vibes.includes(v);
@@ -476,16 +476,16 @@ export default function ProfileScreen() {
           <Button title="Save profile" variant="primary" loading={saving} onPress={onSave} />
         </View>
 
-        {/* My shoots */}
+        {/* My projects */}
         <View style={styles.section}>
           <View style={styles.portfolioHeader}>
-            <Text style={styles.sectionTitle}>Your shoots</Text>
+            <Text style={styles.sectionTitle}>Your projects</Text>
             <Pressable onPress={() => router.push("/post/new")} style={styles.addPortfolioBtn}>
-              <Text style={styles.addPortfolioText}>+ Post a shoot</Text>
+              <Text style={styles.addPortfolioText}>+ Post a project</Text>
             </Pressable>
           </View>
           {myPosts.length === 0 ? (
-            <Text style={styles.muted}>No crew calls posted yet.</Text>
+            <Text style={styles.muted}>No projects posted yet.</Text>
           ) : (
             myPosts.map((p) => (
               <Pressable
@@ -500,8 +500,8 @@ export default function ProfileScreen() {
                     {p.title}
                   </Text>
                   <Text style={styles.postMeta} numberOfLines={1}>
-                    {shootDates(p) ?? new Date(p.created_at).toLocaleDateString()}
-                    {shootRoles(p).length ? ` · ${shootRoles(p).slice(0, 3).join(", ")}` : ""}
+                    {projectDates(p) ?? new Date(p.created_at).toLocaleDateString()}
+                    {projectRoles(p).length ? ` · ${projectRoles(p).slice(0, 3).join(", ")}` : ""}
                     {p.is_active ? "" : " · inactive"}
                   </Text>
                 </View>

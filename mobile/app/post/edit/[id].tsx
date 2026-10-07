@@ -11,14 +11,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Trash2, X } from "lucide-react-native";
 
-import { ShootForm } from "@/components/ShootForm";
+import { ProjectForm } from "@/components/ProjectForm";
 import { Button } from "@/components/ui/Button";
 import { colors, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { deletePost, shootRoles, updatePost, type CollabPost } from "@/lib/db";
+import { deletePost, projectRoles, updatePost, type CollabPost } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 
-export default function EditShootScreen() {
+export default function EditProjectsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useAuth();
@@ -46,7 +46,7 @@ export default function EditShootScreen() {
 
   const onDelete = () => {
     Alert.alert(
-      "Delete this shoot?",
+      "Delete this project?",
       "Matches already made from it keep their chats, but nobody new can apply.",
       [
         { text: "Cancel", style: "cancel" },
@@ -84,7 +84,7 @@ export default function EditShootScreen() {
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.header}>
           <View style={{ width: 24 }} />
-          <Text style={styles.headerTitle}>Shoot not found</Text>
+          <Text style={styles.headerTitle}>Project not found</Text>
           <Pressable hitSlop={12} onPress={() => router.back()}>
             <X size={22} color={colors.text} />
           </Pressable>
@@ -97,13 +97,13 @@ export default function EditShootScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Edit shoot</Text>
+        <Text style={styles.headerTitle}>Edit project</Text>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
           <X size={22} color={colors.text} />
         </Pressable>
       </View>
 
-      <ShootForm
+      <ProjectForm
         userId={userId}
         submitLabel="Save changes"
         busy={busy}
@@ -111,9 +111,9 @@ export default function EditShootScreen() {
         initial={{
           title: post.title,
           description: post.description ?? "",
-          roles: shootRoles(post),
-          shootStart: post.shoot_start ?? null,
-          shootEnd: post.shoot_end ?? null,
+          roles: projectRoles(post),
+          projectStart: post.project_start ?? null,
+          projectEnd: post.project_end ?? null,
           location: post.location ?? "",
           payType: post.pay_type ?? null,
           compensation: post.compensation ?? "",
@@ -126,8 +126,8 @@ export default function EditShootScreen() {
             description: v.description,
             roles: v.roles,
             looking_for: v.roles,
-            shoot_start: v.shootStart,
-            shoot_end: v.shootEnd,
+            project_start: v.projectStart,
+            project_end: v.projectEnd,
             location: v.location || null,
             pay_type: v.payType,
             compensation: v.compensation || null,
@@ -141,7 +141,7 @@ export default function EditShootScreen() {
 
       <View style={styles.deleteBar}>
         <Button
-          title="Delete shoot"
+          title="Delete project"
           variant="danger"
           leadingIcon={<Trash2 size={16} color={colors.white} />}
           onPress={onDelete}

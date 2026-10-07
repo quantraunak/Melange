@@ -1,16 +1,15 @@
 -- ============================================================
--- 08_shoots.sql — a post becomes a shoot (crew call)
+-- 08_projects.sql — structured project fields, a reel link, credits
 --
--- docs/PLAN.md sharpens the product to crew calls for student and indie film:
--- a producer posts a shoot with the roles still open, the dates and the pay
--- type; actors and crew apply by swiping. collab_posts already carries most of
--- this (title, description, looking_for, location, compensation, media). This
--- file adds the structured fields the new UI needs and keeps the old columns
--- so existing rows and the web client keep working untouched.
+-- A post is a creative project: optional roles still open, optional dates and
+-- a pay type. collab_posts already carries most of this (title, description,
+-- looking_for, location, compensation, media). This file adds the structured
+-- fields the new UI needs and keeps the old columns so existing rows and the
+-- web client keep working untouched. Nothing here is required on a post.
 --
 -- Also adds profiles.reel_url (a link to a reel or portfolio site) and a
 -- credits view: once two people have matched and one has reviewed the other,
--- the reviewee earns a credit on the reviewer's shoot. Reviews are the only
+-- the reviewee earns a credit on the reviewer's project. Reviews are the only
 -- "we actually worked together" signal the schema has today, so credits are
 -- derived from them rather than stored twice.
 --
@@ -19,11 +18,11 @@
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 1. Structured shoot fields on collab_posts
+-- 1. Structured project fields on collab_posts
 -- ------------------------------------------------------------
 ALTER TABLE public.collab_posts
-  ADD COLUMN IF NOT EXISTS shoot_start DATE,
-  ADD COLUMN IF NOT EXISTS shoot_end   DATE,
+  ADD COLUMN IF NOT EXISTS project_start DATE,
+  ADD COLUMN IF NOT EXISTS project_end   DATE,
   ADD COLUMN IF NOT EXISTS roles       TEXT[],
   ADD COLUMN IF NOT EXISTS pay_type    TEXT;
 
@@ -41,25 +40,25 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
-    WHERE conname = 'collab_posts_shoot_dates_check'
+    WHERE conname = 'collab_posts_project_dates_check'
       AND conrelid = 'public.collab_posts'::regclass
   ) THEN
     ALTER TABLE public.collab_posts
-      ADD CONSTRAINT collab_posts_shoot_dates_check
-      CHECK (shoot_start IS NULL OR shoot_end IS NULL OR shoot_end >= shoot_start);
+      ADD CONSTRAINT collab_posts_project_dates_check
+      CHECK (project_start IS NULL OR project_end IS NULL OR project_end >= project_start);
   END IF;
 END $$;
 
 COMMENT ON COLUMN public.collab_posts.roles IS
-  'Open roles on this shoot. Fixed vocabulary, enforced by the clients: '
-  'Director, Producer, DP, 1st AC, Gaffer, Sound, Editor, Colorist, Actor, PA, '
-  'Stylist, MUA, Photographer, Model, Other.';
+  'Who the project is looking for. Fixed vocabulary, enforced by the clients: '
+  'Photographer, Model, Stylist, MUA, Hair, Videographer, Director, DP, Editor, '
+  'Actor, Musician, Producer, Dancer, Designer, Illustrator, Writer, Other.';
 COMMENT ON COLUMN public.collab_posts.pay_type IS
-  'paid | tfp (time for prints/footage) | credit (credit and meals only). '
+  'paid | tfp (trade: time for photos/footage/prints) | credit (credit only). '
   'Free-text detail stays in compensation.';
 
-CREATE INDEX IF NOT EXISTS idx_collab_posts_shoot_start
-  ON public.collab_posts(shoot_start) WHERE is_active;
+CREATE INDEX IF NOT EXISTS idx_collab_posts_project_start
+  ON public.collab_posts(project_start) WHERE is_active;
 
 -- ------------------------------------------------------------
 -- 2. A reel link on the profile
@@ -83,8 +82,8 @@ SELECT
   r.reviewer_id                     AS credited_by,
   CASE WHEN m.user1_id = r.reviewer_id THEN m.post1_id ELSE m.post2_id END AS post_id,
   p.title,
-  p.shoot_start,
-  p.shoot_end,
+  p.project_start,
+  p.project_end,
   r.rating,
   r.created_at
 FROM public.collab_reviews r

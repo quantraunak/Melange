@@ -4,12 +4,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 
-import { ShootForm } from "@/components/ShootForm";
+import { ProjectForm } from "@/components/ProjectForm";
 import { colors, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { createPost } from "@/lib/db";
 
-export default function NewShootScreen() {
+export default function NewProjectsScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -20,23 +20,23 @@ export default function NewShootScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Post a shoot</Text>
+        <Text style={styles.headerTitle}>Post a project</Text>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
           <X size={22} color={colors.text} />
         </Pressable>
       </View>
 
-      <ShootForm
+      <ProjectForm
         userId={userId}
-        submitLabel="Post shoot"
+        submitLabel="Post project"
         busy={busy}
         onSubmit={async (v) => {
           setBusy(true);
           const { error } = await createPost(userId, v.title, v.description, {
             roles: v.roles,
             looking_for: v.roles,
-            shoot_start: v.shootStart ?? undefined,
-            shoot_end: v.shootEnd ?? undefined,
+            project_start: v.projectStart ?? undefined,
+            project_end: v.projectEnd ?? undefined,
             location: v.location || undefined,
             pay_type: v.payType ?? undefined,
             compensation: v.compensation || undefined,
