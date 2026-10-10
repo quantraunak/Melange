@@ -1,0 +1,58 @@
+{
+  "posts": {
+    "Looking for models \u2014 editorial portrait series": [
+      "https://images.unsplash.com/photo-1758613655668-61f17422f5d2?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1758613655023-542a34a26752?w=1200&q=80&auto=format&fit=crop"
+    ],
+    "Model available for photographers": [
+      "https://images.unsplash.com/photo-1759532338598-679140538775?w=1200&q=80&auto=format&fit=crop"
+    ],
+    "Golden-hour rooftop editorial": [
+      "https://images.unsplash.com/photo-1767390649099-90a5e594e35d?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1693075252074-22912717acec?w=1200&q=80&auto=format&fit=crop"
+    ],
+    "Editorial MUA for creative shoots": [
+      "https://images.unsplash.com/photo-1636023730877-233b9237d4ec?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1719613959577-434f93b266d7?w=1200&q=80&auto=format&fit=crop"
+    ],
+    "Street-style photo walk this weekend": [
+      "https://images.unsplash.com/photo-1761069234906-a7c77124f641?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1771367546089-e691a462212b?w=1200&q=80&auto=format&fit=crop"
+    ],
+    "Wardrobe stylist \u2014 editorial & commercial": [
+      "https://images.unsplash.com/photo-1758613654186-6ce234bf94ab?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1758613655198-4ec323049b01?w=1200&q=80&auto=format&fit=crop"
+    ],
+    "Model available \u2014 editorial & runway": [
+      "https://images.unsplash.com/photo-1759532338598-679140538775?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1717177007172-d333206f67d6?w=1200&q=80&auto=format&fit=crop"
+    ]
+  },
+  "avatars": {
+    "Maya Chen": "https://images.unsplash.com/photo-1512813498716-3e640fed3f39?w=400&h=400&q=80&auto=format&fit=crop&crop=faces",
+    "Jordan Rivera": "https://images.unsplash.com/photo-1717177007172-d333206f67d6?w=400&h=400&q=80&auto=format&fit=crop&crop=faces",
+    "Sofia Blake": "https://images.unsplash.com/photo-1760022184305-9bedc2b54e1a?w=400&h=400&q=80&auto=format&fit=crop&crop=faces",
+    "Devin Park": "https://images.unsplash.com/photo-1603574670812-d24560880210?w=400&h=400&q=80&auto=format&fit=crop&crop=faces",
+    "Aria Nakamura": "https://images.unsplash.com/photo-1549981832-2ba2ee913334?w=400&h=400&q=80&auto=format&fit=crop&crop=faces"
+  },
+  "new_post": {
+    "owner_name": "Devin Park",
+    "title": "Short film needs a 1st AC and sound, two-day shoot",
+    "description": "Shooting a 12-minute short over a weekend in Orange. Have DP and gaffer, need a 1st AC and a sound recordist. Food, credit and the finished film for your reel.",
+    "looking_for": [
+      "1st AC",
+      "Sound"
+    ],
+    "roles": [
+      "DP",
+      "Sound"
+    ],
+    "location": "Orange, CA",
+    "compensation": "Credit + meals",
+    "pay_type": "credit",
+    "media_urls": [
+      "https://images.unsplash.com/photo-1632187981988-40f3cbaeef5e?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1515634928627-2a4e0dae3ddf?w=1200&q=80&auto=format&fit=crop"
+    ]
+  }
+}
