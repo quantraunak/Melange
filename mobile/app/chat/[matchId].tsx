@@ -296,29 +296,44 @@ export default function ChatScreen() {
             contentContainerStyle={styles.messageList}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
-                <Text style={styles.emptyChatText}>No messages yet. Say hello!</Text>
+                <Text style={styles.emptyChatTitle}>You matched</Text>
+                <Text style={styles.emptyChatText}>
+                  You both said yes to {match.other_post.title}. Whoever writes first
+                  usually names a date.
+                </Text>
               </View>
             }
             renderItem={({ item, index }) => {
               const isMe = item.sender_id === userId;
               const prev = messages[index - 1];
-              const sameAuthor = prev && prev.sender_id === item.sender_id;
+              const next = messages[index + 1];
+              const sameAuthorBefore = prev && prev.sender_id === item.sender_id;
+              // A run of messages from one person is one block: only its last
+              // bubble is timestamped, and only its outer corners are round.
+              // Stamping every bubble turns a conversation into a log.
+              const endsRun = !next || next.sender_id !== item.sender_id;
               return (
                 <View
                   style={[
                     styles.bubbleRow,
                     isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
-                    sameAuthor ? { marginTop: 2 } : { marginTop: 8 },
+                    sameAuthorBefore ? { marginTop: 2 } : { marginTop: 10 },
                   ]}
                 >
-                  <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
-                    <Text style={[styles.bubbleText, isMe && { color: colors.white }]}>
+                  <View
+                    style={[
+                      styles.bubble,
+                      isMe ? styles.bubbleMe : styles.bubbleOther,
+                      endsRun && (isMe ? styles.bubbleMeTail : styles.bubbleOtherTail),
+                    ]}
+                  >
+                    <Text style={[styles.bubbleText, isMe && { color: colors.onAccent }]}>
                       {item.content}
                     </Text>
-                    <Text style={[styles.bubbleTime, isMe ? { color: colors.onAccentMuted } : null]}>
-                      {formatClockTime(item.created_at)}
-                    </Text>
                   </View>
+                  {endsRun ? (
+                    <Text style={styles.bubbleTime}>{formatClockTime(item.created_at)}</Text>
+                  ) : null}
                 </View>
               );
             }}
@@ -359,8 +374,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
-    borderBottomColor: colors.lineStrong,
-    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerMiddle: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   headerTitle: { ...typography.headline, flex: 1, color: colors.text },
@@ -379,22 +394,39 @@ const styles = StyleSheet.create({
   },
   notFoundBtnText: { ...typography.bodyStrong, color: colors.white },
   messageList: { paddingHorizontal: 14, paddingVertical: 12, flexGrow: 1 },
-  emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
-  emptyChatText: { ...typography.body, color: colors.textSecondary },
-  bubbleRow: { flexDirection: "row" },
+  emptyChat: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    gap: 6,
+  },
+  emptyChatTitle: { ...typography.headline, color: colors.text },
+  emptyChatText: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+
+  bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   bubbleRowMe: { justifyContent: "flex-end" },
   bubbleRowOther: { justifyContent: "flex-start" },
   bubble: {
-    maxWidth: "78%",
+    maxWidth: "76%",
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radii.md,
+    paddingVertical: 9,
+    borderRadius: radii.lg,
   },
-  bubbleMe: { backgroundColor: colors.bubbleMe, borderBottomRightRadius: 6 },
-  bubbleOther: { backgroundColor: colors.bubbleOther, borderBottomLeftRadius: 6 },
+  /* No tail notch: the spec allows four radii and a fifth value for one
+     corner of one component is how scales rot. A run reads as a run from
+     spacing — 2pt inside a block, 10pt between blocks. */
+  bubbleMe: { backgroundColor: colors.bubbleMe },
+  bubbleOther: { backgroundColor: colors.bubbleOther },
+  bubbleMeTail: {},
+  bubbleOtherTail: {},
   bubbleText: { ...typography.body, color: colors.text },
-  bubbleTime: { ...typography.micro, color: colors.textSecondary, marginTop: 2, alignSelf: "flex-end" },
-  inputSafe: { backgroundColor: colors.surface, borderTopColor: colors.lineStrong, borderTopWidth: 1 },
+  bubbleTime: { ...typography.micro, color: colors.textTertiary, marginBottom: 2 },
+  inputSafe: {
+    backgroundColor: colors.surface,
+    borderTopColor: colors.line,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -402,11 +434,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  input: { ...typography.body, flex: 1, backgroundColor: colors.surfaceSunken, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 10, color: colors.text, maxHeight: 120 },
+  input: {
+    ...typography.body,
+    flex: 1,
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: colors.text,
+    maxHeight: 120,
+  },
   sendBtn: {
     width: 38,
     height: 38,
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
@@ -415,14 +458,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: 12,
-    marginTop: 8,
-    padding: 10,
-    backgroundColor: colors.accentSoft,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surfaceSunken,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
   },
-  reviewBannerText: { ...typography.caption, flex: 1, color: colors.accentInk, marginRight: 8 },
-  reviewBannerCta: { ...typography.caption, fontFamily: fonts.semibold, color: colors.accent },
+  reviewBannerText: { ...typography.caption, flex: 1, color: colors.textSecondary, marginRight: 8 },
+  reviewBannerCta: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });
