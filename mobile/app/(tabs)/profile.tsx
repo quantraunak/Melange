@@ -17,14 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ImageIcon,
-  CalendarDays,
   Camera,
-  ChevronRight,
-  LogOut,
   Pencil,
   Settings as SettingsIcon,
-  ShieldOff,
-  Trash2,
 } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
@@ -347,42 +342,8 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Account & safety */}
-        <View style={styles.block}>
-          <View style={styles.blockHead}>
-            <Text style={styles.sectionTitle}>Account & safety</Text>
-          </View>
-
-          <Pressable style={styles.linkRow} onPress={() => router.push("/events")}>
-            <CalendarDays size={18} color={colors.iconFaint} />
-            <Text style={styles.linkRowText}>Events</Text>
-            <ChevronRight size={16} color={colors.iconFaint} />
-          </Pressable>
-
-          <Pressable style={styles.linkRow} onPress={() => router.push("/account/blocked")}>
-            <ShieldOff size={18} color={colors.iconFaint} />
-            <Text style={styles.linkRowText}>Blocked users</Text>
-            <ChevronRight size={16} color={colors.iconFaint} />
-          </Pressable>
-
-          <Pressable style={styles.linkRow} onPress={onSignOut}>
-            <LogOut size={18} color={colors.iconFaint} />
-            <Text style={styles.linkRowText}>Sign out</Text>
-            <ChevronRight size={16} color={colors.iconFaint} />
-          </Pressable>
-
-          <Pressable
-            style={[styles.linkRow, { borderColor: colors.dangerSoft }]}
-            onPress={() => router.push("/account/delete")}
-          >
-            <Trash2 size={18} color={colors.dangerText} />
-            <Text style={[styles.linkRowText, { color: colors.dangerText }]}>
-              Delete account
-            </Text>
-            <ChevronRight size={16} color={colors.dangerText} />
-          </Pressable>
-        </View>
-
+        {/* Account, safety and sign out are behind the gear. They were also
+            here at the foot of the page, which is two homes for one thing. */}
         <View style={{ height: 16 }} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -471,14 +432,4 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     backgroundColor: colors.surfaceSunken,
   },
-
-  linkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  linkRowText: { ...typography.body, flex: 1, color: colors.text },
 });
