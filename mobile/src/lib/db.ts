@@ -83,11 +83,12 @@ export function payLabel(post: Pick<CollabPost, "pay_type" | "compensation">): s
 
 export type Credit = {
   match_id: string;
+  /** The project the credit is on. Always someone else's — never your own post. */
+  post_id: string | null;
   title: string;
+  image: string | null;
   with_name: string;
-  role: string | null;
   date: string;
-  confirmed: boolean;
 };
 
 export type CreatorInfo = {
@@ -992,64 +993,103 @@ export async function deleteAccount(): Promise<{ error: string | null }> {
 // ============================================================
 
 /**
- * What this person has worked on, through Melange.
+ * Work this person has delivered with someone, through Melange.
  *
- * Confirmed credits come from the `credits` view (08_projects.sql): a review on
- * a match is the schema's only "we actually worked together" signal. On a
- * database without the view, or for matches nobody has reviewed yet, the
- * list falls back to the matches themselves, marked unconfirmed, so the
- * profile is never empty for someone who has real matches.
+ * A credit needs a review on the match: that is the schema's only "we actually
+ * worked together" signal (08_projects.sql). Matching is not working together,
+ * so a match nobody has reviewed is not a credit — it is a conversation, and it
+ * is already on Matches. Inventing credits from bare matches is what put an
+ * open call into Work and left the same project listed twice on the profile.
+ *
+ * The project is resolved by owner, not by position: `create_match` stores
+ * post1_id/post2_id ordered by user id, so matches.postN_id belongs to the
+ * OTHER user, and reading them positionally hands you your own post back. A
+ * credit is on the project of whoever credited you, which is never your own.
  */
 export async function getCredits(
   userId: string
 ): Promise<{ data: Credit[]; error: string | null }> {
   try {
-    const confirmed = new Map<string, Credit>();
-    const view = await supabase
+    const { data, error } = await supabase
       .from("credits")
-      .select("match_id,title,credited_by,created_at,project_start")
+      .select("match_id,post_id,title,credited_by,created_at,project_start")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    if (!view.error) {
-      const rows = (view.data || []) as {
-        match_id: string;
-        title: string;
-        credited_by: string;
-        created_at: string;
-        project_start: string | null;
-      }[];
-      const names = await fetchCreators([...new Set(rows.map((r) => r.credited_by))]);
-      for (const r of rows) {
-        confirmed.set(r.match_id, {
-          match_id: r.match_id,
-          title: r.title,
-          with_name: names.get(r.credited_by)?.name ?? "Someone",
-          role: null,
-          date: r.project_start ?? r.created_at,
-          confirmed: true,
-        });
-      }
-    }
+    if (error) return { data: [], error: error.message };
 
-    const { data: matches, error } = await getMatches(userId);
-    if (error && confirmed.size === 0) return { data: [], error };
-    const me = await getProfile(userId);
-    const myRole = me.data?.role ?? null;
+    const rows = (data || []) as {
+      match_id: string;
+      post_id: string | null;
+      title: string;
+      credited_by: string;
+      created_at: string;
+      project_start: string | null;
+    }[];
+    if (!rows.length) return { data: [], error: null };
 
-    const out: Credit[] = [...confirmed.values()].map((c) => ({ ...c, role: myRole }));
-    for (const m of matches ?? []) {
-      if (confirmed.has(m.id)) continue;
-      out.push({
-        match_id: m.id,
-        title: m.other_post.title,
-        with_name: m.other_creator.name,
-        role: myRole,
-        date: m.other_post.project_start ?? m.created_at,
-        confirmed: false,
-      });
-    }
+    const [names, projects] = await Promise.all([
+      fetchCreators([...new Set(rows.map((r) => r.credited_by))]),
+      creditProjects(rows.map((r) => r.match_id)),
+    ]);
+
+    const out = rows.map((r) => {
+      const project = projects.get(r.match_id)?.get(r.credited_by);
+      return {
+        match_id: r.match_id,
+        post_id: project?.id ?? r.post_id,
+        title: project?.title ?? r.title,
+        image: project?.media_urls?.[0] ?? null,
+        with_name: names.get(r.credited_by)?.name ?? "Someone",
+        date: project?.project_start ?? r.project_start ?? r.created_at,
+      };
+    });
     return { data: out, error: null };
   } catch (err) {
     return { data: [], error: errMsg(err) };
   }
+}
+
+/**
+ * For each match, its posts keyed by owner — so a credit can ask for the
+ * project belonging to the person who credited you. Selects media, which is
+ * why a credit row can show its photograph instead of a placeholder glyph.
+ */
+async function creditProjects(
+  matchIds: string[]
+): Promise<Map<string, Map<string, CollabPost>>> {
+  const out = new Map<string, Map<string, CollabPost>>();
+  if (!matchIds.length) return out;
+
+  const { data: matches, error } = await supabase
+    .from("matches")
+    .select("id,post1_id,post2_id")
+    .in("id", [...new Set(matchIds)]);
+  if (error || !matches?.length) {
+    if (error) console.error("getCredits: match lookup failed", error.message);
+    return out;
+  }
+
+  const rows = matches as { id: string; post1_id: string; post2_id: string }[];
+  const postIds = [...new Set(rows.flatMap((m) => [m.post1_id, m.post2_id]))];
+  const { data: posts, error: postsError } = await supabase
+    .from("collab_posts")
+    .select("*")
+    .in("id", postIds);
+  if (postsError) {
+    console.error("getCredits: project lookup failed", postsError.message);
+    return out;
+  }
+
+  const byId = new Map<string, CollabPost>(
+    ((posts || []) as CollabPost[]).map((p) => [p.id, p])
+  );
+  for (const m of rows) {
+    const byOwner = new Map<string, CollabPost>();
+    for (const id of [m.post1_id, m.post2_id]) {
+      const post = byId.get(id);
+      if (post) byOwner.set(post.owner_id, post);
+    }
+    out.set(m.id, byOwner);
+  }
+  return out;
 }

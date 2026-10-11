@@ -60,7 +60,7 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myPosts, setMyPosts] = useState<CollabPost[]>([]);
   const [credits, setCredits] = useState<Credit[]>([]);
-  const [work, setWork] = useState<StoryWithAuthor[]>([]);
+  const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [uploading, setUploading] = useState(false);
   const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export default function ProfileScreen() {
     }
     setMyPosts(postsData || []);
     setCredits(creditData || []);
-    setWork(storyRes.data);
+    setStories(storyRes.data);
     setLoading(false);
   }, [userId]);
 
@@ -97,36 +97,46 @@ export default function ProfileScreen() {
     load();
   }, [load]);
 
-  /* Credits come from matches, stories from the stories table, and the two
-     describe the same thing: a piece of work and who it was made with. The
-     profile shows one list. Stories first — they carry an image. */
-  const workItems = useMemo(() => {
-    const fromStories = work.map((st) => {
-      const names = st.credits.map((c) => c.name).filter(Boolean);
-      return {
-        key: `story-${st.id}`,
-        image: st.media_urls[0] ?? null,
-        title: st.title,
-        with: names.length ? `with ${names.slice(0, 3).join(", ")}` : null,
-        when: storyDate(st),
-        sort: st.happened_on ?? st.created_at,
-        onPress: () =>
-          router.push({ pathname: "/story/[id]", params: { id: st.id } }),
-      };
-    });
-    const fromCredits = credits.map((c) => ({
-      key: `credit-${c.match_id}`,
-      image: null as string | null,
-      title: c.title,
-      with: `with ${c.with_name}`,
-      when: formatRecordDate(c.date),
-      sort: c.date,
-      onPress: undefined,
-    }));
-    return [...fromStories, ...fromCredits].sort((a, b) =>
-      String(b.sort).localeCompare(String(a.sort))
-    );
-  }, [work, credits, router]);
+  /* Work and Your projects are one split of the same material, decided here,
+     so nothing can land in both.
+
+       Work          what you made. A story you recorded, or a credit a
+                     review backs. Finished, and always with someone.
+       Your projects what you have open. Posts you own, still looking.
+
+     The split holds by construction rather than by filtering: a post you own
+     can never reach Work, because a story is a story and a credit is on the
+     project of the person who credited you. Work used to be built partly out
+     of bare matches, which is how your own open call ended up listed under
+     both. Matching is not making something; that row lives on Matches. */
+  const { work, projects } = useMemo(() => {
+    const made = [
+      ...stories.map((st) => {
+        const names = st.credits.map((c) => c.name).filter(Boolean);
+        return {
+          key: `story-${st.id}`,
+          image: st.media_urls[0] ?? null,
+          title: st.title,
+          with: names.length ? `with ${names.slice(0, 3).join(", ")}` : null,
+          when: storyDate(st),
+          sort: st.happened_on ?? st.created_at,
+          onPress: () =>
+            router.push({ pathname: "/story/[id]", params: { id: st.id } }),
+        };
+      }),
+      ...credits.map((c) => ({
+        key: `credit-${c.match_id}`,
+        image: c.image,
+        title: c.title,
+        with: `with ${c.with_name}`,
+        when: formatRecordDate(c.date),
+        sort: c.date,
+        onPress: undefined,
+      })),
+    ].sort((a, b) => String(b.sort).localeCompare(String(a.sort)));
+
+    return { work: made, projects: myPosts };
+  }, [stories, credits, myPosts, router]);
 
   const onChangeAvatar = async () => {
     if (!userId) return;
@@ -320,11 +330,11 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {workItems.length === 0 && (profile.portfolio_urls?.length ?? 0) === 0 ? (
+          {work.length === 0 && (profile.portfolio_urls?.length ?? 0) === 0 ? (
             <Text style={styles.muted}>Nothing here yet.</Text>
           ) : null}
 
-          {workItems.map((w) => (
+          {work.map((w) => (
             <Pressable
               key={w.key}
               onPress={w.onPress}
@@ -393,10 +403,10 @@ export default function ProfileScreen() {
               <Text style={styles.sectionAction}>Post</Text>
             </Pressable>
           </View>
-          {myPosts.length === 0 ? (
-            <Text style={styles.muted}>No projects posted yet.</Text>
+          {projects.length === 0 ? (
+            <Text style={styles.muted}>Nothing open.</Text>
           ) : (
-            myPosts.map((p) => (
+            projects.map((p) => (
               <Pressable
                 key={p.id}
                 style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
