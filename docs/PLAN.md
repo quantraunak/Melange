@@ -125,6 +125,31 @@ opens only on mutual consent; a public phone number in an app for meeting
 strangers breaks that. Every story instead ends with "Work with me", which
 routes through the existing match flow.
 
+## 5c. Public profiles and a quality floor (added 2026-10-11)
+
+Jolea's second idea: you cannot tell from a card whether someone is worth
+working with. Hinge solves this by requiring six photos and three prompts
+before you can be on the app, which is a deliberate quality floor as much as a
+profile format.
+
+**The blocker first: there is no public profile screen.** `mobile/app/(tabs)/profile.tsx`
+is the only profile route and it shows *you*. Nothing in the app can open
+someone else's profile — not the swipe card, not a credited collaborator on a
+piece of work, not a match. Until that route exists, no amount of profile
+richness is reachable. Build it first.
+
+**What answers "is this worth my time":** their photos, what they have made and
+with whom, and later the behavioural signals (show-up rate, delivery rate,
+repeat collaborations). Not a rating.
+
+**The quality floor, and where to put it.** A hard gate at signup would be
+suicidal at 12 users. Put the cost on the person asking for attention, not the
+person browsing: anyone can look, but you cannot post a project or like someone
+until your own profile carries at least three portfolio images and a role. One
+line when blocked — "Add three photos to post." No completion meter, no
+percentage; that pattern is exactly the verbose hand-holding the owner objects
+to.
+
 ## 6. What runs autonomously and what does not
 
 **Autonomous (weekly cloud routine, plus local loops when Raunak is at the machine):**
