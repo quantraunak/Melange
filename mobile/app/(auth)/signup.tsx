@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   topBar: { paddingTop: 8, paddingBottom: 12 },
   header: { alignItems: "center", marginBottom: 16, gap: 6 },
   title: { ...typography.title, color: colors.white, marginTop: 8 },
-  subtitle: { ...typography.caption, color: "#bfdbfe" },
+  subtitle: { ...typography.caption, color: colors.onBrandMuted },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,

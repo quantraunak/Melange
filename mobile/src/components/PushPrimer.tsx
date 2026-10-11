@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSunken,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: "#bfdbfe",
+    borderColor: colors.line,
   },
   icon: {
     width: 34,
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   body: { flex: 1, gap: 5 },
-  title: { ...typography.bodyStrong, color: colors.brand },
-  text: { ...typography.caption, color: colors.brandText, opacity: 0.9 },
+  title: { ...typography.bodyStrong, color: colors.text },
+  text: { ...typography.caption, color: colors.textSecondary },
   cta: {
     alignSelf: "flex-start",
     marginTop: 4,

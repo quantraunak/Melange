@@ -40,17 +40,20 @@ export const colors = {
   brand: "#1e3a8a",
   brandText: "#1d4ed8", // text links only
   onBrand: "#ffffff",
+  onBrandMuted: "#bfdbfe", // secondary text on a brand-filled ground
 
   // Violet is yes.
   accent: "#7c3aed",
   accentSoft: "#f5f3ff",
   accentInk: "#6d28d9",
   onAccent: "#ffffff",
+  onAccentMuted: "rgba(255,255,255,0.72)", // metadata inside an accent bubble
 
   // Red is destructive confirmation. It is not a UI colour.
   danger: "#dc2626",
   dangerSoft: "#fee2e2",
   dangerText: "#b91c1c",
+  dangerLine: "#fecaca", // the hairline on a destructive surface
 
   // Chat
   bubbleMe: "#7c3aed",

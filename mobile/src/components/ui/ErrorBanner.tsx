@@ -13,7 +13,7 @@ export function ErrorBanner({ message }: { message: string | null }) {
 const styles = StyleSheet.create({
   wrap: {
     backgroundColor: colors.dangerSoft,
-    borderColor: "#fecaca",
+    borderColor: colors.dangerLine,
     borderWidth: 1,
     borderRadius: radii.sm,
     paddingHorizontal: 12,

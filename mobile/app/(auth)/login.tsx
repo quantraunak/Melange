@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   topBar: { paddingTop: 8, paddingBottom: 16 },
   header: { alignItems: "center", marginVertical: 24, gap: 8 },
   title: { ...typography.display2, color: colors.white, marginTop: 12 },
-  subtitle: { ...typography.body, color: "#bfdbfe" },
+  subtitle: { ...typography.body, color: colors.onBrandMuted },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,

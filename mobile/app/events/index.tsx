@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
   },
-  rsvpInterested: { backgroundColor: "#fef9c3" },
+  rsvpInterested: { backgroundColor: colors.accentSoft },
   rsvpGoing: { backgroundColor: colors.accent },
   rsvpDivider: { width: 1, backgroundColor: colors.lineStrong },
   rsvpLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },

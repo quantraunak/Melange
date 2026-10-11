@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   topBar: { paddingTop: 8, paddingBottom: 16 },
   header: { alignItems: "center", marginVertical: 24, gap: 8 },
   title: { ...typography.display2, color: colors.white, marginTop: 12 },
-  subtitle: { ...typography.body, color: "#bfdbfe", textAlign: "center", paddingHorizontal: 12 },
+  subtitle: { ...typography.body, color: colors.onBrandMuted, textAlign: "center", paddingHorizontal: 12 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,

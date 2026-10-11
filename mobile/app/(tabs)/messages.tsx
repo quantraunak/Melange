@@ -23,13 +23,13 @@ import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { MatchRowSkeleton } from "@/components/ui/Skeleton";
 import { colors, fonts, radii, typography } from "@/lib/theme";
+import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { isLastMessageSeen, isMatchUnread, type MatchWithPost } from "@/lib/db";
 import { formatListTime } from "@/lib/format";
 
 /** Room for the floating tab bar. */
-const TAB_BAR_CLEARANCE = 112;
 
 type Row =
   | { kind: "project"; key: string; title: string; count: number }
@@ -46,6 +46,7 @@ type Row =
  */
 export default function MatchesScreen() {
   const insets = useSafeAreaInsets();
+  const barTop = useBarTop();
   const router = useRouter();
   const { userId } = useAuth();
   const { matches, loading, error, refresh, unmatch } = useMatches();
@@ -177,7 +178,7 @@ export default function MatchesScreen() {
   if (matches.length === 0) {
     return (
       <ScrollView
-        contentContainerStyle={[styles.emptyScroll, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.emptyScroll, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
         }
@@ -201,7 +202,7 @@ export default function MatchesScreen() {
     <FlatList
       data={rows}
       keyExtractor={(r) => r.key}
-      contentContainerStyle={[styles.list, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.list, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
@@ -281,7 +282,6 @@ export default function MatchesScreen() {
       renderItem={({ item }) =>
         item.kind === "project" ? (
           <View style={styles.projectHead}>
-            <Sparkles size={14} color={colors.accentInk} />
             <Text style={styles.projectTitle} numberOfLines={1}>
               {item.title}
             </Text>
@@ -363,7 +363,7 @@ function MatchRow({
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, paddingTop: 6, paddingBottom: TAB_BAR_CLEARANCE, flexGrow: 1 },
+  list: { padding: 16, paddingTop: 6, paddingBottom: 24, flexGrow: 1 },
   header: { gap: 12, marginBottom: 4 },
 
   section: { gap: 8 },
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   nameUnread: { fontFamily: fonts.semibold },
   role: { ...typography.micro, fontFamily: fonts.regular },
   time: { ...typography.micro },
-  timeUnread: { color: colors.accentInk, fontFamily: fonts.semibold },
+  timeUnread: { color: colors.brandText, fontFamily: fonts.semibold },
   rowBottom: { flexDirection: "row", alignItems: "center", gap: 5 },
   preview: { flex: 1, ...typography.caption },
   previewUnread: { color: colors.text, fontFamily: fonts.semibold },
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
-    paddingBottom: TAB_BAR_CLEARANCE,
+    paddingBottom: 24,
     gap: 10,
   },
   emptyIcon: {

@@ -81,7 +81,7 @@ export default function SettingsScreen() {
         {rows.map((row) => (
           <Pressable
             key={row.label}
-            style={[styles.row, row.danger && { borderColor: "#fecaca" }]}
+            style={[styles.row, row.danger && { borderColor: colors.dangerLine }]}
             onPress={row.onPress}
             accessibilityRole="button"
           >

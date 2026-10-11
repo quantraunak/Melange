@@ -315,7 +315,7 @@ export default function ChatScreen() {
                     <Text style={[styles.bubbleText, isMe && { color: colors.white }]}>
                       {item.content}
                     </Text>
-                    <Text style={[styles.bubbleTime, isMe ? { color: "#ddd6fe" } : null]}>
+                    <Text style={[styles.bubbleTime, isMe ? { color: colors.onAccentMuted } : null]}>
                       {formatClockTime(item.created_at)}
                     </Text>
                   </View>
@@ -423,6 +423,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent,
   },
-  reviewBannerText: { ...typography.caption, flex: 1, color: "#5b21b6", marginRight: 8 },
+  reviewBannerText: { ...typography.caption, flex: 1, color: colors.accentInk, marginRight: 8 },
   reviewBannerCta: { ...typography.caption, fontFamily: fonts.semibold, color: colors.accent },
 });

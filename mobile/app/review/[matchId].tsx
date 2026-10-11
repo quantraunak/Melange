@@ -82,8 +82,8 @@ export default function ReviewScreen() {
             <Pressable key={n} onPress={() => setRating(n)}>
               <Star
                 size={32}
-                color={n <= rating ? "#f59e0b" : colors.iconFaint}
-                fill={n <= rating ? "#f59e0b" : "transparent"}
+                color={n <= rating ? colors.accent : colors.iconFaint}
+                fill={n <= rating ? colors.accent : "transparent"}
               />
             </Pressable>
           ))}
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lineStrong,
   },
-  tagOn: { backgroundColor: "#ede9fe", borderColor: colors.accent },
+  tagOn: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   tagText: { ...typography.caption, color: colors.textSecondary },
   tagTextOn: { color: colors.accent, fontFamily: fonts.semibold },
 });

@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   progress: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 10 },
   progressItem: { flex: 1, gap: 6 },
   bar: { height: 3, borderRadius: radii.sm, backgroundColor: colors.lineStrong },
-  barOn: { backgroundColor: colors.accent },
+  barOn: { backgroundColor: colors.brand },
   barLabel: { ...typography.micro, color: colors.iconFaint },
   barLabelOn: { color: colors.text, fontFamily: fonts.semibold },
   scroll: { padding: 16, gap: 14, paddingBottom: 24 },

@@ -19,7 +19,6 @@ import {
   CalendarDays,
   Camera,
   ChevronRight,
-  Sparkles,
   LogOut,
   Pencil,
   Settings as SettingsIcon,
@@ -35,6 +34,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, radii, typography } from "@/lib/theme";
+import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import {
   getCredits,
@@ -66,6 +66,7 @@ function normalizeReel(raw: string): string {
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const barTop = useBarTop();
   const { userId, signOut } = useAuth();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -293,7 +294,7 @@ export default function ProfileScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Settings lives here now that Discover is full bleed and has no header. */}
@@ -339,7 +340,6 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.portfolioHeader}>
             <Text style={styles.sectionTitle}>Credits</Text>
-            <Sparkles size={16} color={colors.accentInk} />
           </View>
           {credits.length === 0 ? (
             <Text style={styles.muted}>
@@ -644,7 +644,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
-  scroll: { padding: 16, gap: 14, paddingBottom: 150 },
+  scroll: { padding: 16, gap: 14, paddingBottom: 24 },
   subLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary, marginTop: 10 },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   topBarTitle: typography.display1,
@@ -691,8 +691,8 @@ const styles = StyleSheet.create({
     bottom: -2,
     width: 28,
     height: 28,
-    borderRadius: radii.md,
-    backgroundColor: colors.accent,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brand,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,

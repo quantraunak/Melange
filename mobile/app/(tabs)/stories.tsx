@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Dimensions,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -7,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -18,11 +20,14 @@ import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, shadows, typography } from "@/lib/theme";
+import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { getStories, storyDate, type StoryWithAuthor } from "@/lib/stories";
+import { sized } from "@/lib/imageUrl";
 
-const TAB_BAR_CLEARANCE = 112;
+const { width: SCREEN_W } = Dimensions.get("window");
+
 
 /**
  * Stories — what people already made.
@@ -35,6 +40,7 @@ const TAB_BAR_CLEARANCE = 112;
 export default function StoriesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const barTop = useBarTop();
   const { userId } = useAuth();
 
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
@@ -66,7 +72,7 @@ export default function StoriesScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -131,14 +137,14 @@ export default function StoriesScreen() {
       </ScrollView>
 
       {!unavailable && userId ? (
-        <View style={[styles.fab, { bottom: TAB_BAR_CLEARANCE }]} pointerEvents="box-none">
+        <View style={[styles.fab, { bottom: barTop + 20 }]} pointerEvents="box-none">
           <GlassButton
             accessibilityLabel="Post a story"
             onPress={() => router.push("/story/new")}
-            size={58}
-            solid={colors.accent}
+            size={56}
+            solid={colors.brand}
           >
-            <Pencil size={24} color={colors.white} strokeWidth={2.4} />
+            <Pencil size={22} color={colors.onBrand} strokeWidth={1.75} />
           </GlassButton>
         </View>
       ) : null}
@@ -160,7 +166,12 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       {hero ? (
-        <Image source={{ uri: hero }} style={styles.hero} contentFit="cover" transition={160} />
+        <Image
+          source={{ uri: sized(hero, SCREEN_W, 220) }}
+          style={styles.hero}
+          contentFit="cover"
+          transition={160}
+        />
       ) : (
         <View style={[styles.hero, styles.heroEmpty]}>
           <BookOpen size={30} color={colors.iconFaint} strokeWidth={1.2} />
@@ -221,7 +232,7 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { paddingHorizontal: 16, paddingBottom: TAB_BAR_CLEARANCE + 24, gap: 14 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
   header: { flexDirection: "row", alignItems: "flex-end" },
   eyebrow: typography.eyebrow,
   heading: typography.display1,
@@ -277,5 +288,5 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: { color: colors.onBrand, fontFamily: fonts.semibold },
 
-  fab: { position: "absolute", right: 20 },
+  fab: { position: "absolute", right: GUTTER },
 });
