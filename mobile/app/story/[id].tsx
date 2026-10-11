@@ -268,7 +268,10 @@ const styles = StyleSheet.create({
   galleryEmpty: { backgroundColor: colors.surfaceStrong },
   dots: {
     position: "absolute",
-    bottom: 14,
+    // The body card below overlaps the gallery by 24 (body.marginTop: -24),
+    // so dots sitting at the gallery's own bottom edge are covered by it.
+    // Clear the overlap first, then the usual inset.
+    bottom: 24 + 14,
     left: 0,
     right: 0,
     flexDirection: "row",
