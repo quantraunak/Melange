@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Text, View, type ImageStyle, type TextStyle, type ViewStyle } from "react-native";
 import { colors, fonts, typography } from "@/lib/theme";
 import type { CreatorInfo } from "@/lib/db";
+import { sized } from "@/lib/imageUrl";
 
 type Size = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -28,7 +29,7 @@ export function Avatar({
   if (creator.avatar_url) {
     return (
       <Image
-        source={{ uri: creator.avatar_url }}
+        source={{ uri: sized(creator.avatar_url, dim, dim) }}
         style={[
           { width: dim, height: dim, borderRadius: radius, backgroundColor: colors.surfaceSunken },
           style as ImageStyle,

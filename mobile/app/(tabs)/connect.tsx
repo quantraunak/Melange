@@ -232,11 +232,7 @@ export default function DiscoverScreen() {
         ) : (
           <>
             {filtered[index + 1] ? (
-              <SwipeCardBehind
-                post={filtered[index + 1]}
-                tx={tx}
-                bottom={barTop + GUTTER}
-              />
+              <SwipeCardBehind post={filtered[index + 1]} tx={tx} barTop={barTop} />
             ) : null}
             <SwipeCard
               key={current.id}

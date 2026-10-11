@@ -15,6 +15,7 @@ import { CalendarDays, Heart, Image as ImageIcon, MapPin, X } from "lucide-react
 
 import { colors, GUTTER, motion, radii, shadows, typography } from "@/lib/theme";
 import { payLabel, projectDates, projectRoles, type PostWithCreator } from "@/lib/db";
+import { sized } from "@/lib/imageUrl";
 import { usePressScale } from "@/lib/usePressScale";
 import { Avatar } from "./Avatar";
 import { Chip, ChipRow } from "./ui/Chip";
@@ -39,11 +40,25 @@ export type SwipeDir = "left" | "right";
  * keeps its full density and chroma right down to the plate's top edge.
  */
 
-function Poster({ post, imageIndex }: { post: PostWithCreator; imageIndex: number }) {
+function Poster({
+  post,
+  imageIndex,
+  height,
+}: {
+  post: PostWithCreator;
+  imageIndex: number;
+  /** Frame height in points, so we can request the pixels we will actually draw. */
+  height: number;
+}) {
   const urls = post.media_urls ?? [];
-  const uri = urls[Math.min(imageIndex, Math.max(0, urls.length - 1))];
+  const raw = urls[Math.min(imageIndex, Math.max(0, urls.length - 1))];
+  // Overscan is part of the drawn area, so it is part of what we ask for.
+  const uri = sized(raw, SCREEN_W + 48, height + 48);
   return (
-    // Oversized by 88pt so no rotation angle can expose the ground behind it.
+    // Slight overscan so rotation cannot expose the ground at the corners.
+    // 24pt, not 88: at 5 degrees about a pivot below the screen the worst-case
+    // corner lift is about 19pt, and every extra point upscales the source
+    // past its native width, which visibly softens the photograph.
     <View style={styles.poster}>
       {uri ? (
         <Image
@@ -256,11 +271,12 @@ function VerbButton({
 export function SwipeCardBehind({
   post,
   tx,
-  bottom,
+  barTop,
 }: {
   post: PostWithCreator;
   tx: SharedValue<number>;
-  bottom: number;
+  /** Distance from the bottom of the screen to the top of the tab bar. */
+  barTop: number;
 }) {
   const animatedStyle = useAnimatedStyle(() => {
     const p = Math.min(1, Math.abs(tx.value) / SWIPE_THRESHOLD);
@@ -271,9 +287,9 @@ export function SwipeCardBehind({
   });
 
   return (
-    <Animated.View style={[styles.card, animatedStyle]} pointerEvents="none">
-      <Poster post={post} imageIndex={0} />
-      <Plate post={post} onPress={() => {}} bottom={bottom} />
+    <Animated.View style={[styles.card, { bottom: barTop }, animatedStyle]} pointerEvents="none">
+      <Poster post={post} imageIndex={0} height={SCREEN_H - barTop} />
+      <Plate post={post} onPress={() => {}} bottom={0} />
     </Animated.View>
   );
 }
@@ -446,8 +462,8 @@ export function SwipeCard({
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={[styles.card, animatedStyle]}>
-        <Poster post={post} imageIndex={imageIndex} />
+      <Animated.View style={[styles.card, { bottom: barTop }, animatedStyle]}>
+        <Poster post={post} imageIndex={imageIndex} height={SCREEN_H - barTop} />
 
         {/* The only gradient in the app: keeps the dark status bar legible. */}
         <Scrim height={topInset + 48} />
@@ -488,7 +504,7 @@ export function SwipeCard({
         <Plate
           post={post}
           onPress={onOpenDetails}
-          bottom={barTop + GUTTER}
+          bottom={0}
           onPass={onPass}
           onLike={onLike}
           onUndo={onUndo}
@@ -506,7 +522,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: colors.bg,
   },
-  poster: { ...StyleSheet.absoluteFillObject, margin: -88 },
+  poster: { ...StyleSheet.absoluteFillObject, margin: -24 },
   placeholder: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
@@ -532,6 +548,9 @@ const styles = StyleSheet.create({
     height: 2.5,
     borderRadius: 1.25,
     backgroundColor: "rgba(255,255,255,0.50)",
+    // Deliberately off-scale, like the 1.25 radius above. The three elevation
+    // tokens are sized for surfaces; on a 2.5pt track any of them is a smear.
+    // This exists only so the dots survive a white sky behind them.
     shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 2,
@@ -558,12 +577,12 @@ const styles = StyleSheet.create({
   plateWrap: { position: "absolute", left: 0, right: 0 },
   plateShadow: { ...shadows.plate },
   plateClip: {
-    borderTopLeftRadius: radii.md,
-    borderTopRightRadius: radii.md,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     overflow: "hidden",
-    backgroundColor: colors.surfaceSunken,
+    backgroundColor: colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.line,
   },
@@ -601,7 +620,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   verbPlain: {
-    backgroundColor: colors.surfaceSunken,
+    backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.lineStrong,
   },

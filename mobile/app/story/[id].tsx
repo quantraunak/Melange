@@ -23,6 +23,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { sized } from "@/lib/imageUrl";
 import {
   deleteStory,
   getOpenProjectsBy,
@@ -138,7 +139,7 @@ export default function StoryDetailScreen() {
                     {story.media_urls.map((uri, i) => (
                       <Image
                         key={`${uri}-${i}`}
-                        source={{ uri }}
+                        source={{ uri: sized(uri, SCREEN_W, 400) }}
                         style={styles.galleryImage}
                         contentFit="cover"
                         transition={160}
