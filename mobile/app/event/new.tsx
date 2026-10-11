@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { ImagePlus, X } from "lucide-react-native";
@@ -34,6 +34,7 @@ function localToISO(local: string): string {
 }
 
 export default function NewEventScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useAuth();
   const [title, setTitle] = useState("");
@@ -108,8 +109,8 @@ export default function NewEventScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>Host an event</Text>
         <Pressable hitSlop={12} onPress={() => router.back()}>

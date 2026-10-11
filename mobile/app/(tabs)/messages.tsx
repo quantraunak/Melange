@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
@@ -44,6 +45,7 @@ type Row =
  * which is which.
  */
 export default function MatchesScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useAuth();
   const { matches, loading, error, refresh, unmatch } = useMatches();
@@ -175,7 +177,7 @@ export default function MatchesScreen() {
   if (matches.length === 0) {
     return (
       <ScrollView
-        contentContainerStyle={styles.emptyScroll}
+        contentContainerStyle={[styles.emptyScroll, { paddingTop: insets.top + 8 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
         }
@@ -199,7 +201,7 @@ export default function MatchesScreen() {
     <FlatList
       data={rows}
       keyExtractor={(r) => r.key}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, { paddingTop: insets.top + 8 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />

@@ -9,16 +9,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import {
-  Compass,
-  Sparkles,
-  MessageCircle,
-  Settings as SettingsIcon,
-  UserRound,
-} from "lucide-react-native";
+import { BookOpen, MessageCircle, Sparkles, UserRound } from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
-import { BrandHeader } from "@/components/BrandHeader";
 import { Glass } from "@/components/ui/Glass";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
@@ -50,27 +43,9 @@ function PushBootstrap() {
   return null;
 }
 
-function Header() {
-  const router = useRouter();
-  return (
-    <BrandHeader
-      right={
-        <Pressable
-          hitSlop={12}
-          onPress={() => router.push("/account/settings")}
-          accessibilityLabel="Settings"
-          style={styles.settingsBtn}
-        >
-          <SettingsIcon size={18} color={colors.brandText} />
-        </Pressable>
-      }
-    />
-  );
-}
-
 const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
   connect: (p) => <Sparkles {...p} />,
-  events: (p) => <Compass {...p} />,
+  stories: (p) => <BookOpen {...p} />,
   messages: (p) => <MessageCircle {...p} />,
   profile: (p) => <UserRound {...p} />,
 };
@@ -78,9 +53,12 @@ const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.Re
 const TAB_BAR_PAD = 6;
 
 /**
- * Floating glass tab bar. The active tab is a lighter pill that springs to
- * its position; icons carry the meaning and the label sits under them so the
- * bar reads at a glance over any poster behind it.
+ * Floating glass tab bar, icons only.
+ *
+ * Discover is full bleed now, so the bar sits straight on the photo. Labels
+ * would need a scrim to stay legible and would cost a row of height on the
+ * one screen where height is the whole point; four icons at this size read
+ * fine on their own, and each keeps its accessibility label for VoiceOver.
  */
 function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { unreadCount } = useMatches();
@@ -117,7 +95,11 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             const color = focused ? colors.brandText : colors.textMuted;
 
             const onPress = () => {
-              const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
               if (!focused && !event.defaultPrevented) {
                 Haptics.selectionAsync();
                 navigation.navigate(route.name);
@@ -133,8 +115,7 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 onPress={onPress}
                 style={styles.tab}
               >
-                {TAB_ICONS[route.name]?.({ color, size: 20 })}
-                <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+                {TAB_ICONS[route.name]?.({ color, size: 23 })}
                 {badge > 0 ? (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
@@ -150,20 +131,16 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
-  const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
       <PushBootstrap />
-      <View style={{ paddingTop: insets.top }}>
-        <Header />
-      </View>
       <Tabs
-        initialRouteName="events"
+        initialRouteName="connect"
         tabBar={(props) => <GlassTabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "transparent" } }}
       >
-        <Tabs.Screen name="events" options={{ title: "Explore" }} />
         <Tabs.Screen name="connect" options={{ title: "Discover" }} />
+        <Tabs.Screen name="stories" options={{ title: "Stories" }} />
         <Tabs.Screen name="messages" options={{ title: "Matches" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>
@@ -173,16 +150,6 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   tabBarOuter: {
     position: "absolute",
     left: 16,
@@ -205,20 +172,16 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 12,
     alignItems: "center",
-    gap: 3,
+    justifyContent: "center",
     borderRadius: radii.xl,
     position: "relative",
   },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
   badge: {
     position: "absolute",
-    top: 2,
-    right: 14,
+    top: 6,
+    right: "26%",
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,

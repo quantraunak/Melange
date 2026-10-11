@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Trash2, X } from "lucide-react-native";
 
@@ -19,6 +19,7 @@ import { deletePost, projectRoles, updatePost, type CollabPost } from "@/lib/db"
 import { supabase } from "@/lib/supabase";
 
 export default function EditProjectsScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useAuth();
@@ -71,7 +72,7 @@ export default function EditProjectsScreen() {
 
   if (loading || !userId) {
     return (
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <SafeAreaView style={styles.safe} edges={["bottom"]}>
         <View style={styles.loading}>
           <ActivityIndicator color={colors.text} />
         </View>
@@ -81,8 +82,8 @@ export default function EditProjectsScreen() {
 
   if (!post) {
     return (
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.header}>
+      <SafeAreaView style={styles.safe} edges={["bottom"]}>
+        <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
           <View style={{ width: 24 }} />
           <Text style={styles.headerTitle}>Project not found</Text>
           <Pressable hitSlop={12} onPress={() => router.back()}>
@@ -94,8 +95,8 @@ export default function EditProjectsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>Edit project</Text>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">

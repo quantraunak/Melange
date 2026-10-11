@@ -25,7 +25,7 @@ function Gate() {
     if (!session && !inAuth) {
       router.replace("/(auth)/welcome");
     } else if (session && inAuth) {
-      router.replace("/(tabs)/events");
+      router.replace("/(tabs)/connect");
     }
   }, [loading, session, segments, router]);
 
@@ -38,6 +38,9 @@ function Gate() {
         <Stack.Screen name="post/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/edit/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="story/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="story/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="events/index" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="report/[kind]/[id]" options={{ presentation: "modal" }} />
         <Stack.Screen name="account/blocked" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="account/delete" options={{ presentation: "modal" }} />

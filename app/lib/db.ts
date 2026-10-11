@@ -25,6 +25,35 @@ export type CollabPost = {
   pay_type?: "paid" | "tfp" | "credit" | null;
 };
 
+/**
+ * A story: work that already happened, as opposed to a project, which is work
+ * looking for people. 09_stories.sql. The iPhone app reads and writes these
+ * today; the web has no Stories UI yet, so these types exist so the two
+ * clients cannot drift apart before it does.
+ */
+export type StoryCredit = {
+  name: string;
+  role: string | null;
+  /** Null when the collaborator is not on Melange. */
+  user_id: string | null;
+};
+
+export type CollabStory = {
+  id: string;
+  author_id: string;
+  title: string;
+  story: string | null;
+  media_urls: string[];
+  credits: StoryCredit[];
+  /** A public profile or portfolio URL. Never an email address or a phone number. */
+  contact_link: string | null;
+  happened_on: string | null;
+  match_id: string | null;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CreatorInfo = {
   user_id?: string;
   name: string;
