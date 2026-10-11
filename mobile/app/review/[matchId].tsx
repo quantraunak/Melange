@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Star } from "lucide-react-native";
 
@@ -21,6 +21,7 @@ import { trackEvent } from "@/lib/analytics";
 import { REVIEW_TAGS, submitCollabReview } from "@/lib/reviews";
 
 export default function ReviewScreen() {
+  const insets = useSafeAreaInsets();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
   const { userId } = useAuth();
@@ -63,8 +64,8 @@ export default function ReviewScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <ArrowLeft size={22} color={colors.brandText} />
         </Pressable>

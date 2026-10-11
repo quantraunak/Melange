@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 
@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { createStory } from "@/lib/stories";
 
 export default function NewStoryScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -17,8 +18,8 @@ export default function NewStoryScreen() {
   if (!userId) return null;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>Post a story</Text>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
