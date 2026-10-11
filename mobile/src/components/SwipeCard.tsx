@@ -103,7 +103,6 @@ function GlassPanel({
 
   return (
     <View style={[styles.panelWrap, { bottom: bottomInset }]}>
-      <Fade height={110} style={styles.panelFade} />
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
@@ -204,6 +203,7 @@ export function SwipeCardBehind({
   return (
     <Animated.View style={[styles.card, styles.behindCard, animatedStyle]} pointerEvents="none">
       <Poster post={post} imageIndex={0} dim />
+      <Fade height={340} to={0.5} style={styles.bottomWash} />
       <GlassPanel post={post} onPress={() => {}} bottomInset={bottomInset} />
       <View style={{ height: topInset }} />
     </Animated.View>
@@ -329,6 +329,12 @@ export function SwipeCard({
       <Animated.View style={[styles.card, animatedStyle]}>
         <Poster post={post} imageIndex={imageIndex} />
 
+        {/* One soft wash over the bottom of the photo, behind both the panel
+            and the buttons. A short fade sitting directly on the panel read
+            as a hard-edged milky band, because the panel is inset and the
+            fade was not. */}
+        <Fade height={340} to={0.5} style={styles.bottomWash} />
+
         {/* Paging zones sit under the panel and above the photo. */}
         {images > 1 ? (
           <View style={styles.pagingRow} pointerEvents="box-none">
@@ -417,7 +423,7 @@ const styles = StyleSheet.create({
   stampText: { fontWeight: "900", fontSize: 26, letterSpacing: 3 },
 
   panelWrap: { position: "absolute", left: 0, right: 0 },
-  panelFade: { position: "absolute", left: 0, right: 0, bottom: "100%" },
+  bottomWash: { position: "absolute", left: 0, right: 0, bottom: 0 },
   panelPress: { paddingHorizontal: 10 },
   panelClip: {
     borderRadius: radii.xxl,
