@@ -187,9 +187,7 @@ export default function MatchesScreen() {
           <Sparkles size={28} color={colors.accent} />
         </View>
         <Text style={styles.emptyTitle}>No matches yet</Text>
-        <Text style={styles.emptyBody}>
-          When you apply to a project and they pick you too, the conversation opens here.
-        </Text>
+        <Text style={styles.emptyBody}>Match with someone to start talking.</Text>
         <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/connect")}>
           <Text style={styles.emptyBtnText}>See open projects</Text>
         </Pressable>
@@ -267,11 +265,7 @@ export default function MatchesScreen() {
       ListEmptyComponent={
         <View style={styles.inlineEmpty}>
           <Text style={styles.inlineEmptyText}>
-            {query.trim()
-              ? "Nothing matches that search."
-              : newMatches.length > 0
-                ? "No conversations yet. Say hi to one of your new matches above."
-                : "No conversations yet."}
+            {query.trim() ? "Nothing found." : "No conversations yet."}
           </Text>
         </View>
       }

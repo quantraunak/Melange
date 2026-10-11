@@ -225,9 +225,7 @@ export default function ChatScreen() {
           ) : (
             <View style={styles.notFound}>
               <Text style={styles.notFoundTitle}>Conversation not found</Text>
-              <Text style={styles.notFoundBody}>
-                This match may have been removed, or you may no longer have access to it.
-              </Text>
+              <Text style={styles.notFoundBody}>It may have been removed.</Text>
               <Pressable
                 style={styles.notFoundBtn}
                 onPress={() => router.replace("/(tabs)/messages")}
@@ -297,10 +295,7 @@ export default function ChatScreen() {
             ListEmptyComponent={
               <View style={styles.emptyChat}>
                 <Text style={styles.emptyChatTitle}>You matched</Text>
-                <Text style={styles.emptyChatText}>
-                  You both said yes to {match.other_post.title}. Whoever writes first
-                  usually names a date.
-                </Text>
+                <Text style={styles.emptyChatText}>Say hi.</Text>
               </View>
             }
             renderItem={({ item, index }) => {

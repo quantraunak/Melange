@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -48,6 +48,7 @@ import {
   type Profile,
 } from "@/lib/db";
 import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
+import { formatRecordDate } from "@/lib/format";
 
 
 export default function ProfileScreen() {
@@ -95,6 +96,37 @@ export default function ProfileScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  /* Credits come from matches, stories from the stories table, and the two
+     describe the same thing: a piece of work and who it was made with. The
+     profile shows one list. Stories first — they carry an image. */
+  const workItems = useMemo(() => {
+    const fromStories = work.map((st) => {
+      const names = st.credits.map((c) => c.name).filter(Boolean);
+      return {
+        key: `story-${st.id}`,
+        image: st.media_urls[0] ?? null,
+        title: st.title,
+        with: names.length ? `with ${names.slice(0, 3).join(", ")}` : null,
+        when: storyDate(st),
+        sort: st.happened_on ?? st.created_at,
+        onPress: () =>
+          router.push({ pathname: "/story/[id]", params: { id: st.id } }),
+      };
+    });
+    const fromCredits = credits.map((c) => ({
+      key: `credit-${c.match_id}`,
+      image: null as string | null,
+      title: c.title,
+      with: `with ${c.with_name}`,
+      when: formatRecordDate(c.date),
+      sort: c.date,
+      onPress: undefined,
+    }));
+    return [...fromStories, ...fromCredits].sort((a, b) =>
+      String(b.sort).localeCompare(String(a.sort))
+    );
+  }, [work, credits, router]);
 
   const onChangeAvatar = async () => {
     if (!userId) return;
@@ -266,11 +298,6 @@ export default function ProfileScreen() {
             {profile.role ? (
               <Text style={styles.profileRole} numberOfLines={1}>{profile.role}</Text>
             ) : null}
-            <Text style={styles.profileHint}>
-              {credits.length === 0
-                ? "No credits yet"
-                : `${credits.length} ${credits.length === 1 ? "credit" : "credits"} through Melange`}
-            </Text>
             <Pressable
               onPress={() => router.push("/account/edit-profile")}
               hitSlop={12}
@@ -281,114 +308,58 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* One header pattern for every section below: an eyebrow on the
-            left, one plain text action on the right. No pills, no icons, no
-            second colour — the screen used to carry three different answers
-            to this within 400pt of scroll. */}
-
-        {/* Credits */}
-        <View style={styles.block}>
-          <View style={styles.blockHead}>
-            <Text style={styles.sectionTitle}>Credits</Text>
-          </View>
-          {credits.length === 0 ? (
-            <Text style={styles.muted}>
-              Apply to a project. When they pick you too and you work together, it lands here.
-            </Text>
-          ) : (
-            <View>
-              {credits.map((c) => (
-                <View key={c.match_id} style={styles.listRow}>
-                  <View style={[styles.creditDot, c.confirmed && styles.creditDotOn]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>
-                      {c.title}
-                    </Text>
-                    <Text style={styles.rowMeta} numberOfLines={1}>
-                      {c.role ? `${c.role} · ` : ""}with {c.with_name}
-                      {c.confirmed ? "" : " · pending review"}
-                    </Text>
-                  </View>
-                  <Text style={styles.rowWhen}>
-                    {new Date(c.date.length === 10 ? `${c.date}T12:00:00` : c.date).toLocaleDateString([], {
-                      month: "short",
-                      year: "2-digit",
-                    })}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Work — stories you wrote, and stories that credit you. */}
+        {/* One section. A credit, a story and an uploaded image were three
+            sections split by where the row came from — match, story or
+            upload — which is plumbing, not a distinction anyone makes about
+            their own work. */}
         <View style={styles.block}>
           <View style={styles.blockHead}>
             <Text style={styles.sectionTitle}>Work</Text>
-            <Pressable
-              onPress={() => router.push("/story/new")}
-              hitSlop={12}
-              accessibilityLabel="Post a story"
-            >
+            <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
               <Text style={styles.sectionAction}>Add</Text>
             </Pressable>
           </View>
-          {work.length === 0 ? (
-            <Text style={styles.muted}>
-              Post something you already made. It does not have to be recent, and your
-              collaborators do not have to be on Melange.
-            </Text>
-          ) : (
-            <View>
-              {work.map((s) => {
-                const when = storyDate(s);
-                const mine = s.author_id === userId;
-                return (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => router.push({ pathname: "/story/[id]", params: { id: s.id } })}
-                    style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
-                  >
-                    {s.media_urls[0] ? (
-                      <Image source={{ uri: s.media_urls[0] }} style={styles.thumb} />
-                    ) : (
-                      <View style={[styles.thumb, styles.thumbEmpty]}>
-                        <BookOpen size={16} color={colors.iconFaint} />
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.rowTitle} numberOfLines={1}>
-                        {s.title}
-                      </Text>
-                      <Text style={styles.rowMeta} numberOfLines={1}>
-                        {mine ? "You posted this" : `Credited by ${s.author.name}`}
-                        {s.credits.length ? ` · ${s.credits.length + 1} people` : ""}
-                      </Text>
-                    </View>
-                    {when ? <Text style={styles.rowWhen}>{when}</Text> : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
 
-        {/* Portfolio. The add target is the first tile of the grid, not a
-            dashed dropzone — nothing is ever dragged onto a phone. */}
-        <View style={styles.block}>
-          <View style={styles.blockHead}>
-            <Text style={styles.sectionTitle}>Portfolio</Text>
-            <Text style={styles.sectionCount}>
-              {(profile.portfolio_urls?.length ?? 0)}/{PORTFOLIO_MAX_IMAGES}
-            </Text>
-          </View>
+          {workItems.length === 0 && (profile.portfolio_urls?.length ?? 0) === 0 ? (
+            <Text style={styles.muted}>Nothing here yet.</Text>
+          ) : null}
+
+          {workItems.map((w) => (
+            <Pressable
+              key={w.key}
+              onPress={w.onPress}
+              disabled={!w.onPress}
+              style={({ pressed }) => [styles.listRow, pressed && w.onPress && { opacity: 0.6 }]}
+            >
+              {w.image ? (
+                <Image source={{ uri: w.image }} style={styles.thumb} />
+              ) : (
+                <View style={[styles.thumb, styles.thumbEmpty]}>
+                  <BookOpen size={16} color={colors.iconFaint} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {w.title}
+                </Text>
+                {w.with ? (
+                  <Text style={styles.rowMeta} numberOfLines={1}>
+                    {w.with}
+                  </Text>
+                ) : null}
+              </View>
+              {w.when ? <Text style={styles.rowWhen}>{w.when}</Text> : null}
+            </Pressable>
+          ))}
+
+          {/* Loose images live in the same section — they are work too. */}
           <View style={styles.grid}>
             {(profile.portfolio_urls?.length ?? 0) < PORTFOLIO_MAX_IMAGES ? (
               <Pressable
                 style={[styles.tile, styles.tileAdd]}
                 onPress={onAddPortfolio}
                 disabled={portfolioBusy}
-                accessibilityLabel="Add portfolio images"
+                accessibilityLabel="Add images"
               >
                 {portfolioBusy ? (
                   <ActivityIndicator color={colors.textTertiary} />
@@ -412,6 +383,7 @@ export default function ProfileScreen() {
             ))}
           </View>
         </View>
+
 
         {/* My projects */}
         <View style={styles.block}>
@@ -437,7 +409,7 @@ export default function ProfileScreen() {
                     {p.title}
                   </Text>
                   <Text style={styles.rowMeta} numberOfLines={1}>
-                    {projectDates(p) ?? new Date(p.created_at).toLocaleDateString()}
+                    {projectDates(p) ?? formatRecordDate(p.created_at)}
                     {projectRoles(p).length ? ` · ${projectRoles(p).slice(0, 3).join(", ")}` : ""}
                     {p.is_active ? "" : " · inactive"}
                   </Text>
@@ -533,7 +505,6 @@ const styles = StyleSheet.create({
   },
   profileName: { ...typography.title, color: colors.text },
   profileRole: { ...typography.body, color: colors.textSecondary },
-  profileHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
   editLink: { alignSelf: "flex-start", marginTop: spacing.sm },
 
   /* A section: a rule, an eyebrow, then content directly on the ground. */
@@ -558,7 +529,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.line,
   },
-  rowTitle: { ...typography.headline, color: colors.text },
+  rowTitle: { ...typography.bodyStrong, color: colors.text },
   rowMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
   rowWhen: { ...typography.micro, color: colors.textTertiary },
   thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },

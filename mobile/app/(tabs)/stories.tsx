@@ -30,7 +30,7 @@ const { width: SCREEN_W } = Dimensions.get("window");
 
 
 /**
- * Stories — what people already made.
+ * Work — what people already made.
  *
  * The swipe deck is work that is looking for people; this is work that
  * happened. It is the half of the app that is worth opening on a day when
@@ -86,13 +86,9 @@ export default function StoriesScreen() {
       >
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>The record</Text>
-            <Text style={styles.heading}>Stories</Text>
+            <Text style={styles.heading}>Work</Text>
           </View>
         </View>
-        <Text style={styles.subhead}>
-          Work that actually happened. Who made it, and how.
-        </Text>
 
         <ErrorBanner message={error} />
 
@@ -104,23 +100,15 @@ export default function StoriesScreen() {
         ) : unavailable ? (
           <Glass style={styles.empty} elevated>
             <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
-            <Text style={styles.emptyTitle}>Stories aren&apos;t live yet</Text>
-            <Text style={styles.emptyBody}>
-              The database needs <Text style={styles.mono}>09_stories.sql</Text> applied before
-              anyone can post one. Everything else in the app works as normal.
-            </Text>
+            <Text style={styles.emptyTitle}>Not live yet</Text>
           </Glass>
         ) : stories.length === 0 ? (
           <Glass style={styles.empty} elevated>
             <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
-            <Text style={styles.emptyTitle}>No stories yet</Text>
-            <Text style={styles.emptyBody}>
-              Post something you already made. It does not have to be recent, and your
-              collaborators do not have to be on Melange.
-            </Text>
+            <Text style={styles.emptyTitle}>Nothing here yet</Text>
             <Pressable onPress={() => router.push("/story/new")} style={styles.emptyCta}>
               <Pencil size={14} color={colors.onBrand} />
-              <Text style={styles.emptyCtaText}>Write the first one</Text>
+              <Text style={styles.emptyCtaText}>Add your first</Text>
             </Pressable>
           </Glass>
         ) : (
@@ -234,9 +222,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
   header: { flexDirection: "row", alignItems: "flex-end" },
-  eyebrow: typography.eyebrow,
   heading: typography.display1,
-  subhead: { ...typography.caption, marginTop: -8, marginBottom: 2 },
 
   card: {
     borderRadius: radii.lg,
@@ -274,7 +260,6 @@ const styles = StyleSheet.create({
 
   empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 10 },
   emptyTitle: { ...typography.headline, textAlign: "center" },
-  emptyBody: { ...typography.caption, textAlign: "center", lineHeight: 20 },
   mono: { fontFamily: fonts.semibold, color: colors.text },
   emptyCta: {
     flexDirection: "row",
