@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { ROLES, uploadFile, type CreatorInfo } from "@/lib/db";
 import {
   STORY_MAX_CREDITS,
@@ -283,7 +283,7 @@ export function StoryForm({
               ))}
               {assets.length < STORY_MAX_IMAGES ? (
                 <Pressable style={styles.imageAdd} onPress={addImage}>
-                  <ImagePlus size={22} color={colors.textSubtle} />
+                  <ImagePlus size={22} color={colors.iconFaint} />
                   <Text style={styles.imageAddText}>Add</Text>
                 </Pressable>
               ) : null}
@@ -445,7 +445,7 @@ function CreditsStep({
               {c.role ? <Text style={styles.creditPillRole}>{c.role}</Text> : null}
               {c.user_id ? <View style={styles.dot} /> : null}
               <Pressable hitSlop={8} onPress={() => onRemove(i)} accessibilityLabel={`Remove ${c.name}`}>
-                <X size={14} color={colors.textSubtle} />
+                <X size={14} color={colors.iconFaint} />
               </Pressable>
             </View>
           ))}
@@ -458,7 +458,7 @@ function CreditsStep({
           onChangeText={setQuery}
           placeholder="Search Melange, or just type a name"
           autoCapitalize="words"
-          leading={<UserPlus size={16} color={colors.textSubtle} />}
+          leading={<UserPlus size={16} color={colors.iconFaint} />}
         />
       </Field>
 
@@ -479,7 +479,7 @@ function CreditsStep({
         <View style={styles.results}>
           {searching ? (
             <View style={styles.searchingRow}>
-              <ActivityIndicator size="small" color={colors.textMuted} />
+              <ActivityIndicator size="small" color={colors.iconFaint} />
               <Text style={styles.searchingText}>Searching Melange…</Text>
             </View>
           ) : null}
@@ -508,7 +508,7 @@ function CreditsStep({
             style={({ pressed }) => [styles.resultRow, styles.typedRow, pressed && { opacity: 0.85 }]}
           >
             <View style={styles.typedIcon}>
-              <UserPlus size={16} color={colors.textMuted} />
+              <UserPlus size={16} color={colors.iconFaint} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.resultName}>Add “{query.trim()}”</Text>
@@ -527,65 +527,65 @@ function CreditsStep({
 const styles = StyleSheet.create({
   progress: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 10 },
   progressItem: { flex: 1, gap: 6 },
-  bar: { height: 3, borderRadius: 2, backgroundColor: colors.border },
+  bar: { height: 3, borderRadius: radii.sm, backgroundColor: colors.lineStrong },
   barOn: { backgroundColor: colors.accent },
-  barLabel: { ...typography.tiny, color: colors.textFaint },
-  barLabelOn: { color: colors.text, fontWeight: "700" },
+  barLabel: { ...typography.micro, color: colors.iconFaint },
+  barLabelOn: { color: colors.text, fontFamily: fonts.semibold },
   scroll: { padding: 16, gap: 14, paddingBottom: 24 },
-  stepTitle: { ...typography.h1, marginTop: 6 },
-  stepHint: { ...typography.small, marginTop: -6, lineHeight: 19 },
+  stepTitle: typography.display1,
+  stepHint: { ...typography.caption, marginTop: -6, lineHeight: 19 },
 
   creditList: { gap: 8 },
   creditPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     borderRadius: radii.pill,
     paddingVertical: 9,
     paddingHorizontal: 14,
   },
-  creditPillName: { ...typography.body, fontWeight: "700", flexShrink: 1 },
-  creditPillRole: { ...typography.small, color: colors.textMuted },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
+  creditPillName: { ...typography.body, fontFamily: fonts.semibold, flexShrink: 1 },
+  creditPillRole: { ...typography.caption, color: colors.textSecondary },
+  dot: { width: 6, height: 6, borderRadius: radii.sm, backgroundColor: colors.accent },
 
-  roleLabel: { ...typography.eyebrow, color: colors.textMuted, marginTop: -4 },
+  roleLabel: { ...typography.eyebrow, color: colors.textSecondary, marginTop: -4 },
 
   results: { gap: 2, marginTop: 4 },
   searchingRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8 },
-  searchingText: typography.small,
+  searchingText: typography.caption,
   resultRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
     paddingVertical: 11,
     paddingHorizontal: 12,
-    borderRadius: radii.lg,
-    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
   },
   typedRow: { borderStyle: "dashed" },
   typedIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceStrong,
+    borderRadius: radii.md,
+    backgroundColor: colors.bg,
     alignItems: "center",
     justifyContent: "center",
   },
-  resultName: { ...typography.body, fontWeight: "600" },
-  resultRole: { ...typography.tiny },
+  resultName: { ...typography.body, fontFamily: fonts.semibold },
+  resultRole: { ...typography.micro },
 
   images: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   imageThumb: {
     width: 92,
     height: 92,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     overflow: "hidden",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSunken,
     position: "relative",
   },
   coverTag: {
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radii.sm,
   },
-  coverTagText: { fontSize: 9, fontWeight: "800", color: colors.text },
+  coverTagText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.text },
   imageRemove: {
     position: "absolute",
     top: 4,
@@ -605,35 +605,35 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.55)",
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radii.sm,
     alignItems: "center",
     justifyContent: "center",
   },
   imageAdd: {
     width: 92,
     height: 92,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderStyle: "dashed",
     borderWidth: 1.5,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
   },
-  imageAddText: { ...typography.tiny, fontWeight: "600" },
+  imageAddText: { ...typography.micro, fontFamily: fonts.semibold },
 
   privacyNote: { padding: 14 },
-  privacyText: { ...typography.small, lineHeight: 19 },
-  privacyStrong: { color: colors.text, fontWeight: "700" },
+  privacyText: { ...typography.caption, lineHeight: 19 },
+  privacyStrong: { color: colors.text, fontFamily: fonts.semibold },
 
   uploadHint: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  uploadHintText: typography.small,
+  uploadHintText: typography.caption,
   footer: {
     flexDirection: "row",
     gap: 10,
     padding: 16,
     paddingBottom: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: colors.lineStrong,
   },
 });

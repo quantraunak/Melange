@@ -1,14 +1,22 @@
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
+import Animated from "react-native-reanimated";
+
 import { glass as glassTokens, shadows } from "@/lib/theme";
+import { usePressScale } from "@/lib/usePressScale";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
- * A circular frosted button that floats over a photo.
+ * A circular control floating over a photograph.
  *
- * Light tint and a white rim, so it reads on a bright sky and on a dark
- * interior alike without ever going dark itself. `solid` swaps the frost for
- * one flat colour, which is what the Like button uses — the single
- * affirmative in the app should not be translucent.
+ * Glass lives in exactly two places in this app — here and the tab bar. The
+ * rim is a dark hairline rather than a white one: a white rim is crisp where
+ * the photo behind it is dark and vanishes where it is bright, so it only
+ * ever works on half an image.
+ *
+ * `solid` swaps the frost for one flat colour, which the Like button uses —
+ * the single affirmative action should not be translucent.
  */
 export function GlassButton({
   children,
@@ -28,22 +36,24 @@ export function GlassButton({
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const press = usePressScale("circle", { haptic: !disabled });
+
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
+      onPressIn={disabled ? undefined : press.onPressIn}
+      onPressOut={disabled ? undefined : press.onPressOut}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={disabled ? { disabled: true } : undefined}
-      style={({ pressed }) => [
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-        },
+      // 42–48pt controls sit under Apple's 44pt floor without this.
+      hitSlop={10}
+      style={[
+        { width: size, height: size, borderRadius: size / 2 },
         styles.base,
-        solid ? null : shadows.soft,
-        pressed && !disabled ? styles.pressed : null,
+        solid ? shadows.float : shadows.card,
+        press.style,
         style,
       ]}
     >
@@ -53,7 +63,7 @@ export function GlassButton({
         ) : (
           <>
             <BlurView
-              intensity={glassTokens.intensityStrong}
+              intensity={glassTokens.intensity}
               tint={glassTokens.tint}
               style={StyleSheet.absoluteFill}
             />
@@ -62,21 +72,20 @@ export function GlassButton({
         )}
         <View style={styles.content}>{children}</View>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.75)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glassTokens.rim,
     overflow: "hidden",
   },
   clip: { flex: 1, overflow: "hidden" },
   tintLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: glassTokens.tintLayer,
   },
   content: { flex: 1, alignItems: "center", justifyContent: "center" },
-  pressed: { transform: [{ scale: 0.93 }], opacity: 0.92 },
 });

@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import {
   getCredits,
@@ -339,7 +339,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.portfolioHeader}>
             <Text style={styles.sectionTitle}>Credits</Text>
-            <Sparkles size={16} color={colors.accentMuted} />
+            <Sparkles size={16} color={colors.accentInk} />
           </View>
           {credits.length === 0 ? (
             <Text style={styles.muted}>
@@ -401,7 +401,7 @@ export default function ProfileScreen() {
                       <Image source={{ uri: s.media_urls[0] }} style={styles.workThumb} />
                     ) : (
                       <View style={[styles.workThumb, styles.workThumbEmpty]}>
-                        <BookOpen size={16} color={colors.textFaint} />
+                        <BookOpen size={16} color={colors.iconFaint} />
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
@@ -415,7 +415,7 @@ export default function ProfileScreen() {
                     </View>
                     {when ? (
                       <View style={styles.workWhen}>
-                        <CalendarDays size={11} color={colors.textSubtle} />
+                        <CalendarDays size={11} color={colors.iconFaint} />
                         <Text style={styles.creditDate}>{when}</Text>
                       </View>
                     ) : null}
@@ -595,7 +595,7 @@ export default function ProfileScreen() {
                     {p.is_active ? "" : " · inactive"}
                   </Text>
                 </View>
-                <Pencil size={16} color={colors.textSubtle} />
+                <Pencil size={16} color={colors.iconFaint} />
               </Pressable>
             ))
           )}
@@ -606,21 +606,21 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Account & safety</Text>
 
           <Pressable style={styles.linkRow} onPress={() => router.push("/events")}>
-            <CalendarDays size={18} color={colors.textMuted} />
+            <CalendarDays size={18} color={colors.iconFaint} />
             <Text style={styles.linkRowText}>Events</Text>
-            <ChevronRight size={16} color={colors.textSubtle} />
+            <ChevronRight size={16} color={colors.iconFaint} />
           </Pressable>
 
           <Pressable style={styles.linkRow} onPress={() => router.push("/account/blocked")}>
-            <ShieldOff size={18} color={colors.textMuted} />
+            <ShieldOff size={18} color={colors.iconFaint} />
             <Text style={styles.linkRowText}>Blocked users</Text>
-            <ChevronRight size={16} color={colors.textSubtle} />
+            <ChevronRight size={16} color={colors.iconFaint} />
           </Pressable>
 
           <Pressable style={styles.linkRow} onPress={onSignOut}>
-            <LogOut size={18} color={colors.textMuted} />
+            <LogOut size={18} color={colors.iconFaint} />
             <Text style={styles.linkRowText}>Sign out</Text>
-            <ChevronRight size={16} color={colors.textSubtle} />
+            <ChevronRight size={16} color={colors.iconFaint} />
           </Pressable>
 
           <Pressable
@@ -645,20 +645,20 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
   scroll: { padding: 16, gap: 14, paddingBottom: 150 },
-  subLabel: { fontSize: 12, fontWeight: "600", color: colors.textMuted, marginTop: 10 },
+  subLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary, marginTop: 10 },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  topBarTitle: { ...typography.display, fontSize: 28 },
+  topBarTitle: typography.display1,
   settingsBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionAction: { color: colors.brandText, fontWeight: "700", fontSize: 13 },
+  sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   workList: { gap: 8, marginTop: 4 },
   workRow: {
     flexDirection: "row",
@@ -669,8 +669,8 @@ const styles = StyleSheet.create({
   workThumb: {
     width: 46,
     height: 46,
-    borderRadius: radii.md,
-    backgroundColor: colors.surfaceStrong,
+    borderRadius: radii.sm,
+    backgroundColor: colors.bg,
   },
   workThumbEmpty: { alignItems: "center", justifyContent: "center" },
   workWhen: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -678,11 +678,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    backgroundColor: colors.card,
-    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
   },
   avatarWrap: { position: "relative" },
   cameraBadge: {
@@ -691,53 +691,53 @@ const styles = StyleSheet.create({
     bottom: -2,
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: radii.md,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: colors.card,
+    borderColor: colors.surface,
   },
-  profileName: { fontSize: 18, fontWeight: "800", color: colors.text },
-  profileRole: { fontSize: 13, color: colors.textMuted },
-  profileHint: { fontSize: 11, color: colors.textSubtle, marginTop: 4 },
+  profileName: { ...typography.headline, color: colors.text },
+  profileRole: { ...typography.caption, color: colors.textSecondary },
+  profileHint: { ...typography.micro, color: colors.textSecondary, marginTop: 4 },
 
   section: {
-    backgroundColor: colors.card,
-    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
     gap: 12,
   },
-  sectionTitle: { ...typography.eyebrow, color: colors.textMuted },
+  sectionTitle: { ...typography.eyebrow, color: colors.textSecondary },
   creditRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
-  creditDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.borderStrong },
+  creditDot: { width: 8, height: 8, borderRadius: radii.sm, backgroundColor: colors.lineStrong },
   creditDotOn: { backgroundColor: colors.accent },
-  creditTitle: { ...typography.h3 },
-  creditMeta: typography.small,
-  creditDate: typography.tiny,
-  muted: { color: colors.textSubtle, fontSize: 13 },
+  creditTitle: { ...typography.headline },
+  creditMeta: typography.caption,
+  creditDate: typography.micro,
+  muted: { ...typography.caption, color: colors.textSecondary },
   success: {
-    backgroundColor: colors.successSoft,
-    borderColor: colors.success,
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
-  successText: { color: colors.success, fontSize: 13, fontWeight: "600" },
+  successText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.accent },
 
   postRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 12,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radii.sm,
   },
-  postTitle: { color: colors.text, fontWeight: "700", fontSize: 14 },
-  postMeta: { color: colors.textSubtle, fontSize: 11, marginTop: 2 },
+  postTitle: { ...typography.bodyStrong, color: colors.text },
+  postMeta: { ...typography.micro, color: colors.textSecondary, marginTop: 2 },
 
   linkRow: {
     flexDirection: "row",
@@ -745,24 +745,24 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surfaceSunken,
   },
-  linkRowText: { flex: 1, color: colors.text, fontWeight: "600", fontSize: 14 },
+  linkRowText: { ...typography.bodyStrong, flex: 1, color: colors.text },
 
   vibeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   vibeChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
   },
   vibeChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  vibeChipText: { fontSize: 12, color: colors.textMuted },
-  vibeChipTextOn: { color: colors.white, fontWeight: "600" },
+  vibeChipText: { ...typography.caption, color: colors.textSecondary },
+  vibeChipTextOn: { color: colors.white, fontFamily: fonts.semibold },
 
   portfolioHeader: {
     flexDirection: "row",
@@ -770,21 +770,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   addPortfolioBtn: {
-    backgroundColor: colors.surfaceStrong,
+    backgroundColor: colors.bg,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.pill,
   },
-  addPortfolioText: { color: colors.text, fontWeight: "700", fontSize: 12 },
+  addPortfolioText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
   portfolioEmpty: {
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderColor: colors.lineStrong,
+    borderRadius: radii.sm,
     paddingVertical: 28,
     alignItems: "center",
   },
-  portfolioEmptyText: { color: colors.textSubtle, fontSize: 13, fontWeight: "600" },
+  portfolioEmptyText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   portfolioGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -794,9 +794,9 @@ const styles = StyleSheet.create({
   portfolioTile: {
     width: "31%",
     aspectRatio: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     overflow: "hidden",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSunken,
   },
   portfolioImg: { width: "100%", height: "100%" },
   portfolioRemove: {
@@ -805,10 +805,10 @@ const styles = StyleSheet.create({
     right: 4,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radii.sm,
     backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
-  portfolioRemoveText: { color: colors.white, fontSize: 16, fontWeight: "700", lineHeight: 18 },
+  portfolioRemoveText: { ...typography.headline, color: colors.white },
 });

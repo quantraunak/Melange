@@ -17,7 +17,7 @@ import { Avatar } from "@/components/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, radii, shadows } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, shadows, typography } from "@/lib/theme";
 import { trackEvent } from "@/lib/analytics";
 import {
   checkAndCreateMatch,
@@ -43,7 +43,6 @@ import {
  * information — it's what stops the grid feeling like the feed served twice.
  */
 
-const GUTTER = 12;
 const H_PADDING = 16;
 const COLUMN_WIDTH =
   (Dimensions.get("window").width - H_PADDING * 2 - GUTTER) / 2;
@@ -157,19 +156,19 @@ export function BrowseGrid({ userId }: { userId: string }) {
 
       <View style={styles.searchRow}>
         <View style={styles.searchWrap}>
-          <Search size={16} color={colors.textSubtle} style={styles.searchIcon} />
+          <Search size={16} color={colors.iconFaint} style={styles.searchIcon} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search projects, roles, cities…"
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
             style={styles.search}
             autoCapitalize="none"
             autoCorrect={false}
           />
           {query ? (
             <Pressable onPress={() => setQuery("")} hitSlop={8} style={styles.searchClear}>
-              <X size={15} color={colors.textMuted} />
+              <X size={15} color={colors.iconFaint} />
             </Pressable>
           ) : null}
         </View>
@@ -180,7 +179,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
         >
           <SlidersHorizontal
             size={17}
-            color={filtersOpen || filtersActive ? colors.white : colors.textMuted}
+            color={filtersOpen || filtersActive ? colors.white : colors.textSecondary}
           />
         </Pressable>
       </View>
@@ -305,7 +304,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
 
                   {post.location ? (
                     <View style={styles.locRow}>
-                      <MapPin size={11} color={colors.textSubtle} />
+                      <MapPin size={11} color={colors.iconFaint} />
                       <Text style={styles.locText} numberOfLines={1}>
                         {post.location}
                       </Text>
@@ -328,7 +327,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
                 >
                   <Heart
                     size={15}
-                    color={swiped === "right" ? colors.white : colors.like}
+                    color={swiped === "right" ? colors.white : colors.accent}
                     fill={swiped === "right" ? colors.white : "transparent"}
                   />
                 </Pressable>
@@ -401,51 +400,32 @@ const STRIP_W = 150;
 const styles = StyleSheet.create({
   strip: { gap: 8 },
   stripHead: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 2 },
-  stripTitle: { fontSize: 15, fontWeight: "700", color: colors.text, letterSpacing: -0.2 },
-  stripCount: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.accentMuted,
-    backgroundColor: colors.accentSoft,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-    overflow: "hidden",
-  },
+  stripTitle: { ...typography.bodyStrong, color: colors.text },
+  stripCount: { ...typography.micro, fontFamily: fonts.semibold, color: colors.accentInk, backgroundColor: colors.accentSoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: radii.pill, overflow: "hidden" },
   stripRow: { gap: 10, paddingRight: 4 },
   stripCard: {
     width: STRIP_W,
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     overflow: "hidden",
-    ...shadows.soft,
+    ...shadows.card,
   },
-  stripImg: { width: STRIP_W, height: 110, backgroundColor: colors.brandSoft },
+  stripImg: { width: STRIP_W, height: 110, backgroundColor: colors.surfaceSunken },
   stripBody: { padding: 10, gap: 6 },
-  stripCardTitle: { fontSize: 13, fontWeight: "700", color: colors.text, lineHeight: 17 },
+  stripCardTitle: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
 
   searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   searchWrap: { flex: 1, position: "relative", justifyContent: "center" },
   searchIcon: { position: "absolute", left: 12, zIndex: 1 },
-  search: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingVertical: 11,
-    paddingLeft: 34,
-    paddingRight: 32,
-    fontSize: 14,
-    color: colors.text,
-  },
+  search: { ...typography.body, backgroundColor: colors.surface, borderColor: colors.lineStrong, borderWidth: 1, borderRadius: radii.sm, paddingVertical: 11, paddingLeft: 34, paddingRight: 32, color: colors.text },
   searchClear: { position: "absolute", right: 10, zIndex: 1 },
   filterBtn: {
     width: 42,
     height: 42,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -461,29 +441,29 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
   },
   chipWide: { alignSelf: "flex-start" },
   chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
-  chipText: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
+  chipText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   chipTextOn: { color: colors.white },
 
   metaLine: { paddingHorizontal: 2 },
-  metaText: { fontSize: 11, color: colors.textSubtle, fontWeight: "600" },
+  metaText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GUTTER },
   tile: {
     width: COLUMN_WIDTH,
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     overflow: "hidden",
-    ...shadows.soft,
+    ...shadows.card,
   },
   thumbWrap: { position: "relative" },
-  thumb: { width: "100%", height: COLUMN_WIDTH, backgroundColor: colors.brandSoft },
+  thumb: { width: "100%", height: COLUMN_WIDTH, backgroundColor: colors.surfaceSunken },
   thumbEmpty: { alignItems: "center", justifyContent: "center" },
-  thumbEmptyText: { fontSize: 34, fontWeight: "800", color: colors.brandText, opacity: 0.5 },
+  thumbEmptyText: { ...typography.display1, color: colors.brandText, opacity: 0.5 },
 
   statusPill: {
     position: "absolute",
@@ -494,10 +474,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   statusLiked: { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentSoft },
-  statusPassed: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  statusText: { fontSize: 10, fontWeight: "700" },
-  statusTextLiked: { color: colors.accentMuted },
-  statusTextPassed: { color: colors.textMuted },
+  statusPassed: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong },
+  statusText: { ...typography.micro, fontFamily: fonts.semibold },
+  statusTextLiked: { color: colors.accentInk },
+  statusTextPassed: { color: colors.textSecondary },
 
   payPill: {
     position: "absolute",
@@ -508,14 +488,14 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: "rgba(30,58,138,0.85)",
   },
-  payPillText: { color: colors.white, fontSize: 10, fontWeight: "800" },
+  payPillText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.white },
 
   tileBody: { padding: 10, gap: 5, paddingRight: 34 },
-  tileTitle: { fontSize: 13, fontWeight: "700", color: colors.text, lineHeight: 17 },
+  tileTitle: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  creatorName: { flex: 1, fontSize: 11, color: colors.textMuted, fontWeight: "600" },
+  creatorName: { ...typography.micro, fontFamily: fonts.semibold, flex: 1, color: colors.textSecondary },
   locRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  locText: { flex: 1, fontSize: 10, color: colors.textSubtle },
+  locText: { ...typography.micro, flex: 1, color: colors.textSecondary },
 
   likeBtn: {
     position: "absolute",
@@ -523,30 +503,25 @@ const styles = StyleSheet.create({
     bottom: 8,
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  likeBtnDone: { backgroundColor: colors.like, borderColor: colors.like },
+  likeBtnDone: { backgroundColor: colors.accent, borderColor: colors.accent },
 
   empty: { paddingVertical: 48, alignItems: "center", gap: 6, paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 15, fontWeight: "700", color: colors.text },
-  emptyBody: {
-    fontSize: 13,
-    color: colors.textMuted,
-    textAlign: "center",
-    lineHeight: 19,
-  },
+  emptyTitle: { ...typography.bodyStrong, color: colors.text },
+  emptyBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
   clearAll: {
     marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
   },
-  clearAllText: { fontSize: 13, fontWeight: "700", color: colors.text },
+  clearAllText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
 });

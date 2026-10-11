@@ -15,7 +15,7 @@ import { Heart, MessageCircle, Sparkles } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
-import { colors } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -29,28 +29,28 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "intro",
-    icon: <Logo size={96} stroke={colors.brandOutline} />,
+    icon: <Logo size={96} stroke={colors.brand} />,
     title: "Find your next collaboration",
     body:
       "Photographers, models, musicians, filmmakers and dancers, matched only when you both say yes.",
   },
   {
     key: "swipe",
-    icon: <Sparkles size={72} color={colors.warning} />,
+    icon: <Sparkles size={72} color={colors.accent} />,
     title: "Post a project. Swipe to join.",
     body:
       "Share what you're making and who you'd love on it. Swipe right on the ones you want in on. Nobody's inbox fills up.",
   },
   {
     key: "match",
-    icon: <Heart size={72} color={colors.accentMuted} />,
+    icon: <Heart size={72} color={colors.accentInk} />,
     title: "Both say yes, then you talk",
     body:
       "A chat opens only when you both say yes. No cold DMs, in either direction.",
   },
   {
     key: "ready",
-    icon: <MessageCircle size={72} color={colors.textMuted} />,
+    icon: <MessageCircle size={72} color={colors.iconFaint} />,
     title: "Credits that follow you",
     body:
       "Every collab you do through Melange becomes a credit on your profile. Sign up takes a minute.",
@@ -117,12 +117,12 @@ export default function Welcome() {
           fullWidth
           onPress={next}
         >
-          <Text style={{ color: colors.onBrand, fontWeight: "700", fontSize: 16 }}>
+          <Text style={{ ...typography.headline, color: colors.onBrand }}>
             {page === SLIDES.length - 1 ? "Get started" : "Next"}
           </Text>
         </Button>
         <Text style={styles.foot} onPress={() => router.push("/(auth)/login")}>
-          Already have an account? <Text style={{ fontWeight: "700" }}>Sign in</Text>
+          Already have an account? <Text style={{ fontFamily: fonts.semibold }}>Sign in</Text>
         </Text>
       </View>
     </SafeAreaView>
@@ -139,11 +139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
-  skip: {
-    color: colors.brandText,
-    fontWeight: "600",
-    fontSize: 14,
-  },
+  skip: { ...typography.bodyStrong, color: colors.brandText },
   slide: {
     flex: 1,
     paddingHorizontal: 32,
@@ -153,20 +149,8 @@ const styles = StyleSheet.create({
   iconWrap: {
     marginBottom: 32,
   },
-  title: {
-    color: colors.brand,
-    fontSize: 28,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 14,
-    letterSpacing: -0.5,
-  },
-  body: {
-    color: colors.textMuted,
-    fontSize: 15,
-    textAlign: "center",
-    lineHeight: 22,
-  },
+  title: { ...typography.display1, color: colors.brand, textAlign: "center", marginBottom: 14 },
+  body: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
   dots: {
     flexDirection: "row",
     justifyContent: "center",
@@ -176,8 +160,8 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.borderStrong,
+    borderRadius: radii.sm,
+    backgroundColor: colors.lineStrong,
   },
   dotActive: {
     width: 24,
@@ -188,9 +172,5 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 14,
   },
-  foot: {
-    color: colors.textMuted,
-    fontSize: 13,
-    textAlign: "center",
-  },
+  foot: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
 });

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 
 type Tone = "neutral" | "accent" | "outline";
 type Size = "sm" | "md";
@@ -25,17 +25,20 @@ export function Chip({ label, tone = "neutral", size = "md", selected, onPress, 
     : tone === "accent"
       ? colors.accentSoft
       : tone === "outline"
-        ? colors.card
-        : colors.surfaceStrong;
-  const fg = selected ? colors.white : tone === "accent" ? colors.accentMuted : colors.textMuted;
+        ? colors.surface
+        : colors.bg;
+  const fg = selected ? colors.white : tone === "accent" ? colors.accentInk : colors.textSecondary;
   const border = selected
     ? colors.accent
     : tone === "accent"
       ? colors.accentSoft
       : tone === "outline"
-        ? colors.borderStrong
-        : colors.surfaceStrong;
-  const dims = size === "sm" ? { py: 4, px: 9, font: 11 } : { py: 7, px: 12, font: 13 };
+        ? colors.lineStrong
+        : colors.bg;
+  const dims =
+    size === "sm"
+      ? { py: 4, px: 8, type: typography.micro }
+      : { py: 8, px: 12, type: typography.caption };
 
   const body = (
     <View
@@ -46,7 +49,7 @@ export function Chip({ label, tone = "neutral", size = "md", selected, onPress, 
       ]}
     >
       {icon}
-      <Text style={[styles.label, { color: fg, fontSize: dims.font }]} numberOfLines={1}>
+      <Text style={[styles.label, dims.type, { color: fg }]} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -77,6 +80,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     borderWidth: 1,
   },
-  label: { fontWeight: "600" },
+  label: { fontFamily: fonts.semibold },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });

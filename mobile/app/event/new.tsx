@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { TextArea } from "@/components/ui/TextArea";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { trackEvent } from "@/lib/analytics";
 import { uploadFile } from "@/lib/db";
@@ -128,7 +128,7 @@ export default function NewEventScreen() {
             <Image source={{ uri: coverUri }} style={styles.coverImg} />
           ) : (
             <>
-              <ImagePlus size={22} color={colors.textSubtle} />
+              <ImagePlus size={22} color={colors.iconFaint} />
               <Text style={styles.coverLabel}>Add cover photo (optional)</Text>
             </>
           )}
@@ -157,7 +157,7 @@ export default function NewEventScreen() {
             onChangeText={setTitle}
             placeholder="Golden hour photo walk in Brooklyn"
             style={styles.input}
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
           />
         </Field>
 
@@ -176,7 +176,7 @@ export default function NewEventScreen() {
             onChangeText={setStartLocal}
             placeholder="YYYY-MM-DDTHH:mm"
             style={styles.input}
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
             autoCapitalize="none"
           />
         </Field>
@@ -187,7 +187,7 @@ export default function NewEventScreen() {
             onChangeText={setLocationName}
             placeholder="Washington Square Park"
             style={styles.input}
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
           />
         </Field>
 
@@ -197,7 +197,7 @@ export default function NewEventScreen() {
             onChangeText={setCity}
             placeholder="New York"
             style={styles.input}
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
           />
         </Field>
 
@@ -208,7 +208,7 @@ export default function NewEventScreen() {
             keyboardType="number-pad"
             placeholder="e.g. 20"
             style={styles.input}
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
           />
         </Field>
 
@@ -229,48 +229,39 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.lineStrong,
   },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: colors.brandText },
+  headerTitle: { ...typography.headline, color: colors.brandText },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
-  hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  hint: { ...typography.caption, color: colors.textSecondary },
   coverBox: {
     height: 120,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSunken,
   },
   coverImg: { width: "100%", height: "100%" },
-  coverLabel: { fontSize: 12, color: colors.textSubtle, marginTop: 4 },
-  sectionLabel: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
+  coverLabel: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
+  sectionLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   catChip: {
     width: "30%",
     minWidth: 96,
     paddingVertical: 8,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     alignItems: "center",
     backgroundColor: colors.white,
   },
-  catChipOn: { borderColor: colors.brandText, backgroundColor: colors.brandSoft },
-  catEmoji: { fontSize: 18 },
-  catText: { fontSize: 10, color: colors.textMuted, textAlign: "center", marginTop: 2 },
-  catTextOn: { color: colors.brandText, fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  catChipOn: { borderColor: colors.brandText, backgroundColor: colors.surfaceSunken },
+  catEmoji: { ...typography.headline },
+  catText: { ...typography.micro, color: colors.textSecondary, textAlign: "center", marginTop: 2 },
+  catTextOn: { color: colors.brandText, fontFamily: fonts.semibold },
+  input: { ...typography.body, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, backgroundColor: colors.white },
 });

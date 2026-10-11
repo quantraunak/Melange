@@ -17,7 +17,7 @@ import { ArrowLeft, Calendar, Check, Clock, MapPin, Plus, Star, Users, X } from 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, radii, shadows } from "@/lib/theme";
+import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import {
   cancelRsvp,
@@ -147,7 +147,7 @@ export default function EventsScreen() {
   if (eventsLoading && !refreshing) {
     return (
       <View style={styles.scroll}>
-        <Skeleton height={40} radius={radii.md} />
+        <Skeleton height={40} radius={radii.sm} />
         <EventCardSkeleton />
         <EventCardSkeleton />
       </View>
@@ -183,7 +183,7 @@ export default function EventsScreen() {
               value={cityFilter}
               onChangeText={setCityFilter}
               placeholder="Filter by city or location…"
-              placeholderTextColor={colors.textSubtle}
+              placeholderTextColor={colors.textTertiary}
               style={styles.search}
               onSubmitEditing={() => {
                 setRefreshing(true);
@@ -192,7 +192,7 @@ export default function EventsScreen() {
             />
             {cityFilter ? (
               <Pressable onPress={() => setCityFilter("")} style={styles.clearBtn}>
-                <X size={16} color={colors.textMuted} />
+                <X size={16} color={colors.iconFaint} />
               </Pressable>
             ) : null}
           </View>
@@ -201,7 +201,7 @@ export default function EventsScreen() {
 
           {events.length === 0 && !error ? (
             <View style={styles.empty}>
-              <Calendar size={40} color={colors.brandSoft} />
+              <Calendar size={40} color={colors.surfaceSunken} />
               <Text style={styles.emptyTitle}>No upcoming events</Text>
               <Text style={styles.emptyBody}>
                 Be the first to host a photo walk, open call, or meetup in your city.
@@ -281,7 +281,7 @@ function EventCard({
         <Text style={styles.cardTitle}>{event.title}</Text>
         {event.location_name ? (
           <View style={styles.metaRow}>
-            <MapPin size={12} color={colors.textSubtle} />
+            <MapPin size={12} color={colors.iconFaint} />
             <Text style={styles.metaText} numberOfLines={1}>
               {event.location_name}
             </Text>
@@ -297,7 +297,7 @@ function EventCard({
           </Text>
           {event.going_count > 0 ? (
             <View style={styles.goingCount}>
-              <Users size={12} color={colors.textSubtle} />
+              <Users size={12} color={colors.iconFaint} />
               <Text style={styles.goingCountText}>{event.going_count}</Text>
             </View>
           ) : null}
@@ -314,7 +314,7 @@ function EventCard({
           onPress={() => onRsvp(interested ? null : "interested")}
           disabled={busy}
         >
-          <Star size={14} color={interested ? colors.brandText : colors.textMuted} fill={interested ? colors.brandText : "transparent"} />
+          <Star size={14} color={interested ? colors.brandText : colors.textSecondary} fill={interested ? colors.brandText : "transparent"} />
           <Text style={[styles.rsvpLabel, interested && styles.rsvpLabelActive]}>Interested</Text>
         </Pressable>
         <View style={styles.rsvpDivider} />
@@ -327,7 +327,7 @@ function EventCard({
           onPress={() => onRsvp(going ? null : "going")}
           disabled={busy}
         >
-          <Check size={14} color={going ? colors.white : colors.textMuted} />
+          <Check size={14} color={going ? colors.white : colors.textSecondary} />
           <Text style={[styles.rsvpLabel, going && styles.rsvpLabelGoing]}>
             {going ? "Going" : "I'm going"}
           </Text>
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingBottom: 4,
   },
-  screenTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
+  screenTitle: { ...typography.headline, color: colors.text },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { padding: 16, paddingBottom: 120, gap: 12 },
   actionRow: { flexDirection: "row", justifyContent: "flex-end" },
@@ -357,19 +357,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radii.pill,
   },
-  hostBtnText: { color: colors.white, fontWeight: "700", fontSize: 13 },
+  hostBtnText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.white },
   searchWrap: { position: "relative" },
-  search: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.pill,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.text,
-    paddingRight: 36,
-  },
+  search: { ...typography.body, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, color: colors.text, paddingRight: 36 },
   clearBtn: {
     position: "absolute",
     right: 12,
@@ -382,28 +372,22 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     gap: 10,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
-  emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: "center", maxWidth: 280 },
+  emptyTitle: { ...typography.headline, color: colors.text },
+  emptyBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center", maxWidth: 280 },
   pressedOpacity: { opacity: 0.75 },
   dayGroup: { gap: 10, marginTop: 4 },
-  dayLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.textSubtle,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
+  dayLabel: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary, textTransform: "uppercase" },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     overflow: "hidden",
   },
-  cover: { height: 140, backgroundColor: colors.brandSoft },
+  cover: { height: 140, backgroundColor: colors.surfaceSunken },
   coverImg: { width: "100%", height: "100%" },
   coverPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  coverEmoji: { fontSize: 40 },
+  coverEmoji: { ...typography.display1 },
   timePill: {
     position: "absolute",
     top: 10,
@@ -416,20 +400,20 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radii.pill,
   },
-  timePillText: { color: colors.white, fontSize: 11, fontWeight: "700" },
+  timePillText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.white },
   cardBody: { padding: 12, gap: 6 },
-  catText: { fontSize: 11, color: colors.textMuted, fontWeight: "600" },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: colors.text },
+  catText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary },
+  cardTitle: { ...typography.headline, color: colors.text },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { fontSize: 12, color: colors.textMuted, flex: 1 },
+  metaText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
   hostRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
-  hostText: { flex: 1, fontSize: 12, color: colors.textMuted },
+  hostText: { ...typography.caption, flex: 1, color: colors.textSecondary },
   goingCount: { flexDirection: "row", alignItems: "center", gap: 2 },
-  goingCountText: { fontSize: 11, color: colors.textSubtle },
+  goingCountText: { ...typography.micro, color: colors.textSecondary },
   rsvpRow: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.lineStrong,
   },
   rsvpBtn: {
     flex: 1,
@@ -440,9 +424,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   rsvpInterested: { backgroundColor: "#fef9c3" },
-  rsvpGoing: { backgroundColor: colors.like },
-  rsvpDivider: { width: 1, backgroundColor: colors.border },
-  rsvpLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+  rsvpGoing: { backgroundColor: colors.accent },
+  rsvpDivider: { width: 1, backgroundColor: colors.lineStrong },
+  rsvpLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   rsvpLabelActive: { color: colors.brandText },
   rsvpLabelGoing: { color: colors.white },
 });

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSharedValue, withSpring } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Heart, Plus, RotateCcw, Search, X } from "lucide-react-native";
+import { Plus, Search, X } from "lucide-react-native";
 
 import { MatchCelebration } from "@/components/MatchCelebration";
 import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCard";
@@ -11,10 +12,11 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, shadows, typography } from "@/lib/theme";
+import { colors, GUTTER, motion, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { trackEvent } from "@/lib/analytics";
+import { useBarTop } from "./_layout";
 import {
   checkAndCreateMatch,
   getFeedPosts,
@@ -26,17 +28,16 @@ import {
   type PostWithCreator,
 } from "@/lib/db";
 
-/** Room for the floating tab bar. */
-export const TAB_BAR_CLEARANCE = 92;
-/** The Like/Pass row that floats between the panel and the tab bar. */
-const ACTIONS_HEIGHT = 64;
-const PANEL_INSET = TAB_BAR_CLEARANCE + ACTIONS_HEIGHT + 12;
+const { width: SCREEN_W } = Dimensions.get("window");
 
 export default function DiscoverScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const barTop = useBarTop();
   const { userId } = useAuth();
   const { refresh: refreshMatches } = useMatches();
+  /** Owned here so the card behind can follow the front card's drag. */
+  const tx = useSharedValue(0);
 
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
   const [index, setIndex] = useState(0);
@@ -109,16 +110,30 @@ export default function DiscoverScreen() {
 
   const current = filtered[index];
 
+  /**
+   * Advance first, then talk to the server.
+   *
+   * The card used to sit off-screen while two round-trips completed, leaving
+   * the user staring at a dimmed back card with no spinner. On failure we
+   * roll the index back and say so.
+   */
   const handleSwipe = useCallback(
     async (dir: SwipeDir) => {
       if (!userId || !current || swiping) return;
+      const post = current;
+
       setSwiping(true);
       setError(null);
+      setIndex((i) => i + 1);
+      setLastSwipe({ post, dir });
+      tx.value = 0;
 
-      const post = current;
       const { error: swErr } = await recordSwipe(userId, post.id, dir);
       if (swErr) {
+        setIndex((i) => Math.max(0, i - 1));
+        setLastSwipe(null);
         setError(swErr);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setSwiping(false);
         return;
       }
@@ -127,8 +142,6 @@ export default function DiscoverScreen() {
         post_id: post.id,
         owner_id: post.owner_id,
       });
-
-      setLastSwipe({ post, dir });
 
       if (dir === "right") {
         const { match, error: matchErr } = await checkAndCreateMatch(userId, post.id);
@@ -141,14 +154,15 @@ export default function DiscoverScreen() {
         }
       }
 
-      setIndex((i) => i + 1);
       setSwiping(false);
     },
-    [userId, current, swiping, refreshMatches]
+    [userId, current, swiping, refreshMatches, tx]
   );
 
   const rewind = useCallback(async () => {
     if (!lastSwipe || rewinding || swiping) return;
+    // Before the await: an undo buzz that lands after the round-trip is lag.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setRewinding(true);
     setError(null);
 
@@ -160,12 +174,14 @@ export default function DiscoverScreen() {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     trackEvent("swipe_undo", { post_id: lastSwipe.post.id });
+    // Fly the card back in from the edge it left by, rather than fading it in.
+    tx.value = lastSwipe.dir === "right" ? SCREEN_W * 1.25 : -SCREEN_W * 1.25;
     setIndex((i) => Math.max(0, i - 1));
+    tx.value = withSpring(0, motion.springs.promote);
     setLastSwipe(null);
     setRewinding(false);
-  }, [lastSwipe, rewinding, swiping]);
+  }, [lastSwipe, rewinding, swiping, tx]);
 
   const topInset = insets.top;
 
@@ -191,7 +207,7 @@ export default function DiscoverScreen() {
             <Text style={styles.emptyTitle}>Loading projects…</Text>
           </View>
         ) : !current ? (
-          <View style={[styles.centered, { paddingBottom: PANEL_INSET }]}>
+          <View style={[styles.centered, { paddingBottom: barTop + GUTTER }]}>
             <Glass style={styles.empty} elevated>
               <Text style={styles.emptyTitle}>
                 {search ? "No projects match that." : "No open collabs right now."}
@@ -218,8 +234,8 @@ export default function DiscoverScreen() {
             {filtered[index + 1] ? (
               <SwipeCardBehind
                 post={filtered[index + 1]}
-                topInset={topInset}
-                bottomInset={PANEL_INSET}
+                tx={tx}
+                bottom={barTop + GUTTER}
               />
             ) : null}
             <SwipeCard
@@ -227,7 +243,12 @@ export default function DiscoverScreen() {
               post={current}
               disabled={swiping}
               topInset={topInset}
-              bottomInset={PANEL_INSET}
+              barTop={barTop}
+              tx={tx}
+              canUndo={!!lastSwipe && !rewinding}
+              onPass={() => setPendingButtonSwipe("left")}
+              onLike={() => setPendingButtonSwipe("right")}
+              onUndo={rewind}
               pendingButtonSwipe={pendingButtonSwipe}
               onButtonSwipeComplete={() => setPendingButtonSwipe(null)}
               onSwipe={handleSwipe}
@@ -239,8 +260,9 @@ export default function DiscoverScreen() {
         )}
       </View>
 
-      {/* Floating controls: search and post, top right. */}
-      <View style={[styles.topControls, { top: topInset + 8 }]} pointerEvents="box-none">
+      {/* Floating controls: search and post, top right. Sit below the image
+          segments so the two bands never overlap. */}
+      <View style={[styles.topControls, { top: topInset + 26 }]} pointerEvents="box-none">
         {searchOpen ? (
           <Glass variant="strong" radius={radii.pill} elevated style={styles.searchWrap}>
             <Input
@@ -249,7 +271,7 @@ export default function DiscoverScreen() {
               placeholder="Role, city, title…"
               autoFocus
               autoCapitalize="none"
-              leading={<Search size={16} color={colors.textSubtle} />}
+              leading={<Search size={16} color={colors.iconFaint} />}
               trailing={
                 <Pressable
                   hitSlop={8}
@@ -258,7 +280,7 @@ export default function DiscoverScreen() {
                     setSearchOpen(false);
                   }}
                 >
-                  <X size={16} color={colors.textSubtle} />
+                  <X size={16} color={colors.iconFaint} />
                 </Pressable>
               }
               containerStyle={styles.searchInput}
@@ -269,65 +291,24 @@ export default function DiscoverScreen() {
             <GlassButton
               accessibilityLabel="Filter projects"
               onPress={() => setSearchOpen(true)}
-              size={42}
+              size={44}
             >
-              <Search size={18} color={colors.text} />
+              <Search size={18} color={colors.text} strokeWidth={1.75} />
             </GlassButton>
             <GlassButton
               accessibilityLabel="Post a project"
               onPress={() => router.push("/post/new")}
-              size={42}
+              size={44}
             >
-              <Plus size={20} color={colors.brandText} strokeWidth={2.5} />
+              <Plus size={20} color={colors.brand} strokeWidth={1.75} />
             </GlassButton>
           </>
         )}
       </View>
 
-      <View style={[styles.errorSlot, { top: topInset + 58 }]} pointerEvents="box-none">
+      <View style={[styles.errorSlot, { top: topInset + 76 }]} pointerEvents="box-none">
         <ErrorBanner message={error} />
       </View>
-
-      {/* Like / Pass, floating over the photo. */}
-      {current && !loading ? (
-        <View style={[styles.actions, { bottom: TAB_BAR_CLEARANCE }]} pointerEvents="box-none">
-          <GlassButton
-            accessibilityLabel="Undo last swipe"
-            onPress={rewind}
-            disabled={!lastSwipe || rewinding || swiping}
-            size={48}
-            style={!lastSwipe ? styles.dim : undefined}
-          >
-            <RotateCcw size={19} color={lastSwipe ? colors.warning : colors.textFaint} />
-          </GlassButton>
-
-          <GlassButton
-            accessibilityLabel="Pass"
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setPendingButtonSwipe("left");
-            }}
-            disabled={swiping}
-            size={64}
-          >
-            <X size={28} color={colors.passText} strokeWidth={2.75} />
-          </GlassButton>
-
-          <GlassButton
-            accessibilityLabel="Like"
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setPendingButtonSwipe("right");
-            }}
-            disabled={swiping}
-            size={64}
-            solid={colors.like}
-            style={shadows.glow}
-          >
-            <Heart size={28} color={colors.white} strokeWidth={2.75} />
-          </GlassButton>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -339,8 +320,8 @@ const styles = StyleSheet.create({
 
   topControls: {
     position: "absolute",
-    right: 12,
-    left: 12,
+    right: GUTTER,
+    left: GUTTER,
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 8,
@@ -348,32 +329,21 @@ const styles = StyleSheet.create({
   searchWrap: { flex: 1, paddingHorizontal: 4 },
   searchInput: { borderWidth: 0, backgroundColor: "transparent" },
 
-  errorSlot: { position: "absolute", left: 16, right: 16 },
-
-  actions: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 18,
-  },
-  dim: { opacity: 0.5 },
+  errorSlot: { position: "absolute", left: GUTTER, right: GUTTER },
 
   empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyTitle: { ...typography.h3, textAlign: "center" },
-  emptyBody: { ...typography.small, textAlign: "center", lineHeight: 19 },
-  emptyLink: { color: colors.brandText, fontSize: 13, fontWeight: "700", marginTop: 4 },
+  emptyTitle: { ...typography.headline, textAlign: "center" },
+  emptyBody: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+  emptyLink: { ...typography.caption, fontFamily: "Inter_600SemiBold", color: colors.brandText, marginTop: 4 },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     backgroundColor: colors.brand,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radii.pill,
+    paddingHorizontal: GUTTER,
+    paddingVertical: 12,
+    borderRadius: radii.sm,
     marginTop: 8,
   },
-  emptyCtaText: { color: colors.onBrand, fontWeight: "700" },
+  emptyCtaText: { ...typography.bodyStrong, color: colors.onBrand },
 });

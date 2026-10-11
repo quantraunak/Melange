@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { PAY_TYPES, ROLES, uploadFile, type PayType } from "@/lib/db";
 
 const MAX_IMAGES = 5;
@@ -345,7 +345,7 @@ export function ProjectForm({
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                   >
-                    <Glass variant="soft" radius={radii.lg} style={[styles.payRow, on && styles.payRowOn]}>
+                    <Glass variant="soft" radius={radii.md} style={[styles.payRow, on && styles.payRowOn]}>
                       <View style={[styles.radio, on && styles.radioOn]} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.payLabel}>{p.label}</Text>
@@ -372,7 +372,7 @@ export function ProjectForm({
                 ))}
                 {assets.length < MAX_IMAGES ? (
                   <Pressable style={styles.imageAdd} onPress={addImage}>
-                    <ImagePlus size={22} color={colors.textSubtle} />
+                    <ImagePlus size={22} color={colors.iconFaint} />
                     <Text style={styles.imageAddText}>Add</Text>
                   </Pressable>
                 ) : null}
@@ -429,13 +429,13 @@ export function ProjectForm({
 const styles = StyleSheet.create({
   progress: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 10 },
   progressItem: { flex: 1, gap: 6 },
-  bar: { height: 3, borderRadius: 2, backgroundColor: colors.border },
+  bar: { height: 3, borderRadius: radii.sm, backgroundColor: colors.lineStrong },
   barOn: { backgroundColor: colors.accent },
-  barLabel: { ...typography.tiny, color: colors.textFaint },
-  barLabelOn: { color: colors.text, fontWeight: "700" },
+  barLabel: { ...typography.micro, color: colors.iconFaint },
+  barLabelOn: { color: colors.text, fontFamily: fonts.semibold },
   scroll: { padding: 16, gap: 14, paddingBottom: 24 },
-  stepTitle: { ...typography.h1, marginTop: 6 },
-  stepHint: { ...typography.small, marginTop: -6 },
+  stepTitle: typography.display1,
+  stepHint: { ...typography.caption, marginTop: -6 },
   twoCol: { flexDirection: "row", gap: 10 },
   payList: { gap: 8 },
   payRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
@@ -443,20 +443,20 @@ const styles = StyleSheet.create({
   radio: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: radii.sm,
     borderWidth: 2,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
   },
   radioOn: { borderColor: colors.accent, backgroundColor: colors.accent },
-  payLabel: typography.h3,
-  payHint: typography.small,
+  payLabel: typography.headline,
+  payHint: typography.caption,
   images: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   imageThumb: {
     width: 92,
     height: 92,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     overflow: "hidden",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSunken,
     position: "relative",
   },
   imageRemove: {
@@ -466,30 +466,30 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.55)",
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radii.sm,
     alignItems: "center",
     justifyContent: "center",
   },
   imageAdd: {
     width: 92,
     height: 92,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderStyle: "dashed",
     borderWidth: 1.5,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
   },
-  imageAddText: { ...typography.tiny, fontWeight: "600" },
+  imageAddText: { ...typography.micro, fontFamily: fonts.semibold },
   uploadHint: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  uploadHintText: typography.small,
+  uploadHintText: typography.caption,
   footer: {
     flexDirection: "row",
     gap: 10,
     padding: 16,
     paddingBottom: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: colors.lineStrong,
   },
 });

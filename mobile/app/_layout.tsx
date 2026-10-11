@@ -4,6 +4,14 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import { Fraunces_600SemiBold } from "@expo-google-fonts/fraunces";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { MatchesProvider } from "@/lib/matches";
@@ -11,14 +19,16 @@ import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-function Gate() {
+function Gate({ fontsReady }: { fontsReady: boolean }) {
   const { session, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !fontsReady) return;
 
+    // Held until the typeface is resident: the splash is a better first frame
+    // than a flash of the system font reflowing into Fraunces.
     SplashScreen.hideAsync().catch(() => {});
 
     const inAuth = segments[0] === "(auth)";
@@ -27,7 +37,7 @@ function Gate() {
     } else if (session && inAuth) {
       router.replace("/(tabs)/connect");
     }
-  }, [loading, session, segments, router]);
+  }, [loading, fontsReady, session, segments, router]);
 
   return (
     <MatchesProvider>
@@ -50,12 +60,24 @@ function Gate() {
 }
 
 export default function RootLayout() {
+  // Fraunces for display, Inter for everything else. Three weights of Inter
+  // plus one of Fraunces is the whole typographic palette — see theme.ts.
+  const [fontsReady] = useFonts({
+    Fraunces_600SemiBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        {/* Dark glyphs suit five of seven screens; the two full-bleed photo
+            screens put a white scrim under the status bar instead. */}
         <StatusBar style="dark" />
         <AuthProvider>
-          <Gate />
+          <Gate fontsReady={fontsReady} />
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

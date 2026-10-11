@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Bell, X } from "lucide-react-native";
 
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { getPushPermission, registerForPushAsync } from "@/lib/push";
 
 /**
@@ -73,7 +73,7 @@ export function PushPrimer({ userId }: { userId: string }) {
         </Pressable>
       </View>
       <Pressable onPress={dismiss} hitSlop={10} style={styles.close} accessibilityLabel="Dismiss">
-        <X size={15} color={colors.textSubtle} />
+        <X size={15} color={colors.iconFaint} />
       </Pressable>
     </View>
   );
@@ -85,22 +85,22 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     paddingRight: 30,
-    backgroundColor: colors.brandSoft,
-    borderRadius: radii.lg,
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: "#bfdbfe",
   },
   icon: {
     width: 34,
     height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   body: { flex: 1, gap: 5 },
-  title: { fontSize: 14, fontWeight: "800", color: colors.brand },
-  text: { fontSize: 12, color: colors.brandText, lineHeight: 17, opacity: 0.9 },
+  title: { ...typography.bodyStrong, color: colors.brand },
+  text: { ...typography.caption, color: colors.brandText, opacity: 0.9 },
   cta: {
     alignSelf: "flex-start",
     marginTop: 4,
@@ -109,6 +109,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radii.pill,
   },
-  ctaText: { color: colors.white, fontSize: 12, fontWeight: "700" },
+  ctaText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.white },
   close: { position: "absolute", top: 10, right: 10 },
 });

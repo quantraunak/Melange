@@ -18,7 +18,7 @@ import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { getStories, storyDate, type StoryWithAuthor } from "@/lib/stories";
 
@@ -74,7 +74,7 @@ export default function StoriesScreen() {
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.textMuted}
+            tintColor={colors.textSecondary}
           />
         }
       >
@@ -92,12 +92,12 @@ export default function StoriesScreen() {
 
         {loading ? (
           <View style={{ gap: 16 }}>
-            <Skeleton height={260} radius={radii.xxl} />
-            <Skeleton height={260} radius={radii.xxl} />
+            <Skeleton height={260} radius={radii.lg} />
+            <Skeleton height={260} radius={radii.lg} />
           </View>
         ) : unavailable ? (
           <Glass style={styles.empty} elevated>
-            <BookOpen size={28} color={colors.textSubtle} strokeWidth={1.4} />
+            <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
             <Text style={styles.emptyTitle}>Stories aren&apos;t live yet</Text>
             <Text style={styles.emptyBody}>
               The database needs <Text style={styles.mono}>09_stories.sql</Text> applied before
@@ -106,7 +106,7 @@ export default function StoriesScreen() {
           </Glass>
         ) : stories.length === 0 ? (
           <Glass style={styles.empty} elevated>
-            <BookOpen size={28} color={colors.textSubtle} strokeWidth={1.4} />
+            <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
             <Text style={styles.emptyTitle}>No stories yet</Text>
             <Text style={styles.emptyBody}>
               Post something you already made. It does not have to be recent, and your
@@ -163,7 +163,7 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
         <Image source={{ uri: hero }} style={styles.hero} contentFit="cover" transition={160} />
       ) : (
         <View style={[styles.hero, styles.heroEmpty]}>
-          <BookOpen size={30} color={colors.textFaint} strokeWidth={1.2} />
+          <BookOpen size={30} color={colors.iconFaint} strokeWidth={1.2} />
         </View>
       )}
 
@@ -180,7 +180,7 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
 
         {story.credits.length ? (
           <View style={styles.withRow}>
-            <Users size={13} color={colors.textSubtle} />
+            <Users size={13} color={colors.iconFaint} />
             <ChipRow style={{ flex: 1 }}>
               {shown.map((c, i) => (
                 <Chip
@@ -209,7 +209,7 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
           </Text>
           {when ? (
             <View style={styles.when}>
-              <CalendarRange size={12} color={colors.textSubtle} />
+              <CalendarRange size={12} color={colors.iconFaint} />
               <Text style={styles.whenText}>{when}</Text>
             </View>
           ) : null}
@@ -224,19 +224,19 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingBottom: TAB_BAR_CLEARANCE + 24, gap: 14 },
   header: { flexDirection: "row", alignItems: "flex-end" },
   eyebrow: typography.eyebrow,
-  heading: { ...typography.display, marginTop: 2 },
-  subhead: { ...typography.small, marginTop: -8, marginBottom: 2 },
+  heading: typography.display1,
+  subhead: { ...typography.caption, marginTop: -8, marginBottom: 2 },
 
   card: {
-    borderRadius: radii.xxl,
+    borderRadius: radii.lg,
     overflow: "hidden",
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     ...shadows.card,
   },
   cardPressed: { opacity: 0.95, transform: [{ scale: 0.995 }] },
-  hero: { width: "100%", height: 220, backgroundColor: colors.surfaceStrong },
+  hero: { width: "100%", height: 220, backgroundColor: colors.bg },
   heroEmpty: { alignItems: "center", justifyContent: "center" },
   countBadge: {
     position: "absolute",
@@ -245,26 +245,26 @@ const styles = StyleSheet.create({
     minWidth: 26,
     paddingHorizontal: 8,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radii.sm,
     backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
   },
-  countText: { ...typography.tiny, color: colors.text, fontWeight: "800" },
+  countText: { ...typography.micro, color: colors.text, fontFamily: fonts.semibold },
   cardBody: { padding: 16, gap: 9 },
-  cardTitle: { ...typography.h1 },
+  cardTitle: { ...typography.title },
   withRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  excerpt: { ...typography.small, color: colors.textMuted, lineHeight: 20 },
+  excerpt: { ...typography.caption, color: colors.textSecondary, lineHeight: 20 },
   byRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
-  byText: { ...typography.small, flex: 1 },
-  byName: { color: colors.text, fontWeight: "700" },
+  byText: { ...typography.caption, flex: 1 },
+  byName: { color: colors.text, fontFamily: fonts.semibold },
   when: { flexDirection: "row", alignItems: "center", gap: 4 },
-  whenText: { ...typography.tiny },
+  whenText: { ...typography.micro },
 
   empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 10 },
-  emptyTitle: { ...typography.h3, textAlign: "center" },
-  emptyBody: { ...typography.small, textAlign: "center", lineHeight: 20 },
-  mono: { fontWeight: "700", color: colors.text },
+  emptyTitle: { ...typography.headline, textAlign: "center" },
+  emptyBody: { ...typography.caption, textAlign: "center", lineHeight: 20 },
+  mono: { fontFamily: fonts.semibold, color: colors.text },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     marginTop: 4,
   },
-  emptyCtaText: { color: colors.onBrand, fontWeight: "700" },
+  emptyCtaText: { color: colors.onBrand, fontFamily: fonts.semibold },
 
   fab: { position: "absolute", right: 20 },
 });

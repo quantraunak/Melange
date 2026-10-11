@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { submitReport, type ReportReason } from "@/lib/db";
 
@@ -131,33 +131,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.card,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.lineStrong,
     borderBottomWidth: 1,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.text },
+  headerTitle: { ...typography.headline, flex: 1, textAlign: "center", color: colors.text },
   scroll: { padding: 16, gap: 14 },
-  intro: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  intro: { ...typography.caption, color: colors.textSecondary },
   reasons: { gap: 8 },
   reasonRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
     padding: 12,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.lineStrong,
     borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
   },
   reasonRowActive: {
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.surfaceSunken,
     borderColor: colors.brandText,
   },
   radio: {
     width: 18,
     height: 18,
-    borderRadius: 9,
-    borderColor: colors.borderStrong,
+    borderRadius: radii.sm,
+    borderColor: colors.lineStrong,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
@@ -167,6 +167,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     borderColor: colors.brand,
   },
-  reasonLabel: { fontSize: 14, fontWeight: "600", color: colors.text },
-  reasonHelp: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  reasonLabel: { ...typography.bodyStrong, color: colors.text },
+  reasonHelp: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
 });

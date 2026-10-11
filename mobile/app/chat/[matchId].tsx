@@ -18,7 +18,7 @@ import { ArrowLeft, MoreVertical, Send } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import {
@@ -331,7 +331,7 @@ export default function ChatScreen() {
               value={text}
               onChangeText={setText}
               placeholder="Type a message..."
-              placeholderTextColor={colors.textSubtle}
+              placeholderTextColor={colors.textTertiary}
               style={styles.input}
               multiline
               maxLength={2000}
@@ -352,35 +352,35 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.card },
+  safe: { flex: 1, backgroundColor: colors.surface },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.lineStrong,
     borderBottomWidth: 1,
   },
   headerMiddle: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  headerTitle: { flex: 1, fontSize: 16, fontWeight: "700", color: colors.text },
-  headerName: { fontSize: 15, fontWeight: "700", color: colors.text },
-  headerSubtitle: { fontSize: 11, color: colors.textSubtle },
+  headerTitle: { ...typography.headline, flex: 1, color: colors.text },
+  headerName: { ...typography.bodyStrong, color: colors.text },
+  headerSubtitle: { ...typography.micro, color: colors.textSecondary },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   notFound: { alignItems: "center", paddingHorizontal: 32, gap: 8 },
-  notFoundTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
-  notFoundBody: { fontSize: 13, color: colors.textSubtle, textAlign: "center" },
+  notFoundTitle: { ...typography.headline, color: colors.text },
+  notFoundBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
   notFoundBtn: {
     marginTop: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     backgroundColor: colors.accent,
   },
-  notFoundBtnText: { color: colors.white, fontSize: 14, fontWeight: "700" },
+  notFoundBtnText: { ...typography.bodyStrong, color: colors.white },
   messageList: { paddingHorizontal: 14, paddingVertical: 12, flexGrow: 1 },
   emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
-  emptyChatText: { color: colors.textSubtle, fontSize: 14 },
+  emptyChatText: { ...typography.body, color: colors.textSecondary },
   bubbleRow: { flexDirection: "row" },
   bubbleRowMe: { justifyContent: "flex-end" },
   bubbleRowOther: { justifyContent: "flex-start" },
@@ -388,13 +388,13 @@ const styles = StyleSheet.create({
     maxWidth: "78%",
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 18,
+    borderRadius: radii.md,
   },
   bubbleMe: { backgroundColor: colors.bubbleMe, borderBottomRightRadius: 6 },
   bubbleOther: { backgroundColor: colors.bubbleOther, borderBottomLeftRadius: 6 },
-  bubbleText: { fontSize: 15, color: colors.text, lineHeight: 20 },
-  bubbleTime: { fontSize: 10, color: colors.textSubtle, marginTop: 2, alignSelf: "flex-end" },
-  inputSafe: { backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1 },
+  bubbleText: { ...typography.body, color: colors.text },
+  bubbleTime: { ...typography.micro, color: colors.textSecondary, marginTop: 2, alignSelf: "flex-end" },
+  inputSafe: { backgroundColor: colors.surface, borderTopColor: colors.lineStrong, borderTopWidth: 1 },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -402,20 +402,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  input: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-    maxHeight: 120,
-  },
+  input: { ...typography.body, flex: 1, backgroundColor: colors.surfaceSunken, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 10, color: colors.text, maxHeight: 120 },
   sendBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: radii.md,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
@@ -428,10 +419,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 10,
     backgroundColor: colors.accentSoft,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.accent,
   },
-  reviewBannerText: { flex: 1, fontSize: 12, color: "#5b21b6", marginRight: 8 },
-  reviewBannerCta: { fontSize: 12, fontWeight: "700", color: colors.accent },
+  reviewBannerText: { ...typography.caption, flex: 1, color: "#5b21b6", marginRight: 8 },
+  reviewBannerCta: { ...typography.caption, fontFamily: fonts.semibold, color: colors.accent },
 });

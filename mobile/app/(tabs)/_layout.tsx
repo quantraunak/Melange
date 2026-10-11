@@ -1,22 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import { BookOpen, MessageCircle, Sparkles, UserRound } from "lucide-react-native";
+import { Compass, Layers, MessageCircle, UserRound } from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { Glass } from "@/components/ui/Glass";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
-import { colors, radii } from "@/lib/theme";
+import { colors, GUTTER, radii, typography } from "@/lib/theme";
 
 function PushBootstrap() {
   const { userId } = useAuth();
@@ -43,56 +38,59 @@ function PushBootstrap() {
   return null;
 }
 
+/**
+ * Compass for Discover (you are looking around) and Layers for Stories (work
+ * stacked up over time). The previous sparkle and open book said nothing: a
+ * sparkle is decoration, and a book is not a record of shoots you have done.
+ */
 const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
-  connect: (p) => <Sparkles {...p} />,
-  stories: (p) => <BookOpen {...p} />,
+  connect: (p) => <Compass {...p} />,
+  stories: (p) => <Layers {...p} />,
   messages: (p) => <MessageCircle {...p} />,
   profile: (p) => <UserRound {...p} />,
 };
 
-const TAB_BAR_PAD = 6;
+const TAB_BAR_PAD = 8;
+
+/** 8 pad + 21 icon + 3 gap + 13 label + 8 pad + 16 (TAB_BAR_PAD×2) + 2 border. */
+export const TAB_BAR_H = 67;
 
 /**
- * Floating glass tab bar, icons only.
+ * The top edge of the tab bar, measured from the bottom of the screen.
  *
- * Discover is full bleed now, so the bar sits straight on the photo. Labels
- * would need a scrim to stay legible and would cost a row of height on the
- * one screen where height is the whole point; four icons at this size read
- * fine on their own, and each keeps its accessibility label for VoiceOver.
+ * Every screen imports this. Five different hardcoded clearances used to
+ * approximate it (92, 112, 112, 150, 120), none of them correct on more than
+ * one device, which is how the Like button ended up three points underneath
+ * the navigation.
+ */
+export function useBarTop() {
+  const insets = useSafeAreaInsets();
+  return Math.max(insets.bottom, 12) + TAB_BAR_H;
+}
+
+/**
+ * Floating glass tab bar.
+ *
+ * Labelled: Discover and Stories are product-specific ideas with no
+ * conventional glyph, so an icon alone cannot carry them. Selection is the
+ * icon and label turning brand blue — there is no sliding indicator, which
+ * was Material Design's navigation pill and put the highlight and the
+ * highlighted item in different places for a third of a second.
  */
 function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { unreadCount } = useMatches();
   const insets = useSafeAreaInsets();
-  const [barWidth, setBarWidth] = useState(0);
-
-  const tabCount = state.routes.length;
-  const pillWidth = barWidth > 0 ? (barWidth - TAB_BAR_PAD * 2) / tabCount : 0;
-  const tx = useSharedValue(0);
-
-  useEffect(() => {
-    if (pillWidth <= 0) return;
-    tx.value = withSpring(TAB_BAR_PAD + state.index * pillWidth, {
-      damping: 20,
-      stiffness: 220,
-    });
-  }, [state.index, pillWidth, tx]);
-
-  const pillStyle = useAnimatedStyle(() => ({
-    width: pillWidth,
-    transform: [{ translateX: tx.value }],
-  }));
 
   return (
     <View style={[styles.tabBarOuter, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      <Glass variant="strong" radius={radii.xxl} elevated style={styles.tabBarGlass}>
-        <View style={styles.tabBar} onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}>
-          {pillWidth > 0 ? <Animated.View style={[styles.pill, pillStyle]} /> : null}
+      <Glass variant="strong" radius={radii.lg} elevated style={styles.tabBarGlass}>
+        <View style={styles.tabBar}>
           {state.routes.map((route, idx) => {
             const focused = state.index === idx;
             const { options } = descriptors[route.key];
             const label = (options.tabBarLabel as string) ?? options.title ?? route.name;
             const badge = route.name === "messages" ? unreadCount : 0;
-            const color = focused ? colors.brandText : colors.textMuted;
+            const color = focused ? colors.brand : colors.textSecondary;
 
             const onPress = () => {
               const event = navigation.emit({
@@ -100,10 +98,15 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 target: route.key,
                 canPreventDefault: true,
               });
-              if (!focused && !event.defaultPrevented) {
-                Haptics.selectionAsync();
-                navigation.navigate(route.name);
+              if (event.defaultPrevented) return;
+              if (focused) {
+                // Tapping the current tab used to do nothing at all. Screens
+                // listen for this and scroll themselves to the top.
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                return;
               }
+              Haptics.selectionAsync().catch(() => {});
+              navigation.navigate(route.name);
             };
 
             return (
@@ -115,7 +118,14 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 onPress={onPress}
                 style={styles.tab}
               >
-                {TAB_ICONS[route.name]?.({ color, size: 23 })}
+                {TAB_ICONS[route.name]?.({ color, size: 21 })}
+                <Text
+                  style={[styles.tabLabel, focused && styles.tabLabelOn]}
+                  numberOfLines={1}
+                  allowFontScaling={false}
+                >
+                  {label}
+                </Text>
                 {badge > 0 ? (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
@@ -152,47 +162,36 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   tabBarOuter: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    left: GUTTER,
+    right: GUTTER,
     bottom: 0,
   },
   tabBarGlass: {},
   tabBar: {
     padding: TAB_BAR_PAD,
     flexDirection: "row",
-    position: "relative",
-  },
-  pill: {
-    position: "absolute",
-    top: TAB_BAR_PAD,
-    bottom: TAB_BAR_PAD,
-    left: 0,
-    borderRadius: radii.xl,
-    backgroundColor: colors.brandSoft,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: radii.xl,
+    gap: 3,
     position: "relative",
   },
+  tabLabel: { ...typography.micro, color: colors.textSecondary },
+  tabLabelOn: { fontFamily: "Inter_600SemiBold", color: colors.brand },
   badge: {
     position: "absolute",
-    top: 6,
-    right: "26%",
+    top: 2,
+    right: "22%",
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: colors.accent,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brand,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: "800",
-  },
+  badgeText: { ...typography.micro, color: colors.white, lineHeight: 14 },
 });

@@ -22,7 +22,7 @@ import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { MatchRowSkeleton } from "@/components/ui/Skeleton";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { isLastMessageSeen, isMatchUnread, type MatchWithPost } from "@/lib/db";
@@ -223,11 +223,11 @@ export default function MatchesScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               containerStyle={{ marginBottom: 4 }}
-              leading={<Search size={16} color={colors.textSubtle} />}
+              leading={<Search size={16} color={colors.iconFaint} />}
               trailing={
                 query ? (
                   <Pressable onPress={() => setQuery("")} hitSlop={8}>
-                    <X size={16} color={colors.textMuted} />
+                    <X size={16} color={colors.iconFaint} />
                   </Pressable>
                 ) : null
               }
@@ -281,7 +281,7 @@ export default function MatchesScreen() {
       renderItem={({ item }) =>
         item.kind === "project" ? (
           <View style={styles.projectHead}>
-            <Sparkles size={14} color={colors.accentMuted} />
+            <Sparkles size={14} color={colors.accentInk} />
             <Text style={styles.projectTitle} numberOfLines={1}>
               {item.title}
             </Text>
@@ -325,7 +325,7 @@ function MatchRow({
       accessibilityRole="button"
       accessibilityLabel={`Conversation with ${match.other_creator.name}${unread ? ", unread" : ""}`}
     >
-      <Glass radius={radii.lg} style={styles.row}>
+      <Glass radius={radii.md} style={styles.row}>
         <Avatar creator={match.other_creator} size="lg" />
 
         <View style={styles.rowText}>
@@ -346,9 +346,9 @@ function MatchRow({
           <View style={styles.rowBottom}>
             {mine ? (
               seen ? (
-                <CheckCheck size={13} color={colors.accentMuted} />
+                <CheckCheck size={13} color={colors.accentInk} />
               ) : (
-                <Check size={13} color={colors.textSubtle} />
+                <Check size={13} color={colors.iconFaint} />
               )
             ) : null}
             <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   section: { gap: 8 },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionTitle: typography.eyebrow,
-  sectionHint: { ...typography.tiny, marginLeft: "auto" },
+  sectionHint: { ...typography.micro, marginLeft: "auto" },
   countPill: {
     minWidth: 18,
     height: 18,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  countPillText: { color: colors.white, fontSize: 11, fontWeight: "800" },
+  countPillText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.white },
 
   newRow: { gap: 14, paddingVertical: 2, paddingRight: 8 },
   newItem: { alignItems: "center", width: 72, gap: 5 },
@@ -389,8 +389,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.accent,
   },
-  newName: { fontSize: 12, fontWeight: "700", color: colors.text, maxWidth: 70 },
-  newProject: { ...typography.tiny, maxWidth: 70 },
+  newName: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text, maxWidth: 70 },
+  newProject: { ...typography.micro, maxWidth: 70 },
 
   projectHead: {
     flexDirection: "row",
@@ -400,17 +400,8 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     paddingHorizontal: 4,
   },
-  projectTitle: { fontSize: 15, fontWeight: "600", color: colors.text, flex: 1, letterSpacing: -0.2 },
-  projectCount: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.textMuted,
-    backgroundColor: colors.surfaceStrong,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-    overflow: "hidden",
-  },
+  projectTitle: { ...typography.bodyStrong, color: colors.text, flex: 1 },
+  projectCount: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary, backgroundColor: colors.bg, paddingHorizontal: 7, paddingVertical: 2, borderRadius: radii.pill, overflow: "hidden" },
 
   row: {
     flexDirection: "row",
@@ -422,23 +413,23 @@ const styles = StyleSheet.create({
   separator: { height: 8 },
   rowText: { flex: 1, gap: 3 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 8 },
-  name: { flex: 1, color: colors.text, fontSize: 15, fontWeight: "600" },
-  nameUnread: { fontWeight: "800" },
-  role: { ...typography.tiny, fontWeight: "500" },
-  time: { ...typography.tiny },
-  timeUnread: { color: colors.accentMuted, fontWeight: "700" },
+  name: { ...typography.bodyStrong, flex: 1, color: colors.text },
+  nameUnread: { fontFamily: fonts.semibold },
+  role: { ...typography.micro, fontFamily: fonts.regular },
+  time: { ...typography.micro },
+  timeUnread: { color: colors.accentInk, fontFamily: fonts.semibold },
   rowBottom: { flexDirection: "row", alignItems: "center", gap: 5 },
-  preview: { flex: 1, ...typography.small },
-  previewUnread: { color: colors.text, fontWeight: "600" },
+  preview: { flex: 1, ...typography.caption },
+  previewUnread: { color: colors.text, fontFamily: fonts.semibold },
   unreadDot: {
     width: 9,
     height: 9,
-    borderRadius: 5,
+    borderRadius: radii.sm,
     backgroundColor: colors.accent,
   },
 
   inlineEmpty: { paddingVertical: 28, alignItems: "center" },
-  inlineEmptyText: { ...typography.small, textAlign: "center" },
+  inlineEmptyText: { ...typography.caption, textAlign: "center" },
 
   emptyScroll: {
     flexGrow: 1,
@@ -457,9 +448,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 4,
   },
-  emptyTitle: typography.h2,
+  emptyTitle: typography.headline,
   emptyBody: {
-    ...typography.small,
+    ...typography.caption,
     textAlign: "center",
     lineHeight: 19,
     maxWidth: 280,
@@ -471,5 +462,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radii.pill,
   },
-  emptyBtnText: { color: colors.onBrand, fontSize: 14, fontWeight: "700" },
+  emptyBtnText: { ...typography.bodyStrong, color: colors.onBrand },
 });

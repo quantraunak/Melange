@@ -29,7 +29,7 @@ import { MatchCelebration } from "@/components/MatchCelebration";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Glass } from "@/components/ui/Glass";
-import { colors, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { supabase } from "@/lib/supabase";
@@ -202,7 +202,7 @@ export default function ProjectDetailScreen() {
             />
           ) : (
             <View style={[styles.heroImg, styles.placeholder]}>
-              <Sparkles size={64} color={colors.textFaint} strokeWidth={1.2} />
+              <Sparkles size={64} color={colors.iconFaint} strokeWidth={1.2} />
             </View>
           )}
           <View pointerEvents="none" style={styles.heroFade} />
@@ -219,12 +219,12 @@ export default function ProjectDetailScreen() {
           <Text style={styles.title}>{post.title}</Text>
           {post.description ? <Text style={styles.logline}>{post.description}</Text> : null}
 
-          <Glass radius={radii.lg} style={styles.facts}>
-            {dates ? <Fact icon={<CalendarDays size={16} color={colors.textMuted} />} label="When" value={dates} /> : null}
-            {post.location ? <Fact icon={<MapPin size={16} color={colors.textMuted} />} label="Where" value={post.location} /> : null}
+          <Glass radius={radii.md} style={styles.facts}>
+            {dates ? <Fact icon={<CalendarDays size={16} color={colors.iconFaint} />} label="When" value={dates} /> : null}
+            {post.location ? <Fact icon={<MapPin size={16} color={colors.iconFaint} />} label="Where" value={post.location} /> : null}
             {pay ? (
               <Fact
-                icon={<Wallet size={16} color={colors.textMuted} />}
+                icon={<Wallet size={16} color={colors.iconFaint} />}
                 label="Pay"
                 value={detail ? `${pay} · ${detail}` : pay}
               />
@@ -235,7 +235,7 @@ export default function ProjectDetailScreen() {
           </Glass>
 
           {creator ? (
-            <Glass radius={radii.lg} style={styles.byCard}>
+            <Glass radius={radii.md} style={styles.byCard}>
               <Avatar creator={creator} size="lg" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.eyebrow}>Posted by</Text>
@@ -253,7 +253,7 @@ export default function ProjectDetailScreen() {
                     router.push({ pathname: "/report/[kind]/[id]", params: { kind: "post", id: post.id } })
                   }
                 >
-                  <Flag size={18} color={colors.textSubtle} />
+                  <Flag size={18} color={colors.iconFaint} />
                 </Pressable>
               ) : null}
             </Glass>
@@ -269,7 +269,7 @@ export default function ProjectDetailScreen() {
           <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             {swiped === "right" ? (
               <View style={styles.applied}>
-                <Check size={18} color={colors.success} strokeWidth={2.75} />
+                <Check size={18} color={colors.accent} strokeWidth={2.75} />
                 <Text style={styles.appliedText}>Liked. If they like you back, a chat opens.</Text>
               </View>
             ) : (
@@ -331,8 +331,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
   closeInline: { paddingVertical: 8 },
-  closeInlineText: { color: colors.textMuted, fontWeight: "600" },
-  hero: { height: HERO_H, width, backgroundColor: colors.brandSoft },
+  closeInlineText: { color: colors.textSecondary, fontFamily: fonts.semibold },
+  hero: { height: HERO_H, width, backgroundColor: colors.surfaceSunken },
   heroImg: { width, height: HERO_H },
   placeholder: { alignItems: "center", justifyContent: "center" },
   heroFade: {
@@ -355,25 +355,25 @@ const styles = StyleSheet.create({
   glassBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    ...shadows.soft,
+    ...shadows.card,
   },
   body: { paddingHorizontal: 20, gap: 14, marginTop: 16 },
-  title: { ...typography.display, fontSize: 26, lineHeight: 31, marginTop: 2 },
-  logline: { ...typography.body, color: colors.textMuted },
+  title: { ...typography.display2, marginTop: 2 },
+  logline: { ...typography.body, color: colors.textSecondary },
   facts: { padding: 14, gap: 12 },
   fact: { flexDirection: "row", alignItems: "center", gap: 10 },
-  factLabel: { ...typography.small, width: 64 },
-  factValue: { ...typography.body, flex: 1, fontWeight: "600" },
-  factsEmpty: typography.small,
+  factLabel: { ...typography.caption, width: 64 },
+  factValue: { ...typography.body, flex: 1, fontFamily: fonts.semibold },
+  factsEmpty: typography.caption,
   byCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   eyebrow: typography.eyebrow,
-  byName: { ...typography.h3, marginTop: 2 },
-  byRole: typography.small,
-  posted: { ...typography.tiny, marginTop: 4 },
+  byName: { ...typography.headline, marginTop: 2 },
+  byRole: typography.caption,
+  posted: { ...typography.micro, marginTop: 4 },
   scrollContent: { flexGrow: 1 },
   applyBar: {
     marginTop: "auto",
@@ -386,11 +386,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.like,
-    ...shadows.glow,
+    borderRadius: radii.lg,
+    backgroundColor: colors.accent,
+    ...shadows.card,
   },
-  applyText: { color: colors.white, fontWeight: "800", fontSize: 16 },
+  applyText: { ...typography.headline, color: colors.white },
   applied: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 56 },
-  appliedText: { ...typography.small, color: colors.text, fontWeight: "600" },
+  appliedText: { ...typography.caption, color: colors.text, fontFamily: fonts.semibold },
 });

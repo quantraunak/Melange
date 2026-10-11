@@ -15,7 +15,7 @@ import { ArrowLeft } from "lucide-react-native";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import {
   getBlockedUsers,
@@ -114,25 +114,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.card,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.lineStrong,
     borderBottomWidth: 1,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.text },
+  headerTitle: { ...typography.headline, flex: 1, textAlign: "center", color: colors.text },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   list: { padding: 16, flexGrow: 1 },
   empty: { paddingVertical: 72, alignItems: "center" },
-  emptyText: { color: colors.textSubtle },
+  emptyText: { color: colors.textSecondary },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.lineStrong,
     borderWidth: 1,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     padding: 12,
   },
-  name: { color: colors.text, fontWeight: "700", fontSize: 14 },
-  role: { color: colors.textMuted, fontSize: 12 },
+  name: { ...typography.bodyStrong, color: colors.text },
+  role: { ...typography.caption, color: colors.textSecondary },
 });
