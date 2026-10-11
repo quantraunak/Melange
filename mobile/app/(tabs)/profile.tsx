@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -21,7 +22,6 @@ import {
   ChevronRight,
   LogOut,
   Pencil,
-  Plus,
   Settings as SettingsIcon,
   ShieldOff,
   Trash2,
@@ -37,10 +37,8 @@ import {
   getCredits,
   getMyPosts,
   getProfile,
-  PORTFOLIO_MAX_IMAGES,
   projectDates,
   projectRoles,
-  updatePortfolio,
   updateProfile,
   uploadFile,
   type CollabPost,
@@ -50,6 +48,8 @@ import {
 import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
 import { formatRecordDate } from "@/lib/format";
 
+/** Three columns that fill the measure: the gutters are real, so the cells are too. */
+const TILE = (Dimensions.get("window").width - GUTTER * 2 - spacing.sm * 2) / 3;
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -62,7 +62,6 @@ export default function ProfileScreen() {
   const [credits, setCredits] = useState<Credit[]>([]);
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -171,69 +170,6 @@ export default function ProfileScreen() {
     setUploading(false);
     if (updateErr) setError(updateErr);
     else await load();
-  };
-
-  const onAddPortfolio = async () => {
-    if (!userId || !profile) return;
-    const current = profile.portfolio_urls ?? [];
-    if (current.length >= PORTFOLIO_MAX_IMAGES) {
-      Alert.alert("Portfolio full", `You can add up to ${PORTFOLIO_MAX_IMAGES} images.`);
-      return;
-    }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert("Photo permission denied", "Enable photo access in Settings.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: PORTFOLIO_MAX_IMAGES - current.length,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets.length) return;
-
-    setPortfolioBusy(true);
-    setError(null);
-    const uploaded: string[] = [];
-    for (const asset of result.assets) {
-      const { url, error: upErr } = await uploadFile(
-        userId,
-        "posts",
-        asset.uri,
-        asset.mimeType || "image/jpeg"
-      );
-      if (upErr || !url) {
-        setError(upErr || "Upload failed.");
-        break;
-      }
-      uploaded.push(url);
-    }
-    if (uploaded.length > 0) {
-      const { error: updErr } = await updatePortfolio(userId, [...current, ...uploaded]);
-      if (updErr) setError(updErr);
-      else await load();
-    }
-    setPortfolioBusy(false);
-  };
-
-  const onRemovePortfolio = (idx: number) => {
-    if (!userId || !profile) return;
-    Alert.alert("Remove image?", undefined, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          const next = (profile.portfolio_urls ?? []).filter((_, i) => i !== idx);
-          setPortfolioBusy(true);
-          const { error: err } = await updatePortfolio(userId, next);
-          setPortfolioBusy(false);
-          if (err) setError(err);
-          else await load();
-        },
-      },
-    ]);
   };
 
   const onSignOut = async () => {
@@ -362,38 +298,19 @@ export default function ProfileScreen() {
             </Pressable>
           ))}
 
-          {/* Loose images live in the same section — they are work too. */}
-          <View style={styles.grid}>
-            {(profile.portfolio_urls?.length ?? 0) < PORTFOLIO_MAX_IMAGES ? (
-              <Pressable
-                style={[styles.tile, styles.tileAdd]}
-                onPress={onAddPortfolio}
-                disabled={portfolioBusy}
-                accessibilityLabel="Add images"
-              >
-                {portfolioBusy ? (
-                  <ActivityIndicator color={colors.textTertiary} />
-                ) : (
-                  <Plus size={22} color={colors.textTertiary} />
-                )}
-              </Pressable>
-            ) : null}
-            {(profile.portfolio_urls ?? []).map((url, idx) => (
-              <View key={`${url}-${idx}`} style={styles.tile}>
-                <Image source={{ uri: url }} style={styles.tileImg} />
-                <Pressable
-                  style={styles.tileRemove}
-                  onPress={() => onRemovePortfolio(idx)}
-                  disabled={portfolioBusy}
-                  hitSlop={6}
-                >
-                  <Text style={styles.tileRemoveText}>×</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
+          {/* Loose images live in the same section — they are work too. The
+              grid is a grid: three columns of photographs, or nothing. A lone
+              add tile floating under the list was a fourth way to add work;
+              the section header already has the one action. Images are added
+              and removed in Edit profile. */}
+          {profile.portfolio_urls?.length ? (
+            <View style={styles.grid}>
+              {profile.portfolio_urls.map((url, idx) => (
+                <Image key={`${url}-${idx}`} source={{ uri: url }} style={styles.tile} />
+              ))}
+            </View>
+          ) : null}
         </View>
-
 
         {/* My projects */}
         <View style={styles.block}>
@@ -544,37 +461,16 @@ const styles = StyleSheet.create({
   rowWhen: { ...typography.micro, color: colors.textTertiary },
   thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },
   thumbEmpty: { alignItems: "center", justifyContent: "center" },
-  creditDot: { width: 7, height: 7, borderRadius: radii.pill, backgroundColor: colors.lineStrong },
-  creditDotOn: { backgroundColor: colors.accent },
   muted: { ...typography.caption, color: colors.textSecondary },
 
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.xs },
+  /* Three columns, fixed gutters, every cell a photograph. */
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   tile: {
-    width: "31.5%",
+    width: TILE,
     aspectRatio: 1,
     borderRadius: radii.sm,
-    overflow: "hidden",
     backgroundColor: colors.surfaceSunken,
   },
-  tileAdd: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
-  },
-  tileImg: { width: "100%", height: "100%" },
-  tileRemove: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(17,24,39,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tileRemoveText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.white },
 
   linkRow: {
     flexDirection: "row",
