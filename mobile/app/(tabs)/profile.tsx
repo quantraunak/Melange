@@ -12,13 +12,17 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
+  BookOpen,
+  CalendarDays,
   Camera,
   ChevronRight,
   Sparkles,
   LogOut,
   Pencil,
+  Settings as SettingsIcon,
   ShieldOff,
   Trash2,
 } from "lucide-react-native";
@@ -48,6 +52,7 @@ import {
   type Credit,
   type Profile,
 } from "@/lib/db";
+import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
 import { trackEvent } from "@/lib/analytics";
 import { normalizeSocialUrl } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
@@ -60,11 +65,13 @@ function normalizeReel(raw: string): string {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { userId, signOut } = useAuth();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myPosts, setMyPosts] = useState<CollabPost[]>([]);
   const [credits, setCredits] = useState<Credit[]>([]);
+  const [work, setWork] = useState<StoryWithAuthor[]>([]);
   const [form, setForm] = useState({
     name: "",
     role: "",
@@ -88,8 +95,17 @@ export default function ProfileScreen() {
     if (!userId) return;
     setLoading(true);
     setLoadError(null);
-    const [{ data: profileData, error: profileErr }, { data: postsData }, { data: creditData }] =
-      await Promise.all([getProfile(userId), getMyPosts(userId), getCredits(userId)]);
+    const [
+      { data: profileData, error: profileErr },
+      { data: postsData },
+      { data: creditData },
+      storyRes,
+    ] = await Promise.all([
+      getProfile(userId),
+      getMyPosts(userId),
+      getCredits(userId),
+      getStoriesForUser(userId),
+    ]);
     if (profileData) {
       setProfile(profileData);
       setForm({
@@ -108,6 +124,7 @@ export default function ProfileScreen() {
     }
     setMyPosts(postsData || []);
     setCredits(creditData || []);
+    setWork(storyRes.data);
     setLoading(false);
   }, [userId]);
 
@@ -275,7 +292,23 @@ export default function ProfileScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Settings lives here now that Discover is full bleed and has no header. */}
+        <View style={styles.topBar}>
+          <Text style={styles.topBarTitle}>You</Text>
+          <Pressable
+            hitSlop={12}
+            onPress={() => router.push("/account/settings")}
+            accessibilityLabel="Settings"
+            style={styles.settingsBtn}
+          >
+            <SettingsIcon size={18} color={colors.brandText} />
+          </Pressable>
+        </View>
+
         {/* Avatar */}
         <View style={styles.avatarBlock}>
           <Pressable onPress={onChangeAvatar} disabled={uploading} style={styles.avatarWrap}>
@@ -333,6 +366,63 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             ))
+          )}
+        </View>
+
+        {/* Work — stories you wrote, and stories that credit you. */}
+        <View style={styles.section}>
+          <View style={styles.portfolioHeader}>
+            <Text style={styles.sectionTitle}>Work</Text>
+            <Pressable
+              onPress={() => router.push("/story/new")}
+              hitSlop={8}
+              accessibilityLabel="Post a story"
+            >
+              <Text style={styles.sectionAction}>Add</Text>
+            </Pressable>
+          </View>
+          {work.length === 0 ? (
+            <Text style={styles.muted}>
+              Post something you already made. It does not have to be recent, and your
+              collaborators do not have to be on Melange.
+            </Text>
+          ) : (
+            <View style={styles.workList}>
+              {work.map((s) => {
+                const when = storyDate(s);
+                const mine = s.author_id === userId;
+                return (
+                  <Pressable
+                    key={s.id}
+                    onPress={() => router.push({ pathname: "/story/[id]", params: { id: s.id } })}
+                    style={({ pressed }) => [styles.workRow, pressed && { opacity: 0.9 }]}
+                  >
+                    {s.media_urls[0] ? (
+                      <Image source={{ uri: s.media_urls[0] }} style={styles.workThumb} />
+                    ) : (
+                      <View style={[styles.workThumb, styles.workThumbEmpty]}>
+                        <BookOpen size={16} color={colors.textFaint} />
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.creditTitle} numberOfLines={1}>
+                        {s.title}
+                      </Text>
+                      <Text style={styles.creditMeta} numberOfLines={1}>
+                        {mine ? "You posted this" : `Credited by ${s.author.name}`}
+                        {s.credits.length ? ` · ${s.credits.length + 1} people` : ""}
+                      </Text>
+                    </View>
+                    {when ? (
+                      <View style={styles.workWhen}>
+                        <CalendarDays size={11} color={colors.textSubtle} />
+                        <Text style={styles.creditDate}>{when}</Text>
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
           )}
         </View>
 
@@ -515,6 +605,12 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account & safety</Text>
 
+          <Pressable style={styles.linkRow} onPress={() => router.push("/events")}>
+            <CalendarDays size={18} color={colors.textMuted} />
+            <Text style={styles.linkRowText}>Events</Text>
+            <ChevronRight size={16} color={colors.textSubtle} />
+          </Pressable>
+
           <Pressable style={styles.linkRow} onPress={() => router.push("/account/blocked")}>
             <ShieldOff size={18} color={colors.textMuted} />
             <Text style={styles.linkRowText}>Blocked users</Text>
@@ -548,8 +644,36 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
-  scroll: { padding: 16, paddingTop: 6, gap: 14, paddingBottom: 150 },
+  scroll: { padding: 16, gap: 14, paddingBottom: 150 },
   subLabel: { fontSize: 12, fontWeight: "600", color: colors.textMuted, marginTop: 10 },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topBarTitle: { ...typography.display, fontSize: 28 },
+  settingsBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionAction: { color: colors.brandText, fontWeight: "700", fontSize: 13 },
+  workList: { gap: 8, marginTop: 4 },
+  workRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    paddingVertical: 8,
+  },
+  workThumb: {
+    width: 46,
+    height: 46,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceStrong,
+  },
+  workThumbEmpty: { alignItems: "center", justifyContent: "center" },
+  workWhen: { flexDirection: "row", alignItems: "center", gap: 4 },
   avatarBlock: {
     flexDirection: "row",
     alignItems: "center",

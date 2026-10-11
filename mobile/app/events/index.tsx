@@ -9,12 +9,12 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Calendar, Check, Clock, MapPin, Plus, Star, Users, X } from "lucide-react-native";
+import { ArrowLeft, Calendar, Check, Clock, MapPin, Plus, Star, Users, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
-import { BrowseGrid } from "@/components/BrowseGrid";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, radii, shadows } from "@/lib/theme";
@@ -26,8 +26,6 @@ import {
   rsvpToEvent,
   type EventWithDetails,
 } from "@/lib/events";
-
-type SubTab = "browse" | "events";
 
 function formatEventTime(iso: string): { day: string; time: string } {
   const d = new Date(iso);
@@ -44,10 +42,10 @@ function formatEventTime(iso: string): { day: string; time: string } {
   return { day, time };
 }
 
-export default function ExploreScreen() {
+export default function EventsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { userId } = useAuth();
-  const [subTab, setSubTab] = useState<SubTab>("browse");
 
   const [events, setEvents] = useState<EventWithDetails[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -66,7 +64,7 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }, [userId, cityFilter]);
 
-  // Initial/tab-switch load. Deliberately keyed on [subTab, userId] (not
+  // Initial load. Deliberately keyed on [userId] (not
   // loadEvents) so that typing in the city filter — which changes loadEvents's
   // identity — never re-triggers the full-screen loading gate.
   useEffect(() => {
@@ -76,33 +74,30 @@ export default function ExploreScreen() {
       setEventsLoading(false);
       return;
     }
-    if (subTab === "events") {
-      setEventsLoading(true);
-      loadEvents();
-    }
+    setEventsLoading(true);
+    loadEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subTab, userId]);
+  }, [userId]);
 
   // Debounced city-filter refetch. Uses the RefreshControl's `refreshing`
   // state (a small top-of-list spinner) instead of the initial-load
   // `loading` gate, so the TextInput is never unmounted while typing.
   useEffect(() => {
-    if (subTab !== "events" || !userId) return;
+    if (!userId) return;
     const handle = setTimeout(() => {
       setRefreshing(true);
       loadEvents();
     }, 400);
     return () => clearTimeout(handle);
-    // Intentionally only reacts to cityFilter changes — subTab/userId
-    // changes are already handled by the tab-switch effect above.
+    // Intentionally only reacts to cityFilter changes — userId
+    // changes are already handled by the initial-load effect above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityFilter]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    if (subTab === "browse") setRefreshing(false);
-    else loadEvents();
-  }, [subTab, loadEvents]);
+    loadEvents();
+  }, [loadEvents]);
 
   const handleRsvp = async (event: EventWithDetails, next: "going" | "interested" | null) => {
     if (!userId) return;
@@ -149,7 +144,7 @@ export default function ExploreScreen() {
   })();
 
   // Browse renders its own skeletons — it loads independently of this screen.
-  if (subTab === "events" && eventsLoading && !refreshing) {
+  if (eventsLoading && !refreshing) {
     return (
       <View style={styles.scroll}>
         <Skeleton height={40} radius={radii.md} />
@@ -161,46 +156,28 @@ export default function ExploreScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />
       }
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.subTabRow}>
-        {(["browse", "events"] as SubTab[]).map((key) => (
-          <Pressable
-            key={key}
-            onPress={() => setSubTab(key)}
-            style={[styles.subTab, subTab === key && styles.subTabOn]}
-          >
-            <Text style={[styles.subTabText, subTab === key && styles.subTabTextOn]}>
-              {key === "browse" ? "Browse" : "Events"}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.screenHeader}>
+        <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Back">
+          <ArrowLeft size={22} color={colors.text} />
+        </Pressable>
+        <Text style={styles.screenTitle}>Events</Text>
+        <View style={{ width: 22 }} />
       </View>
 
       <View style={styles.actionRow}>
-        <Pressable
-          style={styles.hostBtn}
-          onPress={() =>
-            subTab === "browse" ? router.push("/post/new") : router.push("/event/new")
-          }
-        >
+        <Pressable style={styles.hostBtn} onPress={() => router.push("/event/new")}>
           <Plus size={16} color={colors.white} />
-          <Text style={styles.hostBtnText}>
-            {subTab === "browse" ? "Post a project" : "Host event"}
-          </Text>
+          <Text style={styles.hostBtnText}>Host event</Text>
         </Pressable>
       </View>
 
-      {subTab === "browse" ? (
-        userId ? (
-          <BrowseGrid userId={userId} />
-        ) : null
-      ) : (
-        <>
+      <>
           <View style={styles.searchWrap}>
             <TextInput
               value={cityFilter}
@@ -250,7 +227,6 @@ export default function ExploreScreen() {
             ))
           )}
         </>
-      )}
     </ScrollView>
   );
 }
@@ -362,18 +338,15 @@ function EventCard({
 }
 
 const styles = StyleSheet.create({
+  screenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 4,
+  },
+  screenTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { padding: 16, paddingBottom: 120, gap: 12 },
-  subTabRow: {
-    flexDirection: "row",
-    backgroundColor: colors.brand,
-    borderRadius: radii.md,
-    overflow: "hidden",
-  },
-  subTab: { flex: 1, paddingVertical: 10, alignItems: "center" },
-  subTabOn: { backgroundColor: colors.brandSoft },
-  subTabText: { fontSize: 13, fontWeight: "600", color: "#bfdbfe" },
-  subTabTextOn: { color: colors.brandText },
   actionRow: { flexDirection: "row", justifyContent: "flex-end" },
   hostBtn: {
     flexDirection: "row",
