@@ -148,6 +148,7 @@ AS $$
   ORDER BY s.rank_score DESC, cp.created_at DESC;
 $$;
 
+CREATE OR REPLACE FUNCTION public.explore_posts(p_user_id UUID, p_limit INT DEFAULT 40)
 RETURNS SETOF public.collab_posts
 LANGUAGE sql
 SECURITY DEFINER
