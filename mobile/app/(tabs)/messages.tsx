@@ -382,7 +382,12 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingBottom: 8,
   },
-  projectTitle: { ...typography.eyebrow, color: colors.textSecondary, flex: 1 },
+  projectTitle: {
+    ...typography.caption,
+    fontFamily: fonts.semibold,
+    color: colors.textSecondary,
+    flex: 1,
+  },
   projectCount: { ...typography.micro, color: colors.textTertiary },
 
   /* Plain rows on the ground with a hairline between them — the iOS list

@@ -29,7 +29,9 @@ export function formatListTime(iso: string): string {
   if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return then.toLocaleDateString([], { weekday: "short" });
-  return then.toLocaleDateString([], { month: "numeric", day: "numeric" });
+  // Never slashes: "8/25" is the 25th of August to half the world and the
+  // August of 2025 to the other half.
+  return then.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
 /**

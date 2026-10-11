@@ -15,7 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
-  BookOpen,
+  ImageIcon,
   CalendarDays,
   Camera,
   ChevronRight,
@@ -335,7 +335,7 @@ export default function ProfileScreen() {
                 <Image source={{ uri: w.image }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbEmpty]}>
-                  <BookOpen size={16} color={colors.iconFaint} />
+                  <ImageIcon size={16} color={colors.iconFaint} strokeWidth={1.6} />
                 </View>
               )}
               <View style={{ flex: 1 }}>
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   creditDotOn: { backgroundColor: colors.accent },
   muted: { ...typography.caption, color: colors.textSecondary },
 
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.xs },
   tile: {
     width: "31.5%",
     aspectRatio: 1,

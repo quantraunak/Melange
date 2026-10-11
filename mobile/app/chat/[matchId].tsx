@@ -303,10 +303,17 @@ export default function ChatScreen() {
               const prev = messages[index - 1];
               const next = messages[index + 1];
               const sameAuthorBefore = prev && prev.sender_id === item.sender_id;
-              // A run of messages from one person is one block: only its last
-              // bubble is timestamped, and only its outer corners are round.
-              // Stamping every bubble turns a conversation into a log.
-              const endsRun = !next || next.sender_id !== item.sender_id;
+              // Stamping every bubble turns a conversation into a log, and
+              // "only the last of a run" does nothing when two people are
+              // alternating — every message is the end of its own run. Time
+              // marks a pause instead: the last message, or one followed by a
+              // gap of more than a quarter of an hour.
+              const GAP_MS = 15 * 60 * 1000;
+              const endsRun =
+                !next ||
+                new Date(next.created_at).getTime() -
+                  new Date(item.created_at).getTime() >
+                  GAP_MS;
               return (
                 <View
                   style={[
