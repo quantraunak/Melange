@@ -89,9 +89,41 @@ In order, each as a PR:
    (title, role, date). Reuse the existing reviews table as the confirmation.
 3. Craft pass on the original light design: swipe motion, match moment, card and grid
    polish, consistent components. No dark theme (owner's call, 2026-10-06).
+   Discover is a full-bleed Tinder-style deck: one big image, a light frosted
+   glass panel over it, icons-only floating tab bar, no top chrome (2026-10-10).
 4. Landing page: fun, broad, light. "Find your next collaboration" with the swipe demo
    front and centre.
 5. iOS 1.1 with the above.
+
+## 5b. Stories: the collaboration record (added 2026-10-10)
+
+Jolea's idea, and the strongest product suggestion so far: let people post the
+work they have **already done**. "Collaborated with X, made Y, here is how we
+did it, here are the photos, reach me here."
+
+Why it matters more than it looks:
+
+- **It works before the marketplace does.** A swipe deck is worthless until both
+  sides are populated. A story needs nobody else: anyone can post about work
+  they did last month, including work done entirely off Melange. That is content
+  on day one, which is the actual cold-start problem.
+- **It is the credits feature, with a reason to fill it in.** Credits on a profile
+  were already in section 5. Nobody fills in a blank credit field. People will
+  happily post a finished shoot with photos, and the credit falls out of it.
+  Every story that tags another Melange user builds the graph an acquirer wants.
+- **It is the Instagram content.** A finished piece of work with named
+  collaborators is shareable. An open crew call is not.
+- **It fixes the redundant tab.** Browse showed the same posts as the deck.
+
+Shape: title, how-we-did-it, photos, credits (a linked Melange user or a plain
+name plus role), optional public portfolio link, optional link to the match that
+produced it.
+
+**One deliberate narrowing.** The "reach me at" is a public profile or portfolio
+URL only, never a free-text email or phone. Melange's promise is that a chat
+opens only on mutual consent; a public phone number in an app for meeting
+strangers breaks that. Every story instead ends with "Work with me", which
+routes through the existing match flow.
 
 ## 6. What runs autonomously and what does not
 
