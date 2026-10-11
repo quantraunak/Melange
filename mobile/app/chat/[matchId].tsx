@@ -18,7 +18,7 @@ import { ArrowLeft, MoreVertical, Send } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import {
@@ -28,7 +28,6 @@ import {
   type Message,
 } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
-import { getMyReviewForMatch, isReviewEligible } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
 import { formatClockTime } from "@/lib/format";
 
@@ -50,7 +49,6 @@ export default function ChatScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasReview, setHasReview] = useState(false);
   const [retriedNotFound, setRetriedNotFound] = useState(false);
 
   // If matches have finished loading and this matchId still isn't in the
@@ -74,8 +72,6 @@ export default function ChatScreen() {
       setMessages(data || []);
       setLoading(false);
       await markRead(matchId);
-      const { data: review } = await getMyReviewForMatch(matchId, userId);
-      setHasReview(!!review);
     })();
   }, [matchId, userId, markRead]);
 
@@ -261,20 +257,6 @@ export default function ChatScreen() {
         </Pressable>
       </View>
 
-      {isReviewEligible(match.created_at) && !hasReview ? (
-        <Pressable
-          style={styles.reviewBanner}
-          onPress={() =>
-            router.push({ pathname: "/review/[matchId]", params: { matchId: match.id } })
-          }
-        >
-          <Text style={styles.reviewBannerText}>
-            Collaborated? Leave a review for {match.other_creator.name}
-          </Text>
-          <Text style={styles.reviewBannerCta}>Review</Text>
-        </Pressable>
-      ) : null}
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -456,16 +438,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  reviewBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.surfaceSunken,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  reviewBannerText: { ...typography.caption, flex: 1, color: colors.textSecondary, marginRight: 8 },
-  reviewBannerCta: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });
