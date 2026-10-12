@@ -342,9 +342,9 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Account, safety and sign out are behind the gear. They were also
-            here at the foot of the page, which is two homes for one thing. */}
-        <View style={{ height: 16 }} />
+        {/* Account & safety, Events and Sign out used to end the page while
+            the gear sat in the header: two homes for one thing. They are
+            behind the gear, and the page ends with the last list row. */}
       </ScrollView>
     </KeyboardAvoidingView>
   );

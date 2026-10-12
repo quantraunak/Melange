@@ -1032,16 +1032,22 @@ export async function getCredits(
       creditProjects(rows.map((r) => r.match_id)),
     ]);
 
-    const out = rows.map((r) => {
+    const out = rows.flatMap((r) => {
       const project = projects.get(r.match_id)?.get(r.credited_by);
-      return {
-        match_id: r.match_id,
-        post_id: project?.id ?? r.post_id,
-        title: project?.title ?? r.title,
-        image: project?.media_urls?.[0] ?? null,
-        with_name: names.get(r.credited_by)?.name ?? "Someone",
-        date: project?.project_start ?? r.project_start ?? r.created_at,
-      };
+      /* No fallback to the view's own post_id/title: those are your post, so
+         falling back is how the duplicate comes back. An unresolved project
+         is not work you can show. */
+      if (!project) return [];
+      return [
+        {
+          match_id: r.match_id,
+          post_id: project.id,
+          title: project.title,
+          image: project.media_urls?.[0] ?? null,
+          with_name: names.get(r.credited_by)?.name ?? "Someone",
+          date: project.project_start ?? r.project_start ?? r.created_at,
+        },
+      ];
     });
     return { data: out, error: null };
   } catch (err) {
