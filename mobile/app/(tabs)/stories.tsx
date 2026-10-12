@@ -17,10 +17,9 @@ import { BookOpen, CalendarRange, Pencil, Users } from "lucide-react-native";
 import { Avatar } from "@/components/Avatar";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { Glass } from "@/components/ui/Glass";
-import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, GUTTER, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, spacing, typography } from "@/lib/theme";
 import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { getStories, storyDate, type StoryWithAuthor } from "@/lib/stories";
@@ -72,7 +71,7 @@ export default function StoriesScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + spacing.xl }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -88,6 +87,11 @@ export default function StoriesScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.heading}>Work</Text>
           </View>
+          {!unavailable && userId ? (
+            <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
+              <Text style={styles.headerAction}>Add</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <ErrorBanner message={error} />
@@ -123,19 +127,6 @@ export default function StoriesScreen() {
           </View>
         )}
       </ScrollView>
-
-      {!unavailable && userId ? (
-        <View style={[styles.fab, { bottom: barTop + 20 }]} pointerEvents="box-none">
-          <GlassButton
-            accessibilityLabel="Post a story"
-            onPress={() => router.push("/story/new")}
-            size={56}
-            solid={colors.brand}
-          >
-            <Pencil size={22} color={colors.onBrand} strokeWidth={1.75} />
-          </GlassButton>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -223,6 +214,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
   header: { flexDirection: "row", alignItems: "flex-end" },
   heading: typography.display1,
+  headerAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
   card: {
     borderRadius: radii.lg,
@@ -273,5 +265,4 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: { color: colors.onBrand, fontFamily: fonts.semibold },
 
-  fab: { position: "absolute", right: GUTTER },
 });
