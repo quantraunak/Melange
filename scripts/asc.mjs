@@ -13,6 +13,7 @@
 //   node scripts/asc.mjs GET /v1/apps      # any raw endpoint
 import { createSign } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -48,18 +49,95 @@ function token({ pem, keyId }, issuer) {
   return `${body}.${sig}`;
 }
 
-async function call(method, endpoint) {
+async function call(method, endpoint, body) {
   const key = loadKey();
   // Try the individual-key shape first, fall back to team if an issuer is set.
   for (const issuer of [null, process.env.ASC_ISSUER_ID].filter((v) => v !== undefined)) {
     const r = await fetch(`https://api.appstoreconnect.apple.com${endpoint}`, {
       method,
-      headers: { Authorization: `Bearer ${token(key, issuer)}` },
+      headers: {
+        Authorization: `Bearer ${token(key, issuer)}`,
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    if (r.ok) return r.json();
+    if (r.ok) return r.status === 204 ? null : r.json();
     if (r.status !== 401) throw new Error(`${r.status} ${endpoint}: ${await r.text()}`);
   }
   throw new Error("401 from App Store Connect — key, key id, or JWT shape is wrong");
+}
+
+
+const IPHONE_67 = "APP_IPHONE_67";
+
+/** The appStoreVersion for a version string, created if it does not exist. */
+async function version(v, { create = false } = {}) {
+  const d = await call("GET", `/v1/apps/${APP_ID}/appStoreVersions?filter[versionString]=${v}&limit=1`);
+  if (d.data.length) return d.data[0];
+  if (!create) throw new Error(`no App Store version ${v}`);
+  const made = await call("POST", "/v1/appStoreVersions", {
+    data: {
+      type: "appStoreVersions",
+      attributes: { platform: "IOS", versionString: v },
+      relationships: { app: { data: { type: "apps", id: APP_ID } } },
+    },
+  });
+  return made.data;
+}
+
+async function localization(versionId) {
+  const d = await call("GET", `/v1/appStoreVersions/${versionId}/appStoreVersionLocalizations`);
+  const en = d.data.find((l) => l.attributes.locale === "en-US") ?? d.data[0];
+  if (!en) throw new Error("no localization on that version");
+  return en;
+}
+
+async function screenshotSet(localizationId) {
+  const d = await call("GET", `/v1/appStoreVersionLocalizations/${localizationId}/appScreenshotSets`);
+  const found = d.data.find((s) => s.attributes.screenshotDisplayType === IPHONE_67);
+  if (found) return found;
+  const made = await call("POST", "/v1/appScreenshotSets", {
+    data: {
+      type: "appScreenshotSets",
+      attributes: { screenshotDisplayType: IPHONE_67 },
+      relationships: {
+        appStoreVersionLocalization: {
+          data: { type: "appStoreVersionLocalizations", id: localizationId },
+        },
+      },
+    },
+  });
+  return made.data;
+}
+
+/** Reserve, PUT the bytes exactly as Apple dictates, then commit with the md5. */
+async function uploadScreenshot(setId, filePath, fileName) {
+  const bytes = readFileSync(filePath);
+  const reserved = await call("POST", "/v1/appScreenshots", {
+    data: {
+      type: "appScreenshots",
+      attributes: { fileName, fileSize: bytes.length },
+      relationships: { appScreenshotSet: { data: { type: "appScreenshotSets", id: setId } } },
+    },
+  });
+  const id = reserved.data.id;
+  for (const op of reserved.data.attributes.uploadOperations) {
+    const headers = Object.fromEntries((op.requestHeaders || []).map((h) => [h.name, h.value]));
+    const r = await fetch(op.url, {
+      method: op.method,
+      headers,
+      body: bytes.subarray(op.offset, op.offset + op.length),
+    });
+    if (!r.ok) throw new Error(`upload chunk failed ${r.status}: ${await r.text()}`);
+  }
+  await call("PATCH", `/v1/appScreenshots/${id}`, {
+    data: {
+      type: "appScreenshots",
+      id,
+      attributes: { uploaded: true, sourceFileChecksum: createHash("md5").update(bytes).digest("hex") },
+    },
+  });
+  return id;
 }
 
 const [, , cmd, ...rest] = process.argv;
@@ -73,6 +151,48 @@ if (cmd === "versions") {
   }
 } else if (cmd === "GET") {
   console.log(JSON.stringify(await call("GET", rest[0]), null, 2).slice(0, 4000));
+} else if (cmd === "ensure-version") {
+  const v = await version(rest[0], { create: true });
+  console.log(`version ${rest[0]}: ${v.id} (${v.attributes.appStoreState})`);
+} else if (cmd === "whatsnew") {
+  const v = await version(rest[0]);
+  const loc = await localization(v.id);
+  await call("PATCH", `/v1/appStoreVersionLocalizations/${loc.id}`, {
+    data: { type: "appStoreVersionLocalizations", id: loc.id, attributes: { whatsNew: rest.slice(1).join(" ") } },
+  });
+  console.log("what's new updated");
+} else if (cmd === "screenshots") {
+  const [v, dir] = rest;
+  const ver = await version(v);
+  const loc = await localization(ver.id);
+  const set = await screenshotSet(loc.id);
+  const existing = await call("GET", `/v1/appScreenshotSets/${set.id}/appScreenshots`);
+  for (const s of existing.data) {
+    await call("DELETE", `/v1/appScreenshots/${s.id}`);
+    console.log(`removed ${s.attributes.fileName}`);
+  }
+  for (const f of readdirSync(dir).filter((f) => f.endsWith(".png")).sort()) {
+    await uploadScreenshot(set.id, path.join(dir, f), f);
+    console.log(`uploaded ${f}`);
+  }
+} else if (cmd === "attach-build") {
+  const [v, num] = rest;
+  const ver = await version(v);
+  const builds = await call("GET", `/v1/builds?filter[app]=${APP_ID}&filter[version]=${num}&limit=1`);
+  if (!builds.data.length) throw new Error(`build ${num} not found or still processing`);
+  await call("PATCH", `/v1/appStoreVersions/${ver.id}/relationships/build`, {
+    data: { type: "builds", id: builds.data[0].id },
+  });
+  console.log(`build ${num} attached to ${v}`);
+} else if (cmd === "submit") {
+  const ver = await version(rest[0]);
+  await call("POST", "/v1/appStoreVersionSubmissions", {
+    data: {
+      type: "appStoreVersionSubmissions",
+      relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: ver.id } } },
+    },
+  });
+  console.log(`${rest[0]} submitted for review`);
 } else {
-  console.log("usage: node scripts/asc.mjs versions | GET <endpoint>");
+  console.log("usage: node scripts/asc.mjs versions | ensure-version <v> | whatsnew <v> <text> | screenshots <v> <dir> | attach-build <v> <num> | submit <v> | GET <endpoint>");
 }
