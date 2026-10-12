@@ -317,18 +317,27 @@ export async function deleteStory(id: string): Promise<{ error: string | null }>
  */
 export async function getOpenProjectsBy(
   userId: string
-): Promise<{ data: { id: string; title: string }[]; error: string | null }> {
+): Promise<{
+  data: { id: string; title: string; location: string | null }[];
+  error: string | null;
+}> {
   try {
+    // `location` rides along because a profile has no city of its own: the one
+    // on someone's most recent open project is the city they are working in.
     const { data, error } = await supabase
       .from("collab_posts")
-      .select("id,title")
+      .select("id,title,location")
       .eq("owner_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(5);
     if (error) return { data: [], error: error.message };
     return {
-      data: (data || []).map((p) => ({ id: p.id as string, title: p.title as string })),
+      data: (data || []).map((p) => ({
+        id: p.id as string,
+        title: p.title as string,
+        location: (p.location as string | null) ?? null,
+      })),
       error: null,
     };
   } catch (err) {
