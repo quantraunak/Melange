@@ -185,12 +185,40 @@ if (cmd === "versions") {
   });
   console.log(`build ${num} attached to ${v}`);
 } else if (cmd === "submit") {
+  // /v1/appStoreVersionSubmissions is retired (403). The current flow is a
+  // reviewSubmission that you add items to and then mark submitted.
   const ver = await version(rest[0]);
-  await call("POST", "/v1/appStoreVersionSubmissions", {
-    data: {
-      type: "appStoreVersionSubmissions",
-      relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: ver.id } } },
-    },
+  const open = await call("GET", `/v1/apps/${APP_ID}/reviewSubmissions?filter[state]=READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW&limit=1`);
+  let sub = open.data[0];
+  if (!sub) {
+    const made = await call("POST", "/v1/reviewSubmissions", {
+      data: {
+        type: "reviewSubmissions",
+        attributes: { platform: "IOS" },
+        relationships: { app: { data: { type: "apps", id: APP_ID } } },
+      },
+    });
+    sub = made.data;
+  }
+  console.log(`review submission ${sub.id} (${sub.attributes.state})`);
+
+  const items = await call("GET", `/v1/reviewSubmissions/${sub.id}/items`);
+  const already = items.data.some((i) => i.relationships?.appStoreVersion?.data?.id === ver.id);
+  if (!already) {
+    await call("POST", "/v1/reviewSubmissionItems", {
+      data: {
+        type: "reviewSubmissionItems",
+        relationships: {
+          reviewSubmission: { data: { type: "reviewSubmissions", id: sub.id } },
+          appStoreVersion: { data: { type: "appStoreVersions", id: ver.id } },
+        },
+      },
+    });
+    console.log(`added ${rest[0]} to the submission`);
+  }
+
+  await call("PATCH", `/v1/reviewSubmissions/${sub.id}`, {
+    data: { type: "reviewSubmissions", id: sub.id, attributes: { submitted: true } },
   });
   console.log(`${rest[0]} submitted for review`);
 } else {
