@@ -241,7 +241,19 @@ export default function ChatScreen() {
         <Pressable hitSlop={12} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
-        <View style={styles.headerMiddle}>
+        {/* The header is the way to the person, as it is in Messages. */}
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/profile/[userId]",
+              params: { userId: match.other_user_id },
+            })
+          }
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`${match.other_creator.name}'s profile`}
+          style={({ pressed }) => [styles.headerMiddle, pressed && { opacity: 0.6 }]}
+        >
           <Avatar creator={match.other_creator} size="sm" />
           <View style={{ flex: 1 }}>
             <Text style={styles.headerName} numberOfLines={1}>
@@ -251,7 +263,7 @@ export default function ChatScreen() {
               {match.other_post.title}
             </Text>
           </View>
-        </View>
+        </Pressable>
         <Pressable hitSlop={12} onPress={openMenu} accessibilityLabel="Conversation options">
           <MoreVertical size={20} color={colors.text} />
         </Pressable>

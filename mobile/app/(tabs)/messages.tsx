@@ -285,6 +285,12 @@ export default function MatchesScreen() {
             currentUserId={userId}
             onPress={() => openChat(item.match.id)}
             onLongPress={() => openRowMenu(item.match)}
+            onPressPerson={() =>
+              router.push({
+                pathname: "/profile/[userId]",
+                params: { userId: item.match.other_user_id },
+              })
+            }
           />
         )
       }
@@ -298,11 +304,13 @@ function MatchRow({
   currentUserId,
   onPress,
   onLongPress,
+  onPressPerson,
 }: {
   match: MatchWithPost;
   currentUserId: string | null;
   onPress: () => void;
   onLongPress: () => void;
+  onPressPerson?: () => void;
 }) {
   const unread = currentUserId ? isMatchUnread(match, currentUserId) : false;
   const mine = match.last_message?.sender_id === currentUserId;
@@ -318,7 +326,18 @@ function MatchRow({
       accessibilityLabel={`Conversation with ${match.other_creator.name}${unread ? ", unread" : ""}`}
     >
       <View style={styles.row}>
-        <Avatar creator={match.other_creator} size="lg" />
+        {/* The row opens the conversation; the face opens the person, which is
+            the same place a thumbnail goes everywhere else in the app. */}
+        <Pressable
+          onPress={onPressPerson}
+          disabled={!onPressPerson}
+          hitSlop={6}
+          accessibilityRole={onPressPerson ? "button" : undefined}
+          accessibilityLabel={onPressPerson ? `${match.other_creator.name}'s profile` : undefined}
+          style={({ pressed }) => [pressed && onPressPerson && { opacity: 0.6 }]}
+        >
+          <Avatar creator={match.other_creator} size="lg" />
+        </Pressable>
 
         <View style={styles.rowText}>
           <View style={styles.rowTop}>

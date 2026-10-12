@@ -163,16 +163,38 @@ export default function StoryDetailScreen() {
               <Text style={styles.title}>{story.title}</Text>
 
               <View style={styles.byRow}>
-                <Avatar creator={story.author} size="md" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.byName}>
-                    {story.author.name}
-                    {story.author.verification_status === "verified" ? " ✓" : ""}
-                  </Text>
-                  {story.author.role ? (
-                    <Text style={styles.byRole}>{story.author.role}</Text>
-                  ) : null}
-                </View>
+                <Pressable
+                  onPress={
+                    story.author.user_id
+                      ? () =>
+                          router.push({
+                            pathname: "/profile/[userId]",
+                            params: { userId: story.author.user_id as string },
+                          })
+                      : undefined
+                  }
+                  disabled={!story.author.user_id}
+                  hitSlop={8}
+                  accessibilityRole={story.author.user_id ? "button" : undefined}
+                  accessibilityLabel={
+                    story.author.user_id ? `${story.author.name}'s profile` : undefined
+                  }
+                  style={({ pressed }) => [
+                    styles.byPerson,
+                    pressed && story.author.user_id && { opacity: 0.6 },
+                  ]}
+                >
+                  <Avatar creator={story.author} size="md" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.byName}>
+                      {story.author.name}
+                      {story.author.verification_status === "verified" ? " ✓" : ""}
+                    </Text>
+                    {story.author.role ? (
+                      <Text style={styles.byRole}>{story.author.role}</Text>
+                    ) : null}
+                  </View>
+                </Pressable>
                 {when ? (
                   <View style={styles.when}>
                     <CalendarRange size={13} color={colors.iconFaint} />
@@ -191,13 +213,34 @@ export default function StoryDetailScreen() {
                   </View>
                   <View style={styles.creditsList}>
                     {story.credits.map((c, i) => (
-                      <View key={`${c.name}-${i}`} style={styles.creditRow}>
-                        <Text style={styles.creditName} numberOfLines={1}>
+                      <Pressable
+                        key={`${c.name}-${i}`}
+                        onPress={
+                          c.user_id
+                            ? () =>
+                                router.push({
+                                  pathname: "/profile/[userId]",
+                                  params: { userId: c.user_id as string },
+                                })
+                            : undefined
+                        }
+                        disabled={!c.user_id}
+                        accessibilityRole={c.user_id ? "button" : undefined}
+                        accessibilityLabel={c.user_id ? `${c.name}'s profile` : undefined}
+                        style={({ pressed }) => [
+                          styles.creditRow,
+                          pressed && c.user_id && { opacity: 0.6 },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.creditName, c.user_id && styles.creditNameLink]}
+                          numberOfLines={1}
+                        >
                           {c.name}
                         </Text>
                         {c.role ? <Chip label={c.role} size="sm" tone="neutral" /> : null}
                         {c.user_id ? <Chip label="on Melange" size="sm" tone="accent" /> : null}
-                      </View>
+                      </Pressable>
                     ))}
                   </View>
                 </Glass>
@@ -308,6 +351,9 @@ const styles = StyleSheet.create({
   creditsList: { gap: 9 },
   creditRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   creditName: { ...typography.body, fontFamily: fonts.semibold, maxWidth: "55%" },
+  /* A name that leads somewhere says so; one that does not stays ink. */
+  creditNameLink: { color: colors.brandText },
+  byPerson: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
 
   howWrap: { gap: 7 },
   howTitle: { ...typography.eyebrow, color: colors.textSecondary },

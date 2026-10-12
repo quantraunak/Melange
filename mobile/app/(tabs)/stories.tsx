@@ -122,6 +122,15 @@ export default function StoriesScreen() {
                 key={s.id}
                 story={s}
                 onPress={() => router.push({ pathname: "/story/[id]", params: { id: s.id } })}
+                onPressAuthor={
+                  s.author.user_id
+                    ? () =>
+                        router.push({
+                          pathname: "/profile/[userId]",
+                          params: { userId: s.author.user_id as string },
+                        })
+                    : undefined
+                }
               />
             ))}
           </View>
@@ -131,7 +140,15 @@ export default function StoriesScreen() {
   );
 }
 
-function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => void }) {
+function StoryCard({
+  story,
+  onPress,
+  onPressAuthor,
+}: {
+  story: StoryWithAuthor;
+  onPress: () => void;
+  onPressAuthor?: () => void;
+}) {
   const hero = story.media_urls[0];
   const when = storyDate(story);
   const shown = story.credits.slice(0, 3);
@@ -192,11 +209,24 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
         ) : null}
 
         <View style={styles.byRow}>
-          <Avatar creator={story.author} size="sm" />
-          <Text style={styles.byText} numberOfLines={1}>
-            <Text style={styles.byName}>{story.author.name}</Text>
-            {story.author.role ? `  ·  ${story.author.role}` : ""}
-          </Text>
+          {/* The card opens the work; the byline opens whoever made it. */}
+          <Pressable
+            onPress={onPressAuthor}
+            disabled={!onPressAuthor}
+            hitSlop={8}
+            accessibilityRole={onPressAuthor ? "button" : undefined}
+            accessibilityLabel={onPressAuthor ? `${story.author.name}'s profile` : undefined}
+            style={({ pressed }) => [
+              styles.byPerson,
+              pressed && onPressAuthor && { opacity: 0.6 },
+            ]}
+          >
+            <Avatar creator={story.author} size="sm" />
+            <Text style={styles.byText} numberOfLines={1}>
+              <Text style={styles.byName}>{story.author.name}</Text>
+              {story.author.role ? `  ·  ${story.author.role}` : ""}
+            </Text>
+          </Pressable>
           {when ? (
             <View style={styles.when}>
               <CalendarRange size={12} color={colors.iconFaint} />
@@ -244,6 +274,7 @@ const styles = StyleSheet.create({
   cardTitle: { ...typography.title },
   withRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   excerpt: { ...typography.caption, color: colors.textSecondary, lineHeight: 20 },
+  byPerson: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
   byRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   byText: { ...typography.caption, flex: 1 },
   byName: { color: colors.text, fontFamily: fonts.semibold },

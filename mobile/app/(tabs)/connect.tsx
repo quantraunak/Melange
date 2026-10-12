@@ -12,7 +12,7 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, GUTTER, motion, radii, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, motion, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { trackEvent } from "@/lib/analytics";
@@ -21,11 +21,13 @@ import {
   checkAndCreateMatch,
   getFeedPosts,
   getProfile,
+  profileGate,
   recordSwipe,
   projectRoles,
   undoSwipe,
   type CreatorInfo,
   type PostWithCreator,
+  type Profile,
 } from "@/lib/db";
 
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -55,6 +57,9 @@ export default function DiscoverScreen() {
     name: "You",
     avatar_url: null,
   });
+  /** Kept whole because the gate reads role and portfolio, not just a name. */
+  const [myProfile, setMyProfile] = useState<Profile | null>(null);
+  const [gateLine, setGateLine] = useState<string | null>(null);
 
   const [lastSwipe, setLastSwipe] = useState<{ post: PostWithCreator; dir: SwipeDir } | null>(null);
   const [rewinding, setRewinding] = useState(false);
@@ -78,7 +83,9 @@ export default function DiscoverScreen() {
   useEffect(() => {
     if (!userId) return;
     getProfile(userId).then(({ data }) => {
-      if (data) setMe({ name: data.name, avatar_url: data.avatar_url ?? null });
+      if (!data) return;
+      setMe({ name: data.name, avatar_url: data.avatar_url ?? null });
+      setMyProfile(data);
     });
   }, [userId]);
 
@@ -122,6 +129,18 @@ export default function DiscoverScreen() {
       if (!userId || !current || swiping) return;
       const post = current;
 
+      /* A left swipe costs the other person nothing, so it is never gated.
+         A right swipe asks for their attention, and that is what has a price. */
+      if (dir === "right") {
+        const gate = profileGate(myProfile, "like");
+        if (!gate.ok) {
+          setGateLine(gate.line);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+          return;
+        }
+      }
+      setGateLine(null);
+
       setSwiping(true);
       setError(null);
       setIndex((i) => i + 1);
@@ -156,7 +175,7 @@ export default function DiscoverScreen() {
 
       setSwiping(false);
     },
-    [userId, current, swiping, refreshMatches, tx]
+    [userId, current, swiping, refreshMatches, tx, myProfile]
   );
 
   const rewind = useCallback(async () => {
@@ -248,6 +267,15 @@ export default function DiscoverScreen() {
               pendingButtonSwipe={pendingButtonSwipe}
               onButtonSwipeComplete={() => setPendingButtonSwipe(null)}
               onSwipe={handleSwipe}
+              onOpenCreator={
+                current.creator.user_id
+                  ? () =>
+                      router.push({
+                        pathname: "/profile/[userId]",
+                        params: { userId: current.creator.user_id as string },
+                      })
+                  : undefined
+              }
               onOpenDetails={() =>
                 router.push({ pathname: "/post/[id]", params: { id: current.id } })
               }
@@ -305,12 +333,35 @@ export default function DiscoverScreen() {
       <View style={[styles.errorSlot, { top: topInset + 76 }]} pointerEvents="box-none">
         <ErrorBanner message={error} />
       </View>
+
+      {/* One line at the point of the action, not a meter somewhere else. */}
+      {gateLine ? (
+        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
+          <Glass style={styles.gate} elevated>
+            <Text style={styles.gateLine}>{gateLine}</Text>
+            <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={10}>
+              <Text style={styles.gateAction}>Edit profile</Text>
+            </Pressable>
+          </Glass>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  gateSlot: { position: "absolute", left: GUTTER, right: GUTTER },
+  gate: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  gateLine: { ...typography.bodyStrong, flex: 1, color: colors.text },
+  gateAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   deck: { ...StyleSheet.absoluteFillObject },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
 
