@@ -170,7 +170,15 @@ export default function PublicProfileScreen() {
             <Text style={styles.muted}>Nothing yet.</Text>
           ) : (
             work.map((w) => {
-              const names = w.credits.map((c) => c.name).filter(Boolean);
+              /* Everyone on it except the person whose page this is. Without
+                 the exclusion a piece someone else credited you on reads
+                 "with <you>", which is the one name the reader already has. */
+              const names = [
+                ...(w.author_id === viewedId ? [] : [w.author.name]),
+                ...w.credits
+                  .filter((c) => (c.user_id ? c.user_id !== viewedId : c.name !== profile.name))
+                  .map((c) => c.name),
+              ].filter(Boolean);
               return (
                 <Pressable
                   key={w.id}
@@ -187,7 +195,7 @@ export default function PublicProfileScreen() {
                     <View style={[styles.thumb, styles.thumbEmpty]} />
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>
+                    <Text style={styles.rowTitle} numberOfLines={2}>
                       {w.title}
                     </Text>
                     {names.length ? (
@@ -196,7 +204,9 @@ export default function PublicProfileScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  {storyDate(w) ? <Text style={styles.rowWhen}>{storyDate(w)}</Text> : null}
+                  {storyDate(w) ? (
+                    <Text style={[styles.rowWhen, styles.rowWhenWrap]}>{storyDate(w)}</Text>
+                  ) : null}
                 </Pressable>
               );
             })
@@ -246,13 +256,14 @@ const styles = StyleSheet.create({
 
   row: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.md,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.line,
   },
   rowTitle: { ...typography.bodyStrong, color: colors.text },
+  rowWhenWrap: { alignSelf: "flex-start", paddingTop: 2 },
   rowMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
   rowWhen: { ...typography.micro, color: colors.textTertiary },
   thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },
