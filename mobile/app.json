@@ -2,7 +2,7 @@
   "expo": {
     "name": "Melange",
     "slug": "melange",
-    "version": "1.2",
+    "version": "1.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "melange",
