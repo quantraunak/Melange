@@ -53,6 +53,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="events/index" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="report/[kind]/[id]" options={{ presentation: "modal" }} />
         <Stack.Screen name="account/blocked" options={{ presentation: "card", animation: "slide_from_right" }} />
+        <Stack.Screen name="account/edit-profile" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="account/delete" options={{ presentation: "modal" }} />
       </Stack>
     </MatchesProvider>

@@ -18,7 +18,7 @@ import { ArrowLeft, MoreVertical, Send } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import {
@@ -28,7 +28,6 @@ import {
   type Message,
 } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
-import { getMyReviewForMatch, isReviewEligible } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
 import { formatClockTime } from "@/lib/format";
 
@@ -50,7 +49,6 @@ export default function ChatScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasReview, setHasReview] = useState(false);
   const [retriedNotFound, setRetriedNotFound] = useState(false);
 
   // If matches have finished loading and this matchId still isn't in the
@@ -74,8 +72,6 @@ export default function ChatScreen() {
       setMessages(data || []);
       setLoading(false);
       await markRead(matchId);
-      const { data: review } = await getMyReviewForMatch(matchId, userId);
-      setHasReview(!!review);
     })();
   }, [matchId, userId, markRead]);
 
@@ -225,9 +221,7 @@ export default function ChatScreen() {
           ) : (
             <View style={styles.notFound}>
               <Text style={styles.notFoundTitle}>Conversation not found</Text>
-              <Text style={styles.notFoundBody}>
-                This match may have been removed, or you may no longer have access to it.
-              </Text>
+              <Text style={styles.notFoundBody}>It may have been removed.</Text>
               <Pressable
                 style={styles.notFoundBtn}
                 onPress={() => router.replace("/(tabs)/messages")}
@@ -263,20 +257,6 @@ export default function ChatScreen() {
         </Pressable>
       </View>
 
-      {isReviewEligible(match.created_at) && !hasReview ? (
-        <Pressable
-          style={styles.reviewBanner}
-          onPress={() =>
-            router.push({ pathname: "/review/[matchId]", params: { matchId: match.id } })
-          }
-        >
-          <Text style={styles.reviewBannerText}>
-            Collaborated? Leave a review for {match.other_creator.name}
-          </Text>
-          <Text style={styles.reviewBannerCta}>Review</Text>
-        </Pressable>
-      ) : null}
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -296,29 +276,48 @@ export default function ChatScreen() {
             contentContainerStyle={styles.messageList}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
-                <Text style={styles.emptyChatText}>No messages yet. Say hello!</Text>
+                <Text style={styles.emptyChatTitle}>You matched</Text>
+                <Text style={styles.emptyChatText}>Say hi.</Text>
               </View>
             }
             renderItem={({ item, index }) => {
               const isMe = item.sender_id === userId;
               const prev = messages[index - 1];
-              const sameAuthor = prev && prev.sender_id === item.sender_id;
+              const next = messages[index + 1];
+              const sameAuthorBefore = prev && prev.sender_id === item.sender_id;
+              // Stamping every bubble turns a conversation into a log, and
+              // "only the last of a run" does nothing when two people are
+              // alternating — every message is the end of its own run. Time
+              // marks a pause instead: the last message, or one followed by a
+              // gap of more than a quarter of an hour.
+              const GAP_MS = 15 * 60 * 1000;
+              const endsRun =
+                !next ||
+                new Date(next.created_at).getTime() -
+                  new Date(item.created_at).getTime() >
+                  GAP_MS;
               return (
                 <View
                   style={[
                     styles.bubbleRow,
                     isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
-                    sameAuthor ? { marginTop: 2 } : { marginTop: 8 },
+                    sameAuthorBefore ? { marginTop: 2 } : { marginTop: 10 },
                   ]}
                 >
-                  <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
-                    <Text style={[styles.bubbleText, isMe && { color: colors.white }]}>
+                  <View
+                    style={[
+                      styles.bubble,
+                      isMe ? styles.bubbleMe : styles.bubbleOther,
+                      endsRun && (isMe ? styles.bubbleMeTail : styles.bubbleOtherTail),
+                    ]}
+                  >
+                    <Text style={[styles.bubbleText, isMe && { color: colors.onAccent }]}>
                       {item.content}
                     </Text>
-                    <Text style={[styles.bubbleTime, isMe ? { color: colors.onAccentMuted } : null]}>
-                      {formatClockTime(item.created_at)}
-                    </Text>
                   </View>
+                  {endsRun ? (
+                    <Text style={styles.bubbleTime}>{formatClockTime(item.created_at)}</Text>
+                  ) : null}
                 </View>
               );
             }}
@@ -359,8 +358,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
-    borderBottomColor: colors.lineStrong,
-    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerMiddle: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   headerTitle: { ...typography.headline, flex: 1, color: colors.text },
@@ -379,22 +378,39 @@ const styles = StyleSheet.create({
   },
   notFoundBtnText: { ...typography.bodyStrong, color: colors.white },
   messageList: { paddingHorizontal: 14, paddingVertical: 12, flexGrow: 1 },
-  emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
-  emptyChatText: { ...typography.body, color: colors.textSecondary },
-  bubbleRow: { flexDirection: "row" },
+  emptyChat: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    gap: 6,
+  },
+  emptyChatTitle: { ...typography.headline, color: colors.text },
+  emptyChatText: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+
+  bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   bubbleRowMe: { justifyContent: "flex-end" },
   bubbleRowOther: { justifyContent: "flex-start" },
   bubble: {
-    maxWidth: "78%",
+    maxWidth: "76%",
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radii.md,
+    paddingVertical: 9,
+    borderRadius: radii.lg,
   },
-  bubbleMe: { backgroundColor: colors.bubbleMe, borderBottomRightRadius: 6 },
-  bubbleOther: { backgroundColor: colors.bubbleOther, borderBottomLeftRadius: 6 },
+  /* No tail notch: the spec allows four radii and a fifth value for one
+     corner of one component is how scales rot. A run reads as a run from
+     spacing — 2pt inside a block, 10pt between blocks. */
+  bubbleMe: { backgroundColor: colors.bubbleMe },
+  bubbleOther: { backgroundColor: colors.bubbleOther },
+  bubbleMeTail: {},
+  bubbleOtherTail: {},
   bubbleText: { ...typography.body, color: colors.text },
-  bubbleTime: { ...typography.micro, color: colors.textSecondary, marginTop: 2, alignSelf: "flex-end" },
-  inputSafe: { backgroundColor: colors.surface, borderTopColor: colors.lineStrong, borderTopWidth: 1 },
+  bubbleTime: { ...typography.micro, color: colors.textTertiary, marginBottom: 2 },
+  inputSafe: {
+    backgroundColor: colors.surface,
+    borderTopColor: colors.line,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -402,27 +418,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  input: { ...typography.body, flex: 1, backgroundColor: colors.surfaceSunken, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 10, color: colors.text, maxHeight: 120 },
+  input: {
+    ...typography.body,
+    flex: 1,
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: colors.text,
+    maxHeight: 120,
+  },
   sendBtn: {
     width: 38,
     height: 38,
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  reviewBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginHorizontal: 12,
-    marginTop: 8,
-    padding: 10,
-    backgroundColor: colors.accentSoft,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  reviewBannerText: { ...typography.caption, flex: 1, color: colors.accentInk, marginRight: 8 },
-  reviewBannerCta: { ...typography.caption, fontFamily: fonts.semibold, color: colors.accent },
 });

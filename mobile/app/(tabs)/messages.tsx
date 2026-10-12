@@ -18,11 +18,10 @@ import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { PushPrimer } from "@/components/PushPrimer";
-import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { MatchRowSkeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, typography } from "@/lib/theme";
 import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
@@ -188,9 +187,7 @@ export default function MatchesScreen() {
           <Sparkles size={28} color={colors.accent} />
         </View>
         <Text style={styles.emptyTitle}>No matches yet</Text>
-        <Text style={styles.emptyBody}>
-          When you apply to a project and they pick you too, the conversation opens here.
-        </Text>
+        <Text style={styles.emptyBody}>Match with someone to start talking.</Text>
         <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/connect")}>
           <Text style={styles.emptyBtnText}>See open projects</Text>
         </Pressable>
@@ -239,9 +236,6 @@ export default function MatchesScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionTitle}>New</Text>
-                <View style={styles.countPill}>
-                  <Text style={styles.countPillText}>{newMatches.length}</Text>
-                </View>
                 <Text style={styles.sectionHint}>Nobody has written yet</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newRow}>
@@ -271,11 +265,7 @@ export default function MatchesScreen() {
       ListEmptyComponent={
         <View style={styles.inlineEmpty}>
           <Text style={styles.inlineEmptyText}>
-            {query.trim()
-              ? "Nothing matches that search."
-              : newMatches.length > 0
-                ? "No conversations yet. Say hi to one of your new matches above."
-                : "No conversations yet."}
+            {query.trim() ? "Nothing found." : "No conversations yet."}
           </Text>
         </View>
       }
@@ -285,7 +275,9 @@ export default function MatchesScreen() {
             <Text style={styles.projectTitle} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={styles.projectCount}>{item.count}</Text>
+            <Text style={styles.projectCount}>
+              {item.count} {item.count === 1 ? "person" : "people"}
+            </Text>
           </View>
         ) : (
           <MatchRow
@@ -325,7 +317,7 @@ function MatchRow({
       accessibilityRole="button"
       accessibilityLabel={`Conversation with ${match.other_creator.name}${unread ? ", unread" : ""}`}
     >
-      <Glass radius={radii.md} style={styles.row}>
+      <View style={styles.row}>
         <Avatar creator={match.other_creator} size="lg" />
 
         <View style={styles.rowText}>
@@ -357,30 +349,19 @@ function MatchRow({
             {unread ? <View style={styles.unreadDot} /> : null}
           </View>
         </View>
-      </Glass>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, paddingTop: 6, paddingBottom: 24, flexGrow: 1 },
-  header: { gap: 12, marginBottom: 4 },
+  list: { paddingHorizontal: GUTTER, paddingTop: 6, paddingBottom: 24, flexGrow: 1 },
+  header: { gap: 12, marginBottom: 2 },
 
   section: { gap: 8 },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionTitle: typography.eyebrow,
   sectionHint: { ...typography.micro, marginLeft: "auto" },
-  countPill: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: radii.pill,
-    paddingHorizontal: 6,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  countPillText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.white },
-
   newRow: { gap: 14, paddingVertical: 2, paddingRight: 8 },
   newItem: { alignItems: "center", width: 72, gap: 5 },
   newRing: {
@@ -392,25 +373,32 @@ const styles = StyleSheet.create({
   newName: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text, maxWidth: 70 },
   newProject: { ...typography.micro, maxWidth: 70 },
 
+  /* A grouping header, not a card title: the project is context for the rows
+     under it, so it sits in the eyebrow rank and the count is words. */
   projectHead: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingTop: 10,
-    paddingBottom: 6,
-    paddingHorizontal: 4,
+    alignItems: "baseline",
+    gap: 8,
+    paddingTop: 22,
+    paddingBottom: 8,
   },
-  projectTitle: { ...typography.bodyStrong, color: colors.text, flex: 1 },
-  projectCount: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary, backgroundColor: colors.bg, paddingHorizontal: 7, paddingVertical: 2, borderRadius: radii.pill, overflow: "hidden" },
+  projectTitle: {
+    ...typography.caption,
+    fontFamily: fonts.semibold,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  projectCount: { ...typography.micro, color: colors.textTertiary },
 
+  /* Plain rows on the ground with a hairline between them — the iOS list
+     idiom. They used to be individually floating frosted cards. */
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingVertical: 12,
-    paddingHorizontal: 12,
   },
-  separator: { height: 8 },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line, marginLeft: 60 },
   rowText: { flex: 1, gap: 3 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { ...typography.bodyStrong, flex: 1, color: colors.text },

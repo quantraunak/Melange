@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
+  CalendarDays,
   ChevronRight,
   FileText,
   LogOut,
@@ -20,8 +21,8 @@ import { useAuth } from "@/lib/auth";
  * The gear in the header used to call router.push("/(tabs)/profile"), which
  * navigates to the Profile tab -- so pressing it while already on Profile, the
  * screen most people are on when they reach for settings, did nothing at all.
- * Account controls also lived only at the bottom of the profile form, below the
- * posts list, where nothing suggested they were there.
+ * Account controls also lived at the bottom of the profile, below the posts
+ * list, which gave one thing two homes. Everything behind the gear is here.
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -42,7 +43,12 @@ export default function SettingsScreen() {
     {
       icon: <User size={18} color={colors.iconFaint} />,
       label: "Edit profile",
-      onPress: () => router.push("/(tabs)/profile"),
+      onPress: () => router.push("/account/edit-profile"),
+    },
+    {
+      icon: <CalendarDays size={18} color={colors.iconFaint} />,
+      label: "Events",
+      onPress: () => router.push("/events"),
     },
     {
       icon: <ShieldOff size={18} color={colors.iconFaint} />,

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,53 +16,35 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
-  BookOpen,
-  CalendarDays,
+  ImageIcon,
   Camera,
-  ChevronRight,
-  LogOut,
   Pencil,
   Settings as SettingsIcon,
-  ShieldOff,
-  Trash2,
 } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Chip, ChipRow } from "@/components/ui/Chip";
-import { Input } from "@/components/ui/Input";
-import { TextArea } from "@/components/ui/TextArea";
-import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
 import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import {
   getCredits,
   getMyPosts,
   getProfile,
-  PORTFOLIO_MAX_IMAGES,
-  ROLES,
   projectDates,
   projectRoles,
-  updatePortfolio,
   updateProfile,
   uploadFile,
-  VIBE_PRESETS,
   type CollabPost,
   type Credit,
   type Profile,
 } from "@/lib/db";
 import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
-import { trackEvent } from "@/lib/analytics";
-import { normalizeSocialUrl } from "@/lib/reviews";
-import { supabase } from "@/lib/supabase";
+import { formatRecordDate } from "@/lib/format";
 
-function normalizeReel(raw: string): string {
-  const v = raw.trim();
-  if (!v) return v;
-  return /^https?:\/\//i.test(v) ? v : `https://${v}`;
-}
+/** Three columns that fill the measure: the gutters are real, so the cells are too. */
+const TILE = (Dimensions.get("window").width - GUTTER * 2 - spacing.sm * 2) / 3;
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -72,23 +55,9 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myPosts, setMyPosts] = useState<CollabPost[]>([]);
   const [credits, setCredits] = useState<Credit[]>([]);
-  const [work, setWork] = useState<StoryWithAuthor[]>([]);
-  const [form, setForm] = useState({
-    name: "",
-    role: "",
-    bio: "",
-    currentProject: "",
-    skills: "",
-    instagram: "",
-    linkedin: "",
-    reel: "",
-  });
-  const [vibes, setVibes] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
+  const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -109,23 +78,12 @@ export default function ProfileScreen() {
     ]);
     if (profileData) {
       setProfile(profileData);
-      setForm({
-        name: profileData.name || "",
-        role: profileData.role || "",
-        bio: profileData.bio || "",
-        currentProject: profileData.current_project || "",
-        skills: profileData.skills?.join(", ") || "",
-        instagram: profileData.instagram_url || "",
-        linkedin: profileData.linkedin_url || "",
-        reel: profileData.reel_url || "",
-      });
-      setVibes(profileData.vibes ?? []);
     } else {
       setLoadError(profileErr || "We couldn't load your profile.");
     }
     setMyPosts(postsData || []);
     setCredits(creditData || []);
-    setWork(storyRes.data);
+    setStories(storyRes.data);
     setLoading(false);
   }, [userId]);
 
@@ -133,38 +91,46 @@ export default function ProfileScreen() {
     load();
   }, [load]);
 
-  const onSave = async () => {
-    if (!userId) return;
-    setSaving(true);
-    setError(null);
-    setSavedMsg(null);
-    const skillsArr = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
-    const { error: err } = await updateProfile(userId, {
-      name: form.name.trim(),
-      role: form.role.trim() || undefined,
-      bio: form.bio.trim() || undefined,
-      current_project: form.currentProject.trim() || undefined,
-      skills: skillsArr.length ? skillsArr : undefined,
-      vibes: vibes.length ? vibes : [],
-      instagram_url: normalizeSocialUrl("instagram", form.instagram),
-      linkedin_url: normalizeSocialUrl("linkedin", form.linkedin),
-      reel_url: form.reel.trim() ? normalizeReel(form.reel) : null,
-    });
-    setSaving(false);
-    if (err && err.startsWith("Saved.")) {
-      // The row saved; only the reel column is missing on this database.
-      setError(err);
-      trackEvent("profile_saved");
-      await load();
-    } else if (err) setError(err);
-    else {
-      trackEvent("profile_saved");
-      await supabase.rpc("refresh_profile_verification", { p_user_id: userId });
-      setSavedMsg("Profile saved.");
-      await load();
-      setTimeout(() => setSavedMsg(null), 2000);
-    }
-  };
+  /* Work and Your projects are one split of the same material, decided here,
+     so nothing can land in both.
+
+       Work          what you made. A story you recorded, or a credit a
+                     review backs. Finished, and always with someone.
+       Your projects what you have open. Posts you own, still looking.
+
+     The split holds by construction rather than by filtering: a post you own
+     can never reach Work, because a story is a story and a credit is on the
+     project of the person who credited you. Work used to be built partly out
+     of bare matches, which is how your own open call ended up listed under
+     both. Matching is not making something; that row lives on Matches. */
+  const { work, projects } = useMemo(() => {
+    const made = [
+      ...stories.map((st) => {
+        const names = st.credits.map((c) => c.name).filter(Boolean);
+        return {
+          key: `story-${st.id}`,
+          image: st.media_urls[0] ?? null,
+          title: st.title,
+          with: names.length ? `with ${names.slice(0, 3).join(", ")}` : null,
+          when: storyDate(st),
+          sort: st.happened_on ?? st.created_at,
+          onPress: () =>
+            router.push({ pathname: "/story/[id]", params: { id: st.id } }),
+        };
+      }),
+      ...credits.map((c) => ({
+        key: `credit-${c.match_id}`,
+        image: c.image,
+        title: c.title,
+        with: `with ${c.with_name}`,
+        when: formatRecordDate(c.date),
+        sort: c.date,
+        onPress: undefined,
+      })),
+    ].sort((a, b) => String(b.sort).localeCompare(String(a.sort)));
+
+    return { work: made, projects: myPosts };
+  }, [stories, credits, myPosts, router]);
 
   const onChangeAvatar = async () => {
     if (!userId) return;
@@ -199,69 +165,6 @@ export default function ProfileScreen() {
     setUploading(false);
     if (updateErr) setError(updateErr);
     else await load();
-  };
-
-  const onAddPortfolio = async () => {
-    if (!userId || !profile) return;
-    const current = profile.portfolio_urls ?? [];
-    if (current.length >= PORTFOLIO_MAX_IMAGES) {
-      Alert.alert("Portfolio full", `You can add up to ${PORTFOLIO_MAX_IMAGES} images.`);
-      return;
-    }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert("Photo permission denied", "Enable photo access in Settings.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: PORTFOLIO_MAX_IMAGES - current.length,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets.length) return;
-
-    setPortfolioBusy(true);
-    setError(null);
-    const uploaded: string[] = [];
-    for (const asset of result.assets) {
-      const { url, error: upErr } = await uploadFile(
-        userId,
-        "posts",
-        asset.uri,
-        asset.mimeType || "image/jpeg"
-      );
-      if (upErr || !url) {
-        setError(upErr || "Upload failed.");
-        break;
-      }
-      uploaded.push(url);
-    }
-    if (uploaded.length > 0) {
-      const { error: updErr } = await updatePortfolio(userId, [...current, ...uploaded]);
-      if (updErr) setError(updErr);
-      else await load();
-    }
-    setPortfolioBusy(false);
-  };
-
-  const onRemovePortfolio = (idx: number) => {
-    if (!userId || !profile) return;
-    Alert.alert("Remove image?", undefined, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          const next = (profile.portfolio_urls ?? []).filter((_, i) => i !== idx);
-          setPortfolioBusy(true);
-          const { error: err } = await updatePortfolio(userId, next);
-          setPortfolioBusy(false);
-          if (err) setError(err);
-          else await load();
-        },
-      },
-    ]);
   };
 
   const onSignOut = async () => {
@@ -310,6 +213,12 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
+        {error ? (
+          <View style={{ marginTop: spacing.md }}>
+            <ErrorBanner message={error} />
+          </View>
+        ) : null}
+
         {/* Avatar */}
         <View style={styles.avatarBlock}>
           <Pressable onPress={onChangeAvatar} disabled={uploading} style={styles.avatarWrap}>
@@ -326,271 +235,103 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName}>{profile.name}</Text>
-            {profile.role ? <Text style={styles.profileRole}>{profile.role}</Text> : null}
-            <Text style={styles.profileHint}>
-              {credits.length === 0
-                ? "No credits yet"
-                : `${credits.length} ${credits.length === 1 ? "credit" : "credits"} through Melange`}
-            </Text>
-          </View>
-        </View>
-
-        {/* Credits */}
-        <View style={styles.section}>
-          <View style={styles.portfolioHeader}>
-            <Text style={styles.sectionTitle}>Credits</Text>
-          </View>
-          {credits.length === 0 ? (
-            <Text style={styles.muted}>
-              Apply to a project. When they pick you too and you work together, it lands here.
-            </Text>
-          ) : (
-            credits.map((c) => (
-              <View key={c.match_id} style={styles.creditRow}>
-                <View style={[styles.creditDot, c.confirmed && styles.creditDotOn]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.creditTitle} numberOfLines={1}>
-                    {c.title}
-                  </Text>
-                  <Text style={styles.creditMeta} numberOfLines={1}>
-                    {c.role ? `${c.role} · ` : ""}with {c.with_name}
-                    {c.confirmed ? "" : " · pending review"}
-                  </Text>
-                </View>
-                <Text style={styles.creditDate}>
-                  {new Date(c.date.length === 10 ? `${c.date}T12:00:00` : c.date).toLocaleDateString([], {
-                    month: "short",
-                    year: "2-digit",
-                  })}
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* Work — stories you wrote, and stories that credit you. */}
-        <View style={styles.section}>
-          <View style={styles.portfolioHeader}>
-            <Text style={styles.sectionTitle}>Work</Text>
+            <Text style={styles.profileName} numberOfLines={1}>{profile.name}</Text>
+            {profile.role ? (
+              <Text style={styles.profileRole} numberOfLines={1}>{profile.role}</Text>
+            ) : null}
             <Pressable
-              onPress={() => router.push("/story/new")}
-              hitSlop={8}
-              accessibilityLabel="Post a story"
+              onPress={() => router.push("/account/edit-profile")}
+              hitSlop={12}
+              style={styles.editLink}
             >
+              <Text style={styles.sectionAction}>Edit profile</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* One section. A credit, a story and an uploaded image were three
+            sections split by where the row came from — match, story or
+            upload — which is plumbing, not a distinction anyone makes about
+            their own work. */}
+        <View style={styles.block}>
+          <View style={styles.blockHead}>
+            <Text style={styles.sectionTitle}>Work</Text>
+            <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
               <Text style={styles.sectionAction}>Add</Text>
             </Pressable>
           </View>
-          {work.length === 0 ? (
-            <Text style={styles.muted}>
-              Post something you already made. It does not have to be recent, and your
-              collaborators do not have to be on Melange.
-            </Text>
-          ) : (
-            <View style={styles.workList}>
-              {work.map((s) => {
-                const when = storyDate(s);
-                const mine = s.author_id === userId;
-                return (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => router.push({ pathname: "/story/[id]", params: { id: s.id } })}
-                    style={({ pressed }) => [styles.workRow, pressed && { opacity: 0.9 }]}
-                  >
-                    {s.media_urls[0] ? (
-                      <Image source={{ uri: s.media_urls[0] }} style={styles.workThumb} />
-                    ) : (
-                      <View style={[styles.workThumb, styles.workThumbEmpty]}>
-                        <BookOpen size={16} color={colors.iconFaint} />
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.creditTitle} numberOfLines={1}>
-                        {s.title}
-                      </Text>
-                      <Text style={styles.creditMeta} numberOfLines={1}>
-                        {mine ? "You posted this" : `Credited by ${s.author.name}`}
-                        {s.credits.length ? ` · ${s.credits.length + 1} people` : ""}
-                      </Text>
-                    </View>
-                    {when ? (
-                      <View style={styles.workWhen}>
-                        <CalendarDays size={11} color={colors.iconFaint} />
-                        <Text style={styles.creditDate}>{when}</Text>
-                      </View>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
 
-        {/* Portfolio */}
-        <View style={styles.section}>
-          <View style={styles.portfolioHeader}>
-            <Text style={styles.sectionTitle}>Portfolio</Text>
-            <Pressable
-              onPress={onAddPortfolio}
-              disabled={portfolioBusy || (profile.portfolio_urls?.length ?? 0) >= PORTFOLIO_MAX_IMAGES}
-              style={styles.addPortfolioBtn}
-            >
-              <Text style={styles.addPortfolioText}>
-                {portfolioBusy ? "…" : "+ Add"}
-              </Text>
-            </Pressable>
-          </View>
-          <Text style={styles.muted}>Your best work, up to {PORTFOLIO_MAX_IMAGES} images.</Text>
-          {(profile.portfolio_urls?.length ?? 0) === 0 ? (
-            <Pressable style={styles.portfolioEmpty} onPress={onAddPortfolio} disabled={portfolioBusy}>
-              <Text style={styles.portfolioEmptyText}>Tap to add images</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.portfolioGrid}>
-              {(profile.portfolio_urls ?? []).map((url, idx) => (
-                <View key={`${url}-${idx}`} style={styles.portfolioTile}>
-                  <Image source={{ uri: url }} style={styles.portfolioImg} />
-                  <Pressable
-                    style={styles.portfolioRemove}
-                    onPress={() => onRemovePortfolio(idx)}
-                    disabled={portfolioBusy}
-                  >
-                    <Text style={styles.portfolioRemoveText}>×</Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Form */}
-        <View style={styles.section}>
-          <Field label="Name">
-            <Input value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
-          </Field>
-          <Field label="What you do" hint="Pick one, or type your own.">
-            <ChipRow>
-              {ROLES.map((r) => (
-                <Chip
-                  key={r}
-                  label={r}
-                  size="sm"
-                  selected={form.role === r}
-                  onPress={() => setForm({ ...form, role: form.role === r ? "" : r })}
-                />
-              ))}
-            </ChipRow>
-            <Text style={styles.subLabel}>Or type your own</Text>
-            <Input
-              value={form.role}
-              onChangeText={(t) => setForm({ ...form, role: t })}
-              placeholder="e.g. Set designer, Creative director"
-            />
-          </Field>
-          <Field label="Reel or portfolio link" hint="Instagram, Vimeo, your site. People look here first.">
-            <Input
-              value={form.reel}
-              onChangeText={(t) => setForm({ ...form, reel: t })}
-              placeholder="vimeo.com/you"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-          </Field>
-          <Field label="Skills and gear" hint="Comma-separated">
-            <Input
-              value={form.skills}
-              onChangeText={(t) => setForm({ ...form, skills: t })}
-              placeholder="e.g. Steadicam, Resolve, own a C70"
-            />
-          </Field>
-          <Field label="Bio">
-            <TextArea
-              value={form.bio}
-              onChangeText={(t) => setForm({ ...form, bio: t })}
-              numberOfLines={4}
-              placeholder="A short bio about your work."
-            />
-          </Field>
-          <Field label="Current project">
-            <Input
-              value={form.currentProject}
-              onChangeText={(t) => setForm({ ...form, currentProject: t })}
-              placeholder="What you're working on right now"
-            />
-          </Field>
-          <Field label="Instagram">
-            <Input
-              value={form.instagram}
-              onChangeText={(t) => setForm({ ...form, instagram: t })}
-              placeholder="@handle or URL"
-              autoCapitalize="none"
-            />
-          </Field>
-          <Field label="LinkedIn">
-            <Input
-              value={form.linkedin}
-              onChangeText={(t) => setForm({ ...form, linkedin: t })}
-              placeholder="linkedin.com/in/you"
-              autoCapitalize="none"
-            />
-          </Field>
-          <Field label="Taste" hint="Helps rank projects for you (up to 5)">
-            <View style={styles.vibeRow}>
-              {VIBE_PRESETS.map((v) => {
-                const on = vibes.includes(v);
-                return (
-                  <Pressable
-                    key={v}
-                    onPress={() =>
-                      setVibes((prev) =>
-                        on ? prev.filter((x) => x !== v) : prev.length < 5 ? [...prev, v] : prev
-                      )
-                    }
-                    style={[styles.vibeChip, on && styles.vibeChipOn]}
-                  >
-                    <Text style={[styles.vibeChipText, on && styles.vibeChipTextOn]}>{v}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Field>
-
-          <ErrorBanner message={error} />
-          {savedMsg ? (
-            <View style={styles.success}>
-              <Text style={styles.successText}>{savedMsg}</Text>
-            </View>
+          {work.length === 0 && (profile.portfolio_urls?.length ?? 0) === 0 ? (
+            <Text style={styles.muted}>Nothing here yet.</Text>
           ) : null}
 
-          <Button title="Save profile" variant="primary" loading={saving} onPress={onSave} />
+          {work.map((w) => (
+            <Pressable
+              key={w.key}
+              onPress={w.onPress}
+              disabled={!w.onPress}
+              style={({ pressed }) => [styles.listRow, pressed && w.onPress && { opacity: 0.6 }]}
+            >
+              {w.image ? (
+                <Image source={{ uri: w.image }} style={styles.thumb} />
+              ) : (
+                <View style={[styles.thumb, styles.thumbEmpty]}>
+                  <ImageIcon size={16} color={colors.iconFaint} strokeWidth={1.6} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {w.title}
+                </Text>
+                {w.with ? (
+                  <Text style={styles.rowMeta} numberOfLines={1}>
+                    {w.with}
+                  </Text>
+                ) : null}
+              </View>
+              {w.when ? <Text style={styles.rowWhen}>{w.when}</Text> : null}
+            </Pressable>
+          ))}
+
+          {/* Loose images live in the same section — they are work too. The
+              grid is a grid: three columns of photographs, or nothing. A lone
+              add tile floating under the list was a fourth way to add work;
+              the section header already has the one action. Images are added
+              and removed in Edit profile. */}
+          {profile.portfolio_urls?.length ? (
+            <View style={styles.grid}>
+              {profile.portfolio_urls.map((url, idx) => (
+                <Image key={`${url}-${idx}`} source={{ uri: url }} style={styles.tile} />
+              ))}
+            </View>
+          ) : null}
         </View>
 
         {/* My projects */}
-        <View style={styles.section}>
-          <View style={styles.portfolioHeader}>
+        <View style={styles.block}>
+          <View style={styles.blockHead}>
             <Text style={styles.sectionTitle}>Your projects</Text>
-            <Pressable onPress={() => router.push("/post/new")} style={styles.addPortfolioBtn}>
-              <Text style={styles.addPortfolioText}>+ Post a project</Text>
+            <Pressable onPress={() => router.push("/post/new")} hitSlop={12}>
+              <Text style={styles.sectionAction}>Post</Text>
             </Pressable>
           </View>
-          {myPosts.length === 0 ? (
-            <Text style={styles.muted}>No projects posted yet.</Text>
+          {projects.length === 0 ? (
+            <Text style={styles.muted}>Nothing open.</Text>
           ) : (
-            myPosts.map((p) => (
+            projects.map((p) => (
               <Pressable
                 key={p.id}
-                style={styles.postRow}
+                style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
                 onPress={() =>
                   router.push({ pathname: "/post/edit/[id]", params: { id: p.id } })
                 }
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.postTitle} numberOfLines={1}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
                     {p.title}
                   </Text>
-                  <Text style={styles.postMeta} numberOfLines={1}>
-                    {projectDates(p) ?? new Date(p.created_at).toLocaleDateString()}
+                  <Text style={styles.rowMeta} numberOfLines={1}>
+                    {projectDates(p) ?? formatRecordDate(p.created_at)}
                     {projectRoles(p).length ? ` · ${projectRoles(p).slice(0, 3).join(", ")}` : ""}
                     {p.is_active ? "" : " · inactive"}
                   </Text>
@@ -601,41 +342,9 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Account & safety */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account & safety</Text>
-
-          <Pressable style={styles.linkRow} onPress={() => router.push("/events")}>
-            <CalendarDays size={18} color={colors.iconFaint} />
-            <Text style={styles.linkRowText}>Events</Text>
-            <ChevronRight size={16} color={colors.iconFaint} />
-          </Pressable>
-
-          <Pressable style={styles.linkRow} onPress={() => router.push("/account/blocked")}>
-            <ShieldOff size={18} color={colors.iconFaint} />
-            <Text style={styles.linkRowText}>Blocked users</Text>
-            <ChevronRight size={16} color={colors.iconFaint} />
-          </Pressable>
-
-          <Pressable style={styles.linkRow} onPress={onSignOut}>
-            <LogOut size={18} color={colors.iconFaint} />
-            <Text style={styles.linkRowText}>Sign out</Text>
-            <ChevronRight size={16} color={colors.iconFaint} />
-          </Pressable>
-
-          <Pressable
-            style={[styles.linkRow, { borderColor: colors.dangerSoft }]}
-            onPress={() => router.push("/account/delete")}
-          >
-            <Trash2 size={18} color={colors.dangerText} />
-            <Text style={[styles.linkRowText, { color: colors.dangerText }]}>
-              Delete account
-            </Text>
-            <ChevronRight size={16} color={colors.dangerText} />
-          </Pressable>
-        </View>
-
-        <View style={{ height: 16 }} />
+        {/* Account & safety, Events and Sign out used to end the page while
+            the gear sat in the header: two homes for one thing. They are
+            behind the gear, and the page ends with the last list row. */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -644,8 +353,10 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
-  scroll: { padding: 16, gap: 14, paddingBottom: 24 },
-  subLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary, marginTop: 10 },
+  /* One gutter, one rhythm. Sections are separated by space and a rule, not
+     by nesting a white card inside a grey one. */
+  scroll: { paddingHorizontal: GUTTER, gap: 0 },
+
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   topBarTitle: typography.display1,
   settingsBtn: {
@@ -653,36 +364,18 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.lineStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
-  workList: { gap: 8, marginTop: 4 },
-  workRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-    paddingVertical: 8,
-  },
-  workThumb: {
-    width: 46,
-    height: 46,
-    borderRadius: radii.sm,
-    backgroundColor: colors.bg,
-  },
-  workThumbEmpty: { alignItems: "center", justifyContent: "center" },
-  workWhen: { flexDirection: "row", alignItems: "center", gap: 4 },
+
   avatarBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
+    gap: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   avatarWrap: { position: "relative" },
   cameraBadge: {
@@ -696,119 +389,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: colors.surface,
+    borderColor: colors.bg,
   },
-  profileName: { ...typography.headline, color: colors.text },
-  profileRole: { ...typography.caption, color: colors.textSecondary },
-  profileHint: { ...typography.micro, color: colors.textSecondary, marginTop: 4 },
+  profileName: { ...typography.title, color: colors.text },
+  profileRole: { ...typography.body, color: colors.textSecondary },
+  editLink: { alignSelf: "flex-start", marginTop: spacing.sm },
 
-  section: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
-    gap: 12,
+  /* A section: a rule, an eyebrow, then content directly on the ground. */
+  block: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    paddingTop: spacing.lg,
+    marginTop: spacing.xl,
+    gap: spacing.md,
   },
+  blockHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionTitle: { ...typography.eyebrow, color: colors.textSecondary },
-  creditRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
-  creditDot: { width: 8, height: 8, borderRadius: radii.sm, backgroundColor: colors.lineStrong },
-  creditDotOn: { backgroundColor: colors.accent },
-  creditTitle: { ...typography.headline },
-  creditMeta: typography.caption,
-  creditDate: typography.micro,
+  sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
+  sectionCount: { ...typography.caption, color: colors.textTertiary },
+
+  /* Every list row in this screen is the same row. */
+  listRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+  },
+  rowTitle: { ...typography.bodyStrong, color: colors.text },
+  rowMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
+  rowWhen: { ...typography.micro, color: colors.textTertiary },
+  thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },
+  thumbEmpty: { alignItems: "center", justifyContent: "center" },
   muted: { ...typography.caption, color: colors.textSecondary },
-  success: {
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accent,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.sm,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  successText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.accent },
 
-  postRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    backgroundColor: colors.surfaceSunken,
-    borderRadius: radii.sm,
-  },
-  postTitle: { ...typography.bodyStrong, color: colors.text },
-  postMeta: { ...typography.micro, color: colors.textSecondary, marginTop: 2 },
-
-  linkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    backgroundColor: colors.surfaceSunken,
-  },
-  linkRowText: { ...typography.bodyStrong, flex: 1, color: colors.text },
-
-  vibeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  vibeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-  },
-  vibeChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  vibeChipText: { ...typography.caption, color: colors.textSecondary },
-  vibeChipTextOn: { color: colors.white, fontFamily: fonts.semibold },
-
-  portfolioHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  addPortfolioBtn: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-  },
-  addPortfolioText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
-  portfolioEmpty: {
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: colors.lineStrong,
-    borderRadius: radii.sm,
-    paddingVertical: 28,
-    alignItems: "center",
-  },
-  portfolioEmptyText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
-  portfolioGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 4,
-  },
-  portfolioTile: {
-    width: "31%",
+  /* Three columns, fixed gutters, every cell a photograph. */
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  tile: {
+    width: TILE,
     aspectRatio: 1,
     borderRadius: radii.sm,
-    overflow: "hidden",
     backgroundColor: colors.surfaceSunken,
   },
-  portfolioImg: { width: "100%", height: "100%" },
-  portfolioRemove: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: radii.sm,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  portfolioRemoveText: { ...typography.headline, color: colors.white },
 });

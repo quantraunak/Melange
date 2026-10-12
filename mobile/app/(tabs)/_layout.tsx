@@ -39,7 +39,7 @@ function PushBootstrap() {
 }
 
 /**
- * Compass for Discover (you are looking around) and Layers for Stories (work
+ * Compass for Discover (you are looking around) and Layers for Work (things
  * stacked up over time). The previous sparkle and open book said nothing: a
  * sparkle is decoration, and a book is not a record of shoots you have done.
  */
@@ -71,7 +71,7 @@ export function useBarTop() {
 /**
  * Floating glass tab bar.
  *
- * Labelled: Discover and Stories are product-specific ideas with no
+ * Labelled: Discover and Work are product-specific ideas with no
  * conventional glyph, so an icon alone cannot carry them. Selection is the
  * icon and label turning brand blue — there is no sliding indicator, which
  * was Material Design's navigation pill and put the highlight and the
@@ -150,7 +150,7 @@ export default function TabsLayout() {
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "transparent" } }}
       >
         <Tabs.Screen name="connect" options={{ title: "Discover" }} />
-        <Tabs.Screen name="stories" options={{ title: "Stories" }} />
+        <Tabs.Screen name="stories" options={{ title: "Work" }} />
         <Tabs.Screen name="messages" options={{ title: "Matches" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>

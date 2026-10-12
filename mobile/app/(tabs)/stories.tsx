@@ -17,10 +17,9 @@ import { BookOpen, CalendarRange, Pencil, Users } from "lucide-react-native";
 import { Avatar } from "@/components/Avatar";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { Glass } from "@/components/ui/Glass";
-import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, GUTTER, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, spacing, typography } from "@/lib/theme";
 import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { getStories, storyDate, type StoryWithAuthor } from "@/lib/stories";
@@ -30,7 +29,7 @@ const { width: SCREEN_W } = Dimensions.get("window");
 
 
 /**
- * Stories — what people already made.
+ * Work — what people already made.
  *
  * The swipe deck is work that is looking for people; this is work that
  * happened. It is the half of the app that is worth opening on a day when
@@ -72,7 +71,7 @@ export default function StoriesScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + spacing.xl }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -86,13 +85,14 @@ export default function StoriesScreen() {
       >
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>The record</Text>
-            <Text style={styles.heading}>Stories</Text>
+            <Text style={styles.heading}>Work</Text>
           </View>
+          {!unavailable && userId ? (
+            <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
+              <Text style={styles.headerAction}>Add</Text>
+            </Pressable>
+          ) : null}
         </View>
-        <Text style={styles.subhead}>
-          Work that actually happened. Who made it, and how.
-        </Text>
 
         <ErrorBanner message={error} />
 
@@ -104,23 +104,15 @@ export default function StoriesScreen() {
         ) : unavailable ? (
           <Glass style={styles.empty} elevated>
             <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
-            <Text style={styles.emptyTitle}>Stories aren&apos;t live yet</Text>
-            <Text style={styles.emptyBody}>
-              The database needs <Text style={styles.mono}>09_stories.sql</Text> applied before
-              anyone can post one. Everything else in the app works as normal.
-            </Text>
+            <Text style={styles.emptyTitle}>Not live yet</Text>
           </Glass>
         ) : stories.length === 0 ? (
           <Glass style={styles.empty} elevated>
             <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
-            <Text style={styles.emptyTitle}>No stories yet</Text>
-            <Text style={styles.emptyBody}>
-              Post something you already made. It does not have to be recent, and your
-              collaborators do not have to be on Melange.
-            </Text>
+            <Text style={styles.emptyTitle}>Nothing here yet</Text>
             <Pressable onPress={() => router.push("/story/new")} style={styles.emptyCta}>
               <Pencil size={14} color={colors.onBrand} />
-              <Text style={styles.emptyCtaText}>Write the first one</Text>
+              <Text style={styles.emptyCtaText}>Add your first</Text>
             </Pressable>
           </Glass>
         ) : (
@@ -135,19 +127,6 @@ export default function StoriesScreen() {
           </View>
         )}
       </ScrollView>
-
-      {!unavailable && userId ? (
-        <View style={[styles.fab, { bottom: barTop + 20 }]} pointerEvents="box-none">
-          <GlassButton
-            accessibilityLabel="Post a story"
-            onPress={() => router.push("/story/new")}
-            size={56}
-            solid={colors.brand}
-          >
-            <Pencil size={22} color={colors.onBrand} strokeWidth={1.75} />
-          </GlassButton>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -234,9 +213,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
   header: { flexDirection: "row", alignItems: "flex-end" },
-  eyebrow: typography.eyebrow,
   heading: typography.display1,
-  subhead: { ...typography.caption, marginTop: -8, marginBottom: 2 },
+  headerAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
   card: {
     borderRadius: radii.lg,
@@ -274,7 +252,6 @@ const styles = StyleSheet.create({
 
   empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 10 },
   emptyTitle: { ...typography.headline, textAlign: "center" },
-  emptyBody: { ...typography.caption, textAlign: "center", lineHeight: 20 },
   mono: { fontFamily: fonts.semibold, color: colors.text },
   emptyCta: {
     flexDirection: "row",
@@ -288,5 +265,4 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: { color: colors.onBrand, fontFamily: fonts.semibold },
 
-  fab: { position: "absolute", right: GUTTER },
 });
