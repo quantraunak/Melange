@@ -12,7 +12,7 @@
 //   node scripts/asc.mjs versions          # every iOS version and its state
 //   node scripts/asc.mjs GET /v1/apps      # any raw endpoint
 import { createSign } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -22,8 +22,13 @@ const DIR = path.join(homedir(), ".appstoreconnect", "private_keys");
 function loadKey() {
   const files = readdirSync(DIR).filter((f) => f.endsWith(".p8"));
   if (!files.length) throw new Error(`no .p8 in ${DIR}`);
-  const file = files[0];
-  const keyId = process.env.ASC_KEY_ID || (file.match(/AuthKey_(.+)\.p8$/)?.[1] ?? null);
+  // Apple names team keys AuthKey_<id>.p8 and individual keys ApiKey_<id>.p8.
+  // Newest first, so a freshly generated key wins over a stale one.
+  const stat = (f) => statSync(path.join(DIR, f)).mtimeMs;
+  const file = process.env.ASC_KEY_ID
+    ? files.find((f) => f.includes(process.env.ASC_KEY_ID)) ?? files[0]
+    : files.sort((a, b) => stat(b) - stat(a))[0];
+  const keyId = process.env.ASC_KEY_ID || (file.match(/(?:AuthKey|ApiKey)_(.+)\.p8$/)?.[1] ?? null);
   if (!keyId) throw new Error("set ASC_KEY_ID or name the file AuthKey_<KEYID>.p8");
   return { pem: readFileSync(path.join(DIR, file), "utf8"), keyId };
 }
