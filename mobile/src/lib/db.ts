@@ -180,6 +180,42 @@ export const VIBE_PRESETS = [
 
 export const PORTFOLIO_MAX_IMAGES = 9;
 
+/**
+ * The floor sits on asking for attention, never on looking.
+ *
+ * Anyone may browse. To post a project or like someone you need three
+ * photographs and a role, because those are what the person on the other side
+ * uses to decide whether you are worth their Saturday. A gate at signup would
+ * cost more than it is worth at this size; a gate here costs nothing until
+ * someone wants something from somebody else.
+ */
+export const PROFILE_MIN_IMAGES = 3;
+
+export type Gate = { ok: true; line: null } | { ok: false; line: string };
+
+/**
+ * One line, no meter. A progress ring telling someone they are 66% of a person
+ * is the kind of hand-holding this product does not do: say the one thing that
+ * is missing and open the screen that fixes it.
+ */
+export function profileGate(
+  profile: Pick<Profile, "role" | "portfolio_urls"> | null,
+  verb: "post" | "like"
+): Gate {
+  const photos = profile?.portfolio_urls?.length ?? 0;
+  const needsPhotos = photos < PROFILE_MIN_IMAGES;
+  const needsRole = !profile?.role?.trim();
+  if (!needsPhotos && !needsRole) return { ok: true, line: null };
+
+  const tail = verb === "post" ? "to post." : "first.";
+  const what = needsPhotos && needsRole
+    ? "Add three photos and a role"
+    : needsPhotos
+      ? "Add three photos"
+      : "Pick a role";
+  return { ok: false, line: `${what} ${tail}` };
+}
+
 export type ReportReason =
   | "spam"
   | "harassment"

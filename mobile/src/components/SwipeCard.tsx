@@ -96,6 +96,7 @@ function Segments({ count, index, topInset }: { count: number; index: number; to
 function Plate({
   post,
   onPress,
+  onPressCreator,
   bottom,
   onPass,
   onLike,
@@ -105,6 +106,7 @@ function Plate({
 }: {
   post: PostWithCreator;
   onPress: () => void;
+  onPressCreator?: () => void;
   bottom: number;
   onPass?: () => void;
   onLike?: () => void;
@@ -173,14 +175,23 @@ function Plate({
                 {pay ? <Chip label={pay} size="sm" /> : null}
               </View>
 
-              <View style={styles.byRow}>
+              {/* Nested inside the plate's own press target on purpose: the
+                  caption opens the project, the byline opens the person. */}
+              <Pressable
+                onPress={onPressCreator}
+                disabled={!onPressCreator}
+                hitSlop={8}
+                accessibilityRole={onPressCreator ? "button" : undefined}
+                accessibilityLabel={onPressCreator ? `${post.creator.name}'s profile` : undefined}
+                style={({ pressed }) => [styles.byRow, pressed && onPressCreator && { opacity: 0.6 }]}
+              >
                 <Avatar creator={post.creator} size="sm" />
                 <Text style={styles.byText} numberOfLines={1}>
                   <Text style={styles.byName}>{post.creator.name}</Text>
                   {post.creator.verification_status === "verified" ? " ✓" : ""}
                   {post.creator.role ? `  ·  ${post.creator.role}` : ""}
                 </Text>
-              </View>
+              </Pressable>
             </Pressable>
           </Animated.View>
 
@@ -298,6 +309,8 @@ type Props = {
   post: PostWithCreator;
   onSwipe: (dir: SwipeDir) => void;
   onOpenDetails: () => void;
+  /** The byline opens the person behind the project. */
+  onOpenCreator?: () => void;
   disabled?: boolean;
   topInset: number;
   /** Distance from the bottom of the screen to the top of the tab bar. */
@@ -316,6 +329,7 @@ export function SwipeCard({
   post,
   onSwipe,
   onOpenDetails,
+  onOpenCreator,
   disabled,
   topInset,
   barTop,
@@ -504,6 +518,7 @@ export function SwipeCard({
         <Plate
           post={post}
           onPress={onOpenDetails}
+          onPressCreator={onOpenCreator}
           bottom={0}
           onPass={onPass}
           onLike={onLike}
