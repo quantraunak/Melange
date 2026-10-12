@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
+  CalendarDays,
   ChevronRight,
   FileText,
   LogOut,
@@ -11,7 +12,7 @@ import {
   User,
 } from "lucide-react-native";
 
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 
 /**
@@ -20,8 +21,8 @@ import { useAuth } from "@/lib/auth";
  * The gear in the header used to call router.push("/(tabs)/profile"), which
  * navigates to the Profile tab -- so pressing it while already on Profile, the
  * screen most people are on when they reach for settings, did nothing at all.
- * Account controls also lived only at the bottom of the profile form, below the
- * posts list, where nothing suggested they were there.
+ * Account controls also lived at the bottom of the profile, below the posts
+ * list, which gave one thing two homes. Everything behind the gear is here.
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -40,22 +41,27 @@ export default function SettingsScreen() {
     danger?: boolean;
   }[] = [
     {
-      icon: <User size={18} color={colors.textMuted} />,
+      icon: <User size={18} color={colors.iconFaint} />,
       label: "Edit profile",
-      onPress: () => router.push("/(tabs)/profile"),
+      onPress: () => router.push("/account/edit-profile"),
     },
     {
-      icon: <ShieldOff size={18} color={colors.textMuted} />,
+      icon: <CalendarDays size={18} color={colors.iconFaint} />,
+      label: "Events",
+      onPress: () => router.push("/events"),
+    },
+    {
+      icon: <ShieldOff size={18} color={colors.iconFaint} />,
       label: "Blocked users",
       onPress: () => router.push("/account/blocked"),
     },
     {
-      icon: <FileText size={18} color={colors.textMuted} />,
+      icon: <FileText size={18} color={colors.iconFaint} />,
       label: "Privacy & terms",
       onPress: () => Linking.openURL("https://melange-psi.vercel.app/privacy"),
     },
     {
-      icon: <LogOut size={18} color={colors.textMuted} />,
+      icon: <LogOut size={18} color={colors.iconFaint} />,
       label: "Sign out",
       onPress: onSignOut,
     },
@@ -71,7 +77,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Back">
-          <ArrowLeft size={22} color={colors.textMuted} />
+          <ArrowLeft size={22} color={colors.iconFaint} />
         </Pressable>
         <Text style={styles.title}>Settings</Text>
         <View style={{ width: 22 }} />
@@ -81,7 +87,7 @@ export default function SettingsScreen() {
         {rows.map((row) => (
           <Pressable
             key={row.label}
-            style={[styles.row, row.danger && { borderColor: "#fecaca" }]}
+            style={[styles.row, row.danger && { borderColor: colors.dangerLine }]}
             onPress={row.onPress}
             accessibilityRole="button"
           >
@@ -89,7 +95,7 @@ export default function SettingsScreen() {
             <Text style={[styles.rowText, row.danger && { color: colors.dangerText }]}>
               {row.label}
             </Text>
-            <ChevronRight size={16} color={colors.textSubtle} />
+            <ChevronRight size={16} color={colors.iconFaint} />
           </Pressable>
         ))}
       </ScrollView>
@@ -106,7 +112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  title: { color: colors.text, fontSize: 17, fontWeight: "600" },
+  title: { ...typography.headline, color: colors.text },
   body: { padding: 16, gap: 10 },
   row: {
     flexDirection: "row",
@@ -115,8 +121,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderColor: colors.lineStrong,
+    borderRadius: radii.sm,
   },
-  rowText: { flex: 1, color: colors.text, fontSize: 15 },
+  rowText: { ...typography.body, flex: 1, color: colors.text },
 });

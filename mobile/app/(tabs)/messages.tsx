@@ -18,18 +18,17 @@ import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { PushPrimer } from "@/components/PushPrimer";
-import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { MatchRowSkeleton } from "@/components/ui/Skeleton";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, typography } from "@/lib/theme";
+import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { isLastMessageSeen, isMatchUnread, type MatchWithPost } from "@/lib/db";
 import { formatListTime } from "@/lib/format";
 
 /** Room for the floating tab bar. */
-const TAB_BAR_CLEARANCE = 112;
 
 type Row =
   | { kind: "project"; key: string; title: string; count: number }
@@ -46,6 +45,7 @@ type Row =
  */
 export default function MatchesScreen() {
   const insets = useSafeAreaInsets();
+  const barTop = useBarTop();
   const router = useRouter();
   const { userId } = useAuth();
   const { matches, loading, error, refresh, unmatch } = useMatches();
@@ -177,7 +177,7 @@ export default function MatchesScreen() {
   if (matches.length === 0) {
     return (
       <ScrollView
-        contentContainerStyle={[styles.emptyScroll, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.emptyScroll, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
         }
@@ -187,9 +187,7 @@ export default function MatchesScreen() {
           <Sparkles size={28} color={colors.accent} />
         </View>
         <Text style={styles.emptyTitle}>No matches yet</Text>
-        <Text style={styles.emptyBody}>
-          When you apply to a project and they pick you too, the conversation opens here.
-        </Text>
+        <Text style={styles.emptyBody}>Match with someone to start talking.</Text>
         <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/connect")}>
           <Text style={styles.emptyBtnText}>See open projects</Text>
         </Pressable>
@@ -201,7 +199,7 @@ export default function MatchesScreen() {
     <FlatList
       data={rows}
       keyExtractor={(r) => r.key}
-      contentContainerStyle={[styles.list, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.list, { paddingTop: insets.top + 8, paddingBottom: barTop + 24 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
@@ -223,11 +221,11 @@ export default function MatchesScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               containerStyle={{ marginBottom: 4 }}
-              leading={<Search size={16} color={colors.textSubtle} />}
+              leading={<Search size={16} color={colors.iconFaint} />}
               trailing={
                 query ? (
                   <Pressable onPress={() => setQuery("")} hitSlop={8}>
-                    <X size={16} color={colors.textMuted} />
+                    <X size={16} color={colors.iconFaint} />
                   </Pressable>
                 ) : null
               }
@@ -238,9 +236,6 @@ export default function MatchesScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionTitle}>New</Text>
-                <View style={styles.countPill}>
-                  <Text style={styles.countPillText}>{newMatches.length}</Text>
-                </View>
                 <Text style={styles.sectionHint}>Nobody has written yet</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newRow}>
@@ -270,22 +265,19 @@ export default function MatchesScreen() {
       ListEmptyComponent={
         <View style={styles.inlineEmpty}>
           <Text style={styles.inlineEmptyText}>
-            {query.trim()
-              ? "Nothing matches that search."
-              : newMatches.length > 0
-                ? "No conversations yet. Say hi to one of your new matches above."
-                : "No conversations yet."}
+            {query.trim() ? "Nothing found." : "No conversations yet."}
           </Text>
         </View>
       }
       renderItem={({ item }) =>
         item.kind === "project" ? (
           <View style={styles.projectHead}>
-            <Sparkles size={14} color={colors.accentMuted} />
             <Text style={styles.projectTitle} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={styles.projectCount}>{item.count}</Text>
+            <Text style={styles.projectCount}>
+              {item.count} {item.count === 1 ? "person" : "people"}
+            </Text>
           </View>
         ) : (
           <MatchRow
@@ -325,7 +317,7 @@ function MatchRow({
       accessibilityRole="button"
       accessibilityLabel={`Conversation with ${match.other_creator.name}${unread ? ", unread" : ""}`}
     >
-      <Glass radius={radii.lg} style={styles.row}>
+      <View style={styles.row}>
         <Avatar creator={match.other_creator} size="lg" />
 
         <View style={styles.rowText}>
@@ -346,9 +338,9 @@ function MatchRow({
           <View style={styles.rowBottom}>
             {mine ? (
               seen ? (
-                <CheckCheck size={13} color={colors.accentMuted} />
+                <CheckCheck size={13} color={colors.accentInk} />
               ) : (
-                <Check size={13} color={colors.textSubtle} />
+                <Check size={13} color={colors.iconFaint} />
               )
             ) : null}
             <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
@@ -357,30 +349,19 @@ function MatchRow({
             {unread ? <View style={styles.unreadDot} /> : null}
           </View>
         </View>
-      </Glass>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, paddingTop: 6, paddingBottom: TAB_BAR_CLEARANCE, flexGrow: 1 },
-  header: { gap: 12, marginBottom: 4 },
+  list: { paddingHorizontal: GUTTER, paddingTop: 6, paddingBottom: 24, flexGrow: 1 },
+  header: { gap: 12, marginBottom: 2 },
 
   section: { gap: 8 },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionTitle: typography.eyebrow,
-  sectionHint: { ...typography.tiny, marginLeft: "auto" },
-  countPill: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: radii.pill,
-    paddingHorizontal: 6,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  countPillText: { color: colors.white, fontSize: 11, fontWeight: "800" },
-
+  sectionHint: { ...typography.micro, marginLeft: "auto" },
   newRow: { gap: 14, paddingVertical: 2, paddingRight: 8 },
   newItem: { alignItems: "center", width: 72, gap: 5 },
   newRing: {
@@ -389,63 +370,61 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.accent,
   },
-  newName: { fontSize: 12, fontWeight: "700", color: colors.text, maxWidth: 70 },
-  newProject: { ...typography.tiny, maxWidth: 70 },
+  newName: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text, maxWidth: 70 },
+  newProject: { ...typography.micro, maxWidth: 70 },
 
+  /* A grouping header, not a card title: the project is context for the rows
+     under it, so it sits in the eyebrow rank and the count is words. */
   projectHead: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingTop: 10,
-    paddingBottom: 6,
-    paddingHorizontal: 4,
+    alignItems: "baseline",
+    gap: 8,
+    paddingTop: 22,
+    paddingBottom: 8,
   },
-  projectTitle: { fontSize: 15, fontWeight: "600", color: colors.text, flex: 1, letterSpacing: -0.2 },
-  projectCount: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.textMuted,
-    backgroundColor: colors.surfaceStrong,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-    overflow: "hidden",
+  projectTitle: {
+    ...typography.caption,
+    fontFamily: fonts.semibold,
+    color: colors.textSecondary,
+    flex: 1,
   },
+  projectCount: { ...typography.micro, color: colors.textTertiary },
 
+  /* Plain rows on the ground with a hairline between them — the iOS list
+     idiom. They used to be individually floating frosted cards. */
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingVertical: 12,
-    paddingHorizontal: 12,
   },
-  separator: { height: 8 },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line, marginLeft: 60 },
   rowText: { flex: 1, gap: 3 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 8 },
-  name: { flex: 1, color: colors.text, fontSize: 15, fontWeight: "600" },
-  nameUnread: { fontWeight: "800" },
-  role: { ...typography.tiny, fontWeight: "500" },
-  time: { ...typography.tiny },
-  timeUnread: { color: colors.accentMuted, fontWeight: "700" },
+  name: { ...typography.bodyStrong, flex: 1, color: colors.text },
+  nameUnread: { fontFamily: fonts.semibold },
+  role: { ...typography.micro, fontFamily: fonts.regular },
+  time: { ...typography.micro },
+  timeUnread: { color: colors.brandText, fontFamily: fonts.semibold },
   rowBottom: { flexDirection: "row", alignItems: "center", gap: 5 },
-  preview: { flex: 1, ...typography.small },
-  previewUnread: { color: colors.text, fontWeight: "600" },
+  preview: { flex: 1, ...typography.caption },
+  previewUnread: { color: colors.text, fontFamily: fonts.semibold },
   unreadDot: {
     width: 9,
     height: 9,
-    borderRadius: 5,
+    borderRadius: radii.sm,
     backgroundColor: colors.accent,
   },
 
   inlineEmpty: { paddingVertical: 28, alignItems: "center" },
-  inlineEmptyText: { ...typography.small, textAlign: "center" },
+  inlineEmptyText: { ...typography.caption, textAlign: "center" },
 
   emptyScroll: {
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
-    paddingBottom: TAB_BAR_CLEARANCE,
+    paddingBottom: 24,
     gap: 10,
   },
   emptyIcon: {
@@ -457,9 +436,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 4,
   },
-  emptyTitle: typography.h2,
+  emptyTitle: typography.headline,
   emptyBody: {
-    ...typography.small,
+    ...typography.caption,
     textAlign: "center",
     lineHeight: 19,
     maxWidth: 280,
@@ -471,5 +450,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radii.pill,
   },
-  emptyBtnText: { color: colors.onBrand, fontSize: 14, fontWeight: "700" },
+  emptyBtnText: { ...typography.bodyStrong, color: colors.onBrand },
 });

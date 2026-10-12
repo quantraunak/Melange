@@ -21,8 +21,9 @@ import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { sized } from "@/lib/imageUrl";
 import {
   deleteStory,
   getOpenProjectsBy,
@@ -138,7 +139,7 @@ export default function StoryDetailScreen() {
                     {story.media_urls.map((uri, i) => (
                       <Image
                         key={`${uri}-${i}`}
-                        source={{ uri }}
+                        source={{ uri: sized(uri, SCREEN_W, 400) }}
                         style={styles.galleryImage}
                         contentFit="cover"
                         transition={160}
@@ -174,7 +175,7 @@ export default function StoryDetailScreen() {
                 </View>
                 {when ? (
                   <View style={styles.when}>
-                    <CalendarRange size={13} color={colors.textSubtle} />
+                    <CalendarRange size={13} color={colors.iconFaint} />
                     <Text style={styles.whenText}>{when}</Text>
                   </View>
                 ) : null}
@@ -185,7 +186,7 @@ export default function StoryDetailScreen() {
               {story.credits.length ? (
                 <Glass style={styles.creditsCard}>
                   <View style={styles.creditsHead}>
-                    <Users size={15} color={colors.textMuted} />
+                    <Users size={15} color={colors.iconFaint} />
                     <Text style={styles.creditsTitle}>Made with</Text>
                   </View>
                   <View style={styles.creditsList}>
@@ -264,8 +265,8 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 48 },
 
   gallery: { position: "relative" },
-  galleryImage: { width: SCREEN_W, height: 400, backgroundColor: colors.surfaceStrong },
-  galleryEmpty: { backgroundColor: colors.surfaceStrong },
+  galleryImage: { width: SCREEN_W, height: 400, backgroundColor: colors.bg },
+  galleryEmpty: { backgroundColor: colors.bg },
   dots: {
     position: "absolute",
     // The body card below overlaps the gallery by 24 (body.marginTop: -24),
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: radii.sm,
     backgroundColor: "rgba(255,255,255,0.55)",
   },
   dotOn: { backgroundColor: colors.white, width: 18 },
@@ -294,26 +295,26 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     backgroundColor: colors.bg,
   },
-  title: { ...typography.display, fontSize: 26, lineHeight: 31 },
+  title: typography.display2,
   byRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  byName: { ...typography.h3 },
-  byRole: { ...typography.small },
+  byName: { ...typography.headline },
+  byRole: { ...typography.caption },
   when: { flexDirection: "row", alignItems: "center", gap: 4 },
-  whenText: { ...typography.tiny },
+  whenText: { ...typography.micro },
 
   creditsCard: { padding: 14, gap: 10 },
   creditsHead: { flexDirection: "row", alignItems: "center", gap: 7 },
-  creditsTitle: { ...typography.eyebrow, color: colors.textMuted },
+  creditsTitle: { ...typography.eyebrow, color: colors.textSecondary },
   creditsList: { gap: 9 },
   creditRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  creditName: { ...typography.body, fontWeight: "700", maxWidth: "55%" },
+  creditName: { ...typography.body, fontFamily: fonts.semibold, maxWidth: "55%" },
 
   howWrap: { gap: 7 },
-  howTitle: { ...typography.eyebrow, color: colors.textMuted },
+  howTitle: { ...typography.eyebrow, color: colors.textSecondary },
   howBody: { ...typography.body, lineHeight: 23, color: colors.text },
 
   ctaRow: { flexDirection: "row", gap: 10, marginTop: 2 },
-  consentNote: { ...typography.tiny, textAlign: "center", marginTop: -8 },
+  consentNote: { ...typography.micro, textAlign: "center", marginTop: -8 },
 
   deleteRow: {
     flexDirection: "row",
@@ -323,10 +324,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 4,
   },
-  deleteText: { color: colors.dangerText, fontSize: 14, fontWeight: "600" },
+  deleteText: { ...typography.bodyStrong, color: colors.dangerText },
 
-  backWrap: { position: "absolute", left: 12, ...shadows.soft },
+  backWrap: { position: "absolute", left: 12, ...shadows.card },
   missing: { alignItems: "center", gap: 6, paddingHorizontal: 24 },
-  missingTitle: { ...typography.h2 },
-  missingBody: { ...typography.small },
+  missingTitle: { ...typography.headline },
+  missingBody: { ...typography.caption },
 });

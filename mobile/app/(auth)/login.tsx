@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
-import { colors } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
@@ -107,18 +107,18 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
   topBar: { paddingTop: 8, paddingBottom: 16 },
   header: { alignItems: "center", marginVertical: 24, gap: 8 },
-  title: { color: colors.white, fontSize: 24, fontWeight: "800", marginTop: 12 },
-  subtitle: { color: "#bfdbfe", fontSize: 14 },
+  title: { ...typography.display2, color: colors.white, marginTop: 12 },
+  subtitle: { ...typography.body, color: colors.onBrandMuted },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 20,
     gap: 14,
     marginTop: 16,
   },
   forgotWrap: { alignSelf: "flex-end", marginTop: -4 },
-  forgotLink: { color: colors.brandText, fontSize: 13, fontWeight: "600" },
+  forgotLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 4 },
-  footerText: { color: colors.textMuted, fontSize: 13 },
-  footerLink: { color: colors.brandText, fontSize: 13, fontWeight: "700" },
+  footerText: { ...typography.caption, color: colors.textSecondary },
+  footerLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });

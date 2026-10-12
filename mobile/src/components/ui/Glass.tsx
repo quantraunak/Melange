@@ -19,7 +19,7 @@ type Props = ViewProps & {
  */
 export function Glass({
   variant = "soft",
-  radius = radii.xl,
+  radius = radii.lg,
   style,
   elevated,
   children,
@@ -48,7 +48,7 @@ export function Glass({
     >
       <View style={[styles.clip, { borderRadius: radius }]}>
         {frosted ? (
-          <BlurView intensity={glassTokens.intensityStrong} tint={glassTokens.tint} style={StyleSheet.absoluteFill} />
+          <BlurView intensity={glassTokens.intensity} tint={glassTokens.tint} style={StyleSheet.absoluteFill} />
         ) : null}
         <View
           pointerEvents="none"
@@ -58,8 +58,8 @@ export function Glass({
               backgroundColor: frosted
                 ? "rgba(255,255,255,0.82)"
                 : variant === "flat"
-                  ? colors.surface
-                  : colors.card,
+                  ? colors.surfaceSunken
+                  : colors.surface,
             },
           ]}
         />
@@ -83,8 +83,8 @@ const CONTENT_KEYS = new Set([
 const styles = StyleSheet.create({
   outer: {
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
   },
   clip: { overflow: "hidden" },
   content: { position: "relative" },

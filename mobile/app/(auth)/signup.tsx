@@ -19,7 +19,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
 const ROLES = [
@@ -252,11 +252,11 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
   topBar: { paddingTop: 8, paddingBottom: 12 },
   header: { alignItems: "center", marginBottom: 16, gap: 6 },
-  title: { color: colors.white, fontSize: 22, fontWeight: "800", marginTop: 8 },
-  subtitle: { color: "#bfdbfe", fontSize: 13 },
+  title: { ...typography.title, color: colors.white, marginTop: 8 },
+  subtitle: { ...typography.caption, color: colors.onBrandMuted },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 20,
     gap: 12,
   },
@@ -265,22 +265,22 @@ const styles = StyleSheet.create({
   rolePill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceSunken,
+    borderColor: colors.lineStrong,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: radii.pill,
   },
   rolePillSelected: {
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.surfaceSunken,
     borderColor: colors.brandText,
   },
-  rolePillText: { color: colors.textMuted, fontSize: 13, fontWeight: "600" },
+  rolePillText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   rolePillTextSelected: { color: colors.brandText },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 4 },
-  footerText: { color: colors.textMuted, fontSize: 13 },
-  footerLink: { color: colors.brandText, fontSize: 13, fontWeight: "700" },
+  footerText: { ...typography.caption, color: colors.textSecondary },
+  footerLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
   termsRow: {
     flexDirection: "row",
@@ -291,9 +291,9 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 4,
+    borderRadius: radii.sm,
     borderWidth: 2,
-    borderColor: colors.borderStrong,
+    borderColor: colors.lineStrong,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
@@ -302,14 +302,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     borderColor: colors.brand,
   },
-  termsText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 18,
-  },
+  termsText: { ...typography.caption, flex: 1, color: colors.textSecondary },
   termsLink: {
     color: colors.brandText,
-    fontWeight: "700",
+    fontFamily: fonts.semibold,
   },
 });

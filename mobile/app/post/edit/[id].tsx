@@ -153,14 +153,14 @@ export default function EditProjectsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bgElevated },
+  safe: { flex: 1, backgroundColor: colors.surface },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  headerTitle: { ...typography.h3, flex: 1, textAlign: "center" },
+  headerTitle: { ...typography.headline, flex: 1, textAlign: "center" },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   deleteBar: { paddingHorizontal: 16, paddingBottom: 8 },
 });

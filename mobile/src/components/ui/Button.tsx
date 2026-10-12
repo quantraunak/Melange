@@ -8,7 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 type Size = "sm" | "md" | "lg";
@@ -65,7 +65,7 @@ export function Button({
         <View style={styles.inner}>
           {leadingIcon}
           {title ? (
-            <Text style={[styles.label, { color: palette.fg, fontSize: dims.font }]}>
+            <Text style={[styles.label, dims.type, { color: palette.fg }]}>
               {title}
             </Text>
           ) : null}
@@ -82,9 +82,9 @@ function variantPalette(v: Variant) {
     case "primary":
       return { bg: colors.brand, fg: colors.onBrand, border: undefined };
     case "secondary":
-      return { bg: colors.brandSoft, fg: colors.brandText, border: undefined };
+      return { bg: colors.surfaceSunken, fg: colors.brandText, border: undefined };
     case "outline":
-      return { bg: colors.card, fg: colors.text, border: colors.borderStrong };
+      return { bg: colors.surface, fg: colors.text, border: colors.lineStrong };
     case "ghost":
       return { bg: "transparent" as const, fg: colors.text, border: undefined };
     case "danger":
@@ -95,11 +95,11 @@ function variantPalette(v: Variant) {
 function sizeDims(s: Size) {
   switch (s) {
     case "sm":
-      return { py: 8, px: 12, font: 13 };
+      return { py: 8, px: 12, type: typography.caption };
     case "md":
-      return { py: 12, px: 16, font: 15 };
+      return { py: 12, px: 16, type: typography.bodyStrong };
     case "lg":
-      return { py: 14, px: 20, font: 16 };
+      return { py: 16, px: 20, type: typography.headline };
   }
 }
 
@@ -115,6 +115,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
   },
 });

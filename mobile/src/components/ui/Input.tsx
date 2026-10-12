@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 
 type Props = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
@@ -24,7 +24,7 @@ export const Input = forwardRef<TextInput, Props>(function Input(
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <TextInput
         ref={ref}
-        placeholderTextColor={colors.textSubtle}
+        placeholderTextColor={colors.textTertiary}
         style={[
           styles.input,
           leading ? { paddingLeft: 36 } : null,
@@ -43,17 +43,7 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
   },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: colors.text,
-    width: "100%",
-  },
+  input: { ...typography.body, backgroundColor: colors.surfaceSunken, borderColor: colors.lineStrong, borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, width: "100%" },
   leading: {
     position: "absolute",
     left: 12,

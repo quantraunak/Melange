@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -108,7 +108,7 @@ export default function ForgotPassword() {
                 <Text style={styles.sentTitle}>Email sent</Text>
                 <Text style={styles.sentBody}>
                   If an account exists for{" "}
-                  <Text style={{ fontWeight: "700", color: colors.text }}>{email.trim()}</Text>, a
+                  <Text style={{ fontFamily: fonts.semibold, color: colors.text }}>{email.trim()}</Text>, a
                   reset link is on its way. Open it, choose a new password, then come back and sign
                   in.
                 </Text>
@@ -179,36 +179,30 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
   topBar: { paddingTop: 8, paddingBottom: 16 },
   header: { alignItems: "center", marginVertical: 24, gap: 8 },
-  title: { color: colors.white, fontSize: 24, fontWeight: "800", marginTop: 12 },
-  subtitle: { color: "#bfdbfe", fontSize: 14, textAlign: "center", paddingHorizontal: 12 },
+  title: { ...typography.display2, color: colors.white, marginTop: 12 },
+  subtitle: { ...typography.body, color: colors.onBrandMuted, textAlign: "center", paddingHorizontal: 12 },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 20,
     gap: 14,
     marginTop: 16,
   },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 4 },
-  footerText: { color: colors.textMuted, fontSize: 13 },
-  footerLink: { color: colors.brandText, fontSize: 13, fontWeight: "700" },
+  footerText: { ...typography.caption, color: colors.textSecondary },
+  footerLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
   sentBox: { alignItems: "center", gap: 10 },
   sentIcon: {
     width: 52,
     height: 52,
     borderRadius: radii.pill,
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.surfaceSunken,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
   },
-  sentTitle: { fontSize: 17, fontWeight: "800", color: colors.text },
-  sentBody: { fontSize: 13, color: colors.textMuted, textAlign: "center", lineHeight: 19 },
-  sentHint: {
-    fontSize: 11,
-    color: colors.textSubtle,
-    textAlign: "center",
-    lineHeight: 16,
-    marginBottom: 6,
-  },
+  sentTitle: { ...typography.headline, color: colors.text },
+  sentBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+  sentHint: { ...typography.micro, color: colors.textSecondary, textAlign: "center", marginBottom: 6 },
 });

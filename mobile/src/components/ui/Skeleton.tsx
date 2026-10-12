@@ -81,11 +81,11 @@ export function MatchRowSkeleton() {
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.lineStrong,
   },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     overflow: "hidden",
   },
   body: {
@@ -100,10 +100,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.lineStrong,
     borderWidth: 1,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     padding: 12,
   },
 });

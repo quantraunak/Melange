@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { deleteAccount } from "@/lib/db";
 
 const CONFIRM = "DELETE";
@@ -104,29 +104,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.card,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.lineStrong,
     borderBottomWidth: 1,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.text },
+  headerTitle: { ...typography.headline, flex: 1, textAlign: "center", color: colors.text },
   scroll: { padding: 16, gap: 16 },
   warnBlock: {
-    backgroundColor: "#fef2f2",
-    borderRadius: radii.lg,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radii.md,
     padding: 20,
     alignItems: "center",
     gap: 8,
-    borderColor: "#fecaca",
+    borderColor: colors.dangerLine,
     borderWidth: 1,
   },
-  warnTitle: { fontSize: 16, fontWeight: "800", color: colors.dangerText, marginTop: 4 },
-  warnBody: { fontSize: 13, color: "#7f1d1d", textAlign: "center", lineHeight: 18 },
+  warnTitle: { ...typography.headline, color: colors.dangerText, marginTop: 4 },
+  warnBody: { ...typography.caption, color: colors.dangerText, textAlign: "center" },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: 16,
     gap: 12,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     borderWidth: 1,
   },
 });

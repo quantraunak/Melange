@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Dimensions,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -7,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -15,17 +17,19 @@ import { BookOpen, CalendarRange, Pencil, Users } from "lucide-react-native";
 import { Avatar } from "@/components/Avatar";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { Glass } from "@/components/ui/Glass";
-import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, spacing, typography } from "@/lib/theme";
+import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import { getStories, storyDate, type StoryWithAuthor } from "@/lib/stories";
+import { sized } from "@/lib/imageUrl";
 
-const TAB_BAR_CLEARANCE = 112;
+const { width: SCREEN_W } = Dimensions.get("window");
+
 
 /**
- * Stories — what people already made.
+ * Work — what people already made.
  *
  * The swipe deck is work that is looking for people; this is work that
  * happened. It is the half of the app that is worth opening on a day when
@@ -35,6 +39,7 @@ const TAB_BAR_CLEARANCE = 112;
 export default function StoriesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const barTop = useBarTop();
   const { userId } = useAuth();
 
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
@@ -66,7 +71,7 @@ export default function StoriesScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: barTop + spacing.xl }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -74,47 +79,40 @@ export default function StoriesScreen() {
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.textMuted}
+            tintColor={colors.textSecondary}
           />
         }
       >
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>The record</Text>
-            <Text style={styles.heading}>Stories</Text>
+            <Text style={styles.heading}>Work</Text>
           </View>
+          {!unavailable && userId ? (
+            <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
+              <Text style={styles.headerAction}>Add</Text>
+            </Pressable>
+          ) : null}
         </View>
-        <Text style={styles.subhead}>
-          Work that actually happened. Who made it, and how.
-        </Text>
 
         <ErrorBanner message={error} />
 
         {loading ? (
           <View style={{ gap: 16 }}>
-            <Skeleton height={260} radius={radii.xxl} />
-            <Skeleton height={260} radius={radii.xxl} />
+            <Skeleton height={260} radius={radii.lg} />
+            <Skeleton height={260} radius={radii.lg} />
           </View>
         ) : unavailable ? (
           <Glass style={styles.empty} elevated>
-            <BookOpen size={28} color={colors.textSubtle} strokeWidth={1.4} />
-            <Text style={styles.emptyTitle}>Stories aren&apos;t live yet</Text>
-            <Text style={styles.emptyBody}>
-              The database needs <Text style={styles.mono}>09_stories.sql</Text> applied before
-              anyone can post one. Everything else in the app works as normal.
-            </Text>
+            <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
+            <Text style={styles.emptyTitle}>Not live yet</Text>
           </Glass>
         ) : stories.length === 0 ? (
           <Glass style={styles.empty} elevated>
-            <BookOpen size={28} color={colors.textSubtle} strokeWidth={1.4} />
-            <Text style={styles.emptyTitle}>No stories yet</Text>
-            <Text style={styles.emptyBody}>
-              Post something you already made. It does not have to be recent, and your
-              collaborators do not have to be on Melange.
-            </Text>
+            <BookOpen size={28} color={colors.iconFaint} strokeWidth={1.4} />
+            <Text style={styles.emptyTitle}>Nothing here yet</Text>
             <Pressable onPress={() => router.push("/story/new")} style={styles.emptyCta}>
               <Pencil size={14} color={colors.onBrand} />
-              <Text style={styles.emptyCtaText}>Write the first one</Text>
+              <Text style={styles.emptyCtaText}>Add your first</Text>
             </Pressable>
           </Glass>
         ) : (
@@ -129,19 +127,6 @@ export default function StoriesScreen() {
           </View>
         )}
       </ScrollView>
-
-      {!unavailable && userId ? (
-        <View style={[styles.fab, { bottom: TAB_BAR_CLEARANCE }]} pointerEvents="box-none">
-          <GlassButton
-            accessibilityLabel="Post a story"
-            onPress={() => router.push("/story/new")}
-            size={58}
-            solid={colors.accent}
-          >
-            <Pencil size={24} color={colors.white} strokeWidth={2.4} />
-          </GlassButton>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -160,10 +145,15 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       {hero ? (
-        <Image source={{ uri: hero }} style={styles.hero} contentFit="cover" transition={160} />
+        <Image
+          source={{ uri: sized(hero, SCREEN_W, 220) }}
+          style={styles.hero}
+          contentFit="cover"
+          transition={160}
+        />
       ) : (
         <View style={[styles.hero, styles.heroEmpty]}>
-          <BookOpen size={30} color={colors.textFaint} strokeWidth={1.2} />
+          <BookOpen size={30} color={colors.iconFaint} strokeWidth={1.2} />
         </View>
       )}
 
@@ -180,7 +170,7 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
 
         {story.credits.length ? (
           <View style={styles.withRow}>
-            <Users size={13} color={colors.textSubtle} />
+            <Users size={13} color={colors.iconFaint} />
             <ChipRow style={{ flex: 1 }}>
               {shown.map((c, i) => (
                 <Chip
@@ -209,7 +199,7 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
           </Text>
           {when ? (
             <View style={styles.when}>
-              <CalendarRange size={12} color={colors.textSubtle} />
+              <CalendarRange size={12} color={colors.iconFaint} />
               <Text style={styles.whenText}>{when}</Text>
             </View>
           ) : null}
@@ -221,22 +211,21 @@ function StoryCard({ story, onPress }: { story: StoryWithAuthor; onPress: () => 
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { paddingHorizontal: 16, paddingBottom: TAB_BAR_CLEARANCE + 24, gap: 14 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
   header: { flexDirection: "row", alignItems: "flex-end" },
-  eyebrow: typography.eyebrow,
-  heading: { ...typography.display, marginTop: 2 },
-  subhead: { ...typography.small, marginTop: -8, marginBottom: 2 },
+  heading: typography.display1,
+  headerAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
   card: {
-    borderRadius: radii.xxl,
+    borderRadius: radii.lg,
     overflow: "hidden",
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
     ...shadows.card,
   },
   cardPressed: { opacity: 0.95, transform: [{ scale: 0.995 }] },
-  hero: { width: "100%", height: 220, backgroundColor: colors.surfaceStrong },
+  hero: { width: "100%", height: 220, backgroundColor: colors.bg },
   heroEmpty: { alignItems: "center", justifyContent: "center" },
   countBadge: {
     position: "absolute",
@@ -245,26 +234,25 @@ const styles = StyleSheet.create({
     minWidth: 26,
     paddingHorizontal: 8,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radii.sm,
     backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
   },
-  countText: { ...typography.tiny, color: colors.text, fontWeight: "800" },
+  countText: { ...typography.micro, color: colors.text, fontFamily: fonts.semibold },
   cardBody: { padding: 16, gap: 9 },
-  cardTitle: { ...typography.h1 },
+  cardTitle: { ...typography.title },
   withRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  excerpt: { ...typography.small, color: colors.textMuted, lineHeight: 20 },
+  excerpt: { ...typography.caption, color: colors.textSecondary, lineHeight: 20 },
   byRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
-  byText: { ...typography.small, flex: 1 },
-  byName: { color: colors.text, fontWeight: "700" },
+  byText: { ...typography.caption, flex: 1 },
+  byName: { color: colors.text, fontFamily: fonts.semibold },
   when: { flexDirection: "row", alignItems: "center", gap: 4 },
-  whenText: { ...typography.tiny },
+  whenText: { ...typography.micro },
 
   empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 10 },
-  emptyTitle: { ...typography.h3, textAlign: "center" },
-  emptyBody: { ...typography.small, textAlign: "center", lineHeight: 20 },
-  mono: { fontWeight: "700", color: colors.text },
+  emptyTitle: { ...typography.headline, textAlign: "center" },
+  mono: { fontFamily: fonts.semibold, color: colors.text },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
@@ -275,7 +263,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     marginTop: 4,
   },
-  emptyCtaText: { color: colors.onBrand, fontWeight: "700" },
+  emptyCtaText: { color: colors.onBrand, fontFamily: fonts.semibold },
 
-  fab: { position: "absolute", right: 20 },
 });

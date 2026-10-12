@@ -1,15 +1,16 @@
-import { Image, StyleSheet, Text, View, type ImageStyle, type ViewStyle } from "react-native";
-import { colors } from "@/lib/theme";
+import { Image, StyleSheet, Text, View, type ImageStyle, type TextStyle, type ViewStyle } from "react-native";
+import { colors, fonts, typography } from "@/lib/theme";
 import type { CreatorInfo } from "@/lib/db";
+import { sized } from "@/lib/imageUrl";
 
 type Size = "xs" | "sm" | "md" | "lg" | "xl";
 
-const SIZES: Record<Size, { dim: number; font: number }> = {
-  xs: { dim: 24, font: 11 },
-  sm: { dim: 32, font: 13 },
-  md: { dim: 40, font: 15 },
-  lg: { dim: 56, font: 19 },
-  xl: { dim: 96, font: 32 },
+const SIZES: Record<Size, { dim: number; type: TextStyle }> = {
+  xs: { dim: 24, type: typography.micro },
+  sm: { dim: 32, type: typography.caption },
+  md: { dim: 40, type: typography.bodyStrong },
+  lg: { dim: 56, type: typography.title },
+  xl: { dim: 96, type: typography.display1 },
 };
 
 export function Avatar({
@@ -21,16 +22,16 @@ export function Avatar({
   size?: Size;
   style?: ViewStyle | ImageStyle;
 }) {
-  const { dim, font } = SIZES[size];
+  const { dim, type } = SIZES[size];
   const radius = dim / 2;
   const initial = creator.name?.charAt(0)?.toUpperCase() ?? "?";
 
   if (creator.avatar_url) {
     return (
       <Image
-        source={{ uri: creator.avatar_url }}
+        source={{ uri: sized(creator.avatar_url, dim, dim) }}
         style={[
-          { width: dim, height: dim, borderRadius: radius, backgroundColor: colors.brandSoft },
+          { width: dim, height: dim, borderRadius: radius, backgroundColor: colors.surfaceSunken },
           style as ImageStyle,
         ]}
       />
@@ -45,19 +46,19 @@ export function Avatar({
         style as ViewStyle,
       ]}
     >
-      <Text style={[styles.initial, { fontSize: font }]}>{initial}</Text>
+      <Text style={[styles.initial, type]}>{initial}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   fallback: {
-    backgroundColor: colors.brandSoft,
+    backgroundColor: colors.surfaceSunken,
     alignItems: "center",
     justifyContent: "center",
   },
   initial: {
     color: colors.brandText,
-    fontWeight: "700",
+    fontFamily: fonts.semibold,
   },
 });

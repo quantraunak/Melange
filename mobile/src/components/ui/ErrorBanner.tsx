@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 
 export function ErrorBanner({ message }: { message: string | null }) {
   if (!message) return null;
@@ -13,14 +13,11 @@ export function ErrorBanner({ message }: { message: string | null }) {
 const styles = StyleSheet.create({
   wrap: {
     backgroundColor: colors.dangerSoft,
-    borderColor: "#fecaca",
+    borderColor: colors.dangerLine,
     borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  text: {
-    color: colors.dangerText,
-    fontSize: 13,
-  },
+  text: { ...typography.caption, color: colors.dangerText },
 });

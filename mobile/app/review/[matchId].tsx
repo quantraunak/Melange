@@ -14,7 +14,7 @@ import { ArrowLeft, Star } from "lucide-react-native";
 import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/TextArea";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { trackEvent } from "@/lib/analytics";
@@ -82,8 +82,8 @@ export default function ReviewScreen() {
             <Pressable key={n} onPress={() => setRating(n)}>
               <Star
                 size={32}
-                color={n <= rating ? "#f59e0b" : colors.textFaint}
-                fill={n <= rating ? "#f59e0b" : "transparent"}
+                color={n <= rating ? colors.accent : colors.iconFaint}
+                fill={n <= rating ? colors.accent : "transparent"}
               />
             </Pressable>
           ))}
@@ -132,11 +132,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.lineStrong,
   },
-  title: { fontSize: 17, fontWeight: "700", color: colors.brandText, flex: 1 },
+  title: { ...typography.headline, color: colors.brandText, flex: 1 },
   scroll: { padding: 16, gap: 16 },
-  hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  hint: { ...typography.caption, color: colors.textSecondary },
   stars: { flexDirection: "row", justifyContent: "center", gap: 8 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   tag: {
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.lineStrong,
   },
-  tagOn: { backgroundColor: "#ede9fe", borderColor: colors.accent },
-  tagText: { fontSize: 12, color: colors.textMuted },
-  tagTextOn: { color: colors.accent, fontWeight: "600" },
+  tagOn: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  tagText: { ...typography.caption, color: colors.textSecondary },
+  tagTextOn: { color: colors.accent, fontFamily: fonts.semibold },
 });

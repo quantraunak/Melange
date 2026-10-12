@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Bell, X } from "lucide-react-native";
 
-import { colors, radii } from "@/lib/theme";
+import { colors, fonts, typography } from "@/lib/theme";
 import { getPushPermission, registerForPushAsync } from "@/lib/push";
 
 /**
@@ -13,10 +13,13 @@ import { getPushPermission, registerForPushAsync } from "@/lib/push";
  * bar — before the person had a match, a message, or any reason to want to be
  * interrupted. iOS only allows that dialog once, so a "Don't Allow" there is
  * permanent, and it takes match and message notifications with it for good.
+ * This asks first; only pressing "Turn on" raises the system dialog, and
+ * dismissing is remembered so nobody gets nagged.
  *
- * This card explains what the notifications are before the system dialog can
- * appear; only pressing "Turn on" raises it. Dismissing is remembered, so
- * nobody gets nagged.
+ * It is a one-line banner rather than a card. It used to be a hero block with
+ * an icon tile, a title, three lines of body and a filled blue pill, sitting
+ * above a list of one conversation — louder than the content it interrupted,
+ * and the only saturated colour on the screen.
  */
 
 const DISMISSED_KEY = "melange.push-primer-dismissed";
@@ -58,57 +61,30 @@ export function PushPrimer({ userId }: { userId: string }) {
   if (!show) return null;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.icon}>
-        <Bell size={17} color={colors.brandText} />
-      </View>
-      <View style={styles.body}>
-        <Text style={styles.title}>Know when someone matches you</Text>
-        <Text style={styles.text}>
-          Collabs come together in the first few hours. Turn on notifications and we&apos;ll tell you
-          about new matches and messages — nothing else.
-        </Text>
-        <Pressable onPress={enable} disabled={busy} style={styles.cta}>
-          <Text style={styles.ctaText}>{busy ? "Just a sec…" : "Turn on notifications"}</Text>
-        </Pressable>
-      </View>
-      <Pressable onPress={dismiss} hitSlop={10} style={styles.close} accessibilityLabel="Dismiss">
-        <X size={15} color={colors.textSubtle} />
+    <View style={styles.bar}>
+      <Bell size={15} color={colors.textSecondary} />
+      <Text style={styles.text} numberOfLines={2}>
+        Get notified when someone matches you.
+      </Text>
+      <Pressable onPress={enable} disabled={busy} hitSlop={10}>
+        <Text style={styles.action}>{busy ? "…" : "Turn on"}</Text>
+      </Pressable>
+      <Pressable onPress={dismiss} hitSlop={10} accessibilityLabel="Dismiss">
+        <X size={15} color={colors.iconFaint} />
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  bar: {
     flexDirection: "row",
-    gap: 12,
-    padding: 14,
-    paddingRight: 30,
-    backgroundColor: colors.brandSoft,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-  },
-  icon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.card,
     alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
   },
-  body: { flex: 1, gap: 5 },
-  title: { fontSize: 14, fontWeight: "800", color: colors.brand },
-  text: { fontSize: 12, color: colors.brandText, lineHeight: 17, opacity: 0.9 },
-  cta: {
-    alignSelf: "flex-start",
-    marginTop: 4,
-    backgroundColor: colors.brand,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-  },
-  ctaText: { color: colors.white, fontSize: 12, fontWeight: "700" },
-  close: { position: "absolute", top: 10, right: 10 },
+  text: { ...typography.caption, flex: 1, color: colors.textSecondary },
+  action: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });
