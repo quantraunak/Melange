@@ -46,7 +46,8 @@
           "imageWidth": 200,
           "backgroundColor": "#1e3a8a"
         }
-      ]
+      ],
+      "./plugins/withFmtXcode26"
     ],
     "experiments": {
       "typedRoutes": true

@@ -226,3 +226,12 @@ npx tsc --noEmit             # typecheck without building
 **"Module HMRClient is not a registered callable module"** — kill Metro and the simulator app, then `npm run ios` again.
 
 **Images don't upload** — verify the `media` Storage bucket exists in Supabase and is set to public. RLS policies are in the v1 schema.
+
+## Building on Xcode 26
+
+React Native 0.76 pins fmt 11.0.2, which does not compile under Apple Clang 17
+(`consteval` tightening, facebook/react-native#55601). `plugins/withFmtXcode26.js`
+patches it during `expo prebuild`, so a clean clone builds without any manual
+step. If you ever see `call to consteval function ... is not a constant
+expression` in `fmt/format-inl.h`, the plugin did not run — check that
+`./plugins/withFmtXcode26` is still listed in `app.json`.
