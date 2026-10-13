@@ -117,18 +117,38 @@ export type Swipe = {
   created_at: string;
 };
 
+/**
+ * Where a conversation started. "swipe" is a mutual match; the rest are
+ * someone reaching out from that surface (13_reach_out.sql).
+ */
+export type ConversationOrigin = "swipe" | "project" | "profile" | "event" | "story";
+
+/**
+ * A conversation. The table is still called matches: a swipe match has a post
+ * on both sides, a conversation someone started by reaching out may have none.
+ *
+ * The slots are not "user1's post" and "user2's post": create_match fills them
+ * crosswise. Find a thread's projects by owner_id, never by position.
+ */
 export type Match = {
   id: string;
   user1_id: string;
   user2_id: string;
-  post1_id: string;
-  post2_id: string;
+  post1_id: string | null;
+  post2_id: string | null;
   created_at: string;
+  /** Absent on a database without 13_reach_out.sql; treat as "swipe". */
+  origin?: ConversationOrigin;
+  origin_id?: string | null;
+  started_by?: string | null;
 };
 
 export type MatchWithPost = Match & {
   other_user_id: string;
-  other_post: CollabPost;
+  /** Their project the conversation is about, when there is one. */
+  other_post: CollabPost | null;
+  /** One line saying what the conversation is about, for list rows and headers. */
+  context: string;
   other_creator: CreatorInfo;
   last_message: Message | null;
   last_read_at: string | null;
@@ -201,7 +221,7 @@ export type Gate = { ok: true; line: null } | { ok: false; line: string };
  */
 export function profileGate(
   profile: Pick<Profile, "role" | "portfolio_urls"> | null,
-  verb: "post" | "like"
+  verb: "post" | "like" | "message"
 ): Gate {
   const photos = profile?.portfolio_urls?.length ?? 0;
   const needsPhotos = photos < PROFILE_MIN_IMAGES;
@@ -755,22 +775,29 @@ export async function getMatches(
     if (matchesError) return { data: null, error: matchesError.message };
     if (!matches?.length) return { data: [], error: null };
 
-    const partials: { match: typeof matches[0]; otherUserId: string; otherPostId: string }[] = [];
-    for (const m of matches) {
-      partials.push({
-        match: m,
-        otherUserId: m.user1_id === userId ? m.user2_id : m.user1_id,
-        otherPostId: m.user1_id === userId ? m.post2_id : m.post1_id,
-      });
-    }
+    const partials: { match: Match; otherUserId: string }[] = (matches as Match[]).map((m) => ({
+      match: m,
+      otherUserId: m.user1_id === userId ? m.user2_id : m.user1_id,
+    }));
 
-    const postIds = partials.map((p) => p.otherPostId);
-    const { data: postsData, error: postsError } = await supabase
-      .from("collab_posts")
-      .select("*")
-      .in("id", postIds);
+    // Both slots, resolved by owner below. Reading them by position handed
+    // back your own project as "theirs", because create_match fills the slots
+    // crosswise. A reach-out thread can have no post at all.
+    const postIds = [
+      ...new Set(
+        partials.flatMap(({ match: m }) => [m.post1_id, m.post2_id]).filter((id): id is string => !!id)
+      ),
+    ];
+    const { data: postsData, error: postsError } = postIds.length
+      ? await supabase.from("collab_posts").select("*").in("id", postIds)
+      : { data: [], error: null };
+    // Surface this rather than logging it. Swallowing it meant one failed
+    // query — offline, an RLS change, a PostgREST hiccup — left postsMap empty,
+    // and the placeholder branch below then relabelled EVERY conversation
+    // "This listing was removed", with no error banner. Users concluded that
+    // all of their collaborators had deleted their projects.
     if (postsError) {
-      console.error("getMatches: failed to load counterpart posts", postsError.message);
+      return { data: null, error: postsError.message };
     }
     const postsMap = new Map<string, CollabPost>((postsData || []).map((p) => [p.id, p as CollabPost]));
 
@@ -830,9 +857,16 @@ export async function getMatches(
     }
 
     const enriched: MatchWithPost[] = [];
-    for (const { match, otherUserId, otherPostId } of partials) {
-      let otherPost = postsMap.get(otherPostId);
-      if (!otherPost) {
+    for (const { match, otherUserId } of partials) {
+      const slots = [match.post1_id, match.post2_id].filter((id): id is string => !!id);
+      const posts = slots.map((id) => postsMap.get(id)).filter((p): p is CollabPost => !!p);
+      let otherPost: CollabPost | null = posts.find((p) => p.owner_id === otherUserId) ?? null;
+      const myPost = posts.find((p) => p.owner_id === userId) ?? null;
+      // A swipe match always had a project of theirs; if it can't be found it
+      // was deleted. Keep the thread, labelled as such.
+      const otherPostId =
+        (match.origin ?? "swipe") === "swipe" ? slots.find((id) => !postsMap.has(id)) : undefined;
+      if (!otherPost && otherPostId) {
         // The counterpart post is gone (owner deleted it) but the match itself
         // is still valid — don't drop it from the list. Dropping it here used
         // to make previously-open chats vanish entirely (and spin forever if
@@ -858,6 +892,7 @@ export async function getMatches(
         ...match,
         other_user_id: otherUserId,
         other_post: otherPost,
+        context: conversationContext(match, otherPost, myPost),
         other_creator: creators.get(otherUserId) || UNKNOWN_CREATOR,
         last_message: latestByMatch.get(match.id) || null,
         last_read_at: readsByMatch.get(match.id) || null,
@@ -868,6 +903,31 @@ export async function getMatches(
     return { data: enriched, error: null };
   } catch (err) {
     return { data: null, error: errMsg(err) };
+  }
+}
+
+function conversationContext(
+  match: Match,
+  theirPost: CollabPost | null,
+  myPost: CollabPost | null
+): string {
+  switch (match.origin ?? "swipe") {
+    case "swipe":
+      return theirPost?.title ?? myPost?.title ?? "Matched";
+    case "project":
+      return theirPost?.title ?? myPost?.title ?? "About a project";
+    // These used to return one constant per origin, and the Messages screen
+    // groups by exactly this string, so every profile reach-out collapsed
+    // under a single header reading "Direct message" with a count. Three
+    // unrelated one-to-one threads were presented as three threads about one
+    // project, which is the precise confusion the grouping exists to prevent.
+    // A per-thread subject keeps each one its own row.
+    case "event":
+      return theirPost?.title ?? "An event";
+    case "story":
+      return theirPost?.title ?? "Their work";
+    default:
+      return "";
   }
 }
 
@@ -1261,8 +1321,10 @@ async function creditProjects(
     return out;
   }
 
-  const rows = matches as { id: string; post1_id: string; post2_id: string }[];
-  const postIds = [...new Set(rows.flatMap((m) => [m.post1_id, m.post2_id]))];
+  const rows = matches as { id: string; post1_id: string | null; post2_id: string | null }[];
+  const postIds = [
+    ...new Set(rows.flatMap((m) => [m.post1_id, m.post2_id]).filter((id): id is string => !!id)),
+  ];
   const { data: posts, error: postsError } = await supabase
     .from("collab_posts")
     .select("*")
@@ -1278,10 +1340,164 @@ async function creditProjects(
   for (const m of rows) {
     const byOwner = new Map<string, CollabPost>();
     for (const id of [m.post1_id, m.post2_id]) {
-      const post = byId.get(id);
+      const post = id ? byId.get(id) : undefined;
       if (post) byOwner.set(post.owner_id, post);
     }
     out.set(m.id, byOwner);
   }
   return out;
+}
+
+// ============================================================
+// Reaching out
+// ============================================================
+
+/** PostgREST's wording when an RPC from a newer schema file isn't applied yet. */
+function isMissingFunction(message: string): boolean {
+  return /could not find the function|function .* does not exist|schema cache/i.test(message);
+}
+
+/**
+ * Message someone without a mutual match: from their project, profile, an
+ * event or their work. Opens the thread (or reuses the one you already have)
+ * and sends `message` as its first line, in one database call — see
+ * start_conversation in supabase/schema/13_reach_out.sql.
+ */
+export async function startConversation(
+  otherUserId: string,
+  message: string,
+  origin: Exclude<ConversationOrigin, "swipe">,
+  originId?: string | null
+): Promise<{ matchId: string | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("start_conversation", {
+      p_other: otherUserId,
+      p_message: message,
+      p_origin: origin,
+      p_origin_id: originId ?? null,
+    });
+    if (error) {
+      if (isMissingFunction(error.message)) {
+        return {
+          matchId: null,
+          error: "Messaging people directly needs the latest database update (13_reach_out.sql).",
+        };
+      }
+      return { matchId: null, error: error.message };
+    }
+    return { matchId: (data as string) ?? null, error: null };
+  } catch (err) {
+    return { matchId: null, error: errMsg(err) };
+  }
+}
+
+// ============================================================
+// Trust on a public profile: rating, reviews, past collabs
+// ============================================================
+
+export type PublicReview = {
+  id: string;
+  rating: number;
+  tags: string[];
+  body: string | null;
+  created_at: string;
+  reviewer: CreatorInfo;
+};
+
+export type PastCollab = {
+  match_id: string;
+  with: CreatorInfo;
+  title: string | null;
+  rating: number;
+  date: string;
+};
+
+export type ProfileTrust = {
+  avg_rating: number | null;
+  review_count: number;
+  reviews: PublicReview[];
+  past_collabs: PastCollab[];
+};
+
+/**
+ * Reviews for a public profile.
+ *
+ * These do NOT come straight from collab_reviews. That table's SELECT policy
+ * is `reviewer_id = auth.uid() OR reviewee_id = auth.uid() OR
+ * review_has_reciprocal(...)`, so the first branch hands you back anything you
+ * wrote yourself, reciprocated or not. Trusting RLS here meant that if you
+ * reviewed someone who never reviewed you back, you saw your own review
+ * sitting on their public profile, under a header showing no stars at all,
+ * because the averages come from creator_reputation which does require a
+ * reciprocal row. Every reader concluded their review had been published when
+ * only they could see it.
+ *
+ * public_reviews() applies the mutual-reveal rule itself, so what is listed
+ * always matches the rating above it. Past collabs come from public_credits
+ * (13_reach_out.sql); both are empty on a database without that migration.
+ */
+export async function getProfileTrust(
+  userId: string
+): Promise<{ data: ProfileTrust; error: string | null }> {
+  const empty: ProfileTrust = { avg_rating: null, review_count: 0, reviews: [], past_collabs: [] };
+  try {
+    const [reviewsRes, creditsRes, rep] = await Promise.all([
+      supabase.rpc("public_reviews", { p_user_id: userId, p_limit: 20 }),
+      supabase.rpc("public_credits", { p_user_id: userId }),
+      getReputationForUsers([userId]),
+    ]);
+    if (creditsRes.error && !isMissingFunction(creditsRes.error.message)) {
+      console.warn("getProfileTrust: public_credits failed", creditsRes.error.message);
+    }
+
+    const reviewRows = (reviewsRes.data || []) as {
+      id: string;
+      reviewer_id: string;
+      rating: number;
+      tags: string[] | null;
+      body: string | null;
+      created_at: string;
+    }[];
+    const creditRows = (creditsRes.error ? [] : creditsRes.data || []) as {
+      match_id: string;
+      with_user_id: string;
+      title: string | null;
+      rating: number;
+      happened_on: string;
+    }[];
+
+    const people = await fetchCreators([
+      ...new Set([...reviewRows.map((r) => r.reviewer_id), ...creditRows.map((c) => c.with_user_id)]),
+    ]);
+    const someone = (id: string): CreatorInfo => people.get(id) ?? { ...UNKNOWN_CREATOR, user_id: id };
+    const r = rep.get(userId);
+
+    return {
+      data: {
+        avg_rating: r?.avg_rating ?? null,
+        review_count: r?.review_count ?? 0,
+        // Only the mutually revealed ones carry a rating anyone may see; the
+        // RLS policy also lets you read reviews written about you, which the
+        // owner never sees here (their own id opens the Profile tab).
+        reviews: reviewRows.map((row) => ({
+          id: row.id,
+          rating: row.rating,
+          tags: row.tags ?? [],
+          body: row.body,
+          created_at: row.created_at,
+          reviewer: someone(row.reviewer_id),
+        })),
+        past_collabs: creditRows.map((c) => ({
+          match_id: c.match_id,
+          with: someone(c.with_user_id),
+          title: c.title,
+          rating: c.rating,
+          date: c.happened_on,
+        })),
+      },
+      error: reviewsRes.error?.message ?? null,
+    };
+  } catch (err) {
+    return { data: empty, error: errMsg(err) };
+  }
 }

@@ -12,7 +12,7 @@ import {
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, CalendarRange, ExternalLink, Handshake, Trash2, Users } from "lucide-react-native";
+import { ArrowLeft, CalendarRange, ExternalLink, MessageCircle, Trash2, Users } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -26,7 +26,6 @@ import { useAuth } from "@/lib/auth";
 import { sized } from "@/lib/imageUrl";
 import {
   deleteStory,
-  getOpenProjectsBy,
   getStory,
   storyDate,
   type StoryWithAuthor,
@@ -61,25 +60,13 @@ export default function StoryDetailScreen() {
   const mine = !!story && story.author_id === userId;
   const when = story ? storyDate(story) : null;
 
-  /**
-   * "Work with me" never opens a direct message. It opens one of the author's
-   * own projects, where a like is a like like any other and a chat appears
-   * only once they like back.
-   */
-  const workWithMe = async () => {
+  /** Message the author about this work. No match needed (13_reach_out.sql). */
+  const messageAuthor = () => {
     if (!story) return;
-    setBusy(true);
-    const { data, error: err } = await getOpenProjectsBy(story.author_id);
-    setBusy(false);
-    if (err) return setError(err);
-    if (!data.length) {
-      Alert.alert(
-        "No open projects",
-        `${story.author.name} has nothing open right now. Their next project will show up in Discover.`
-      );
-      return;
-    }
-    router.push({ pathname: "/post/[id]", params: { id: data[0].id } });
+    router.push({
+      pathname: "/message/[userId]",
+      params: { userId: story.author_id, origin: "story", originId: story.id, about: story.title },
+    });
   };
 
   const confirmDelete = () => {
@@ -256,12 +243,11 @@ export default function StoryDetailScreen() {
               <View style={styles.ctaRow}>
                 {!mine ? (
                   <Button
-                    title="Work with me"
+                    title={`Message ${story.author.name.split(" ")[0]}`}
                     variant="primary"
                     size="lg"
-                    loading={busy}
-                    onPress={workWithMe}
-                    leadingIcon={<Handshake size={17} color={colors.onBrand} />}
+                    onPress={messageAuthor}
+                    leadingIcon={<MessageCircle size={17} color={colors.onBrand} />}
                     style={{ flex: 1 }}
                   />
                 ) : null}
@@ -276,12 +262,6 @@ export default function StoryDetailScreen() {
                   />
                 ) : null}
               </View>
-
-              {!mine ? (
-                <Text style={styles.consentNote}>
-                  A chat opens only if you both say yes.
-                </Text>
-              ) : null}
 
               {mine ? (
                 <Pressable onPress={confirmDelete} style={styles.deleteRow} disabled={busy}>
@@ -360,7 +340,6 @@ const styles = StyleSheet.create({
   howBody: { ...typography.body, lineHeight: 23, color: colors.text },
 
   ctaRow: { flexDirection: "row", gap: 10, marginTop: 2 },
-  consentNote: { ...typography.micro, textAlign: "center", marginTop: -8 },
 
   deleteRow: {
     flexDirection: "row",

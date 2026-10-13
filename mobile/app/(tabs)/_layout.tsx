@@ -150,8 +150,8 @@ export default function TabsLayout() {
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "transparent" } }}
       >
         <Tabs.Screen name="connect" options={{ title: "Discover" }} />
-        <Tabs.Screen name="stories" options={{ title: "Work" }} />
-        <Tabs.Screen name="messages" options={{ title: "Matches" }} />
+        <Tabs.Screen name="stories" options={{ title: "Explore" }} />
+        <Tabs.Screen name="messages" options={{ title: "Messages" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       </Tabs>
     </View>

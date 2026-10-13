@@ -67,7 +67,7 @@ export default function MatchesScreen() {
             m.other_creator.name.toLowerCase().includes(q) ||
             (m.other_creator.role?.toLowerCase().includes(q) ?? false) ||
             (m.last_message?.content.toLowerCase().includes(q) ?? false) ||
-            m.other_post.title.toLowerCase().includes(q)
+            m.context.toLowerCase().includes(q)
         )
       : matches;
 
@@ -81,14 +81,26 @@ export default function MatchesScreen() {
       );
 
     // Group by project, keeping groups in order of their most recent message.
+    //
+    // Only threads that actually have a subject are grouped. A conversation
+    // someone started from a profile has none, and giving those a shared
+    // placeholder put every unrelated one-to-one thread under a single header
+    // with a count, as though they were all about one project. Those now sit
+    // on their own, above nothing.
     const groups = new Map<string, MatchWithPost[]>();
+    const loose: MatchWithPost[] = [];
     for (const m of talking) {
-      const key = m.other_post.title || "Untitled project";
+      const key = (m.context || "").trim();
+      if (!key) {
+        loose.push(m);
+        continue;
+      }
       const list = groups.get(key);
       if (list) list.push(m);
       else groups.set(key, [m]);
     }
     const flat: Row[] = [];
+    for (const m of loose) flat.push({ kind: "match", key: m.id, match: m });
     for (const [title, list] of groups) {
       flat.push({ kind: "project", key: `project-${title}`, title, count: list.length });
       for (const m of list) flat.push({ kind: "match", key: m.id, match: m });
@@ -99,7 +111,9 @@ export default function MatchesScreen() {
   const confirmUnmatch = useCallback(
     (match: MatchWithPost) => {
       Alert.alert(
-        `Unmatch ${match.other_creator.name}?`,
+        (match.origin ?? "swipe") === "swipe"
+          ? `Unmatch ${match.other_creator.name}?`
+          : `Delete the conversation with ${match.other_creator.name}?`,
         "This removes the match and the conversation for both of you. It can't be undone.",
         [
           { text: "Cancel", style: "cancel" },
@@ -186,10 +200,12 @@ export default function MatchesScreen() {
         <View style={styles.emptyIcon}>
           <Sparkles size={28} color={colors.accent} />
         </View>
-        <Text style={styles.emptyTitle}>No matches yet</Text>
-        <Text style={styles.emptyBody}>Match with someone to start talking.</Text>
-        <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/connect")}>
-          <Text style={styles.emptyBtnText}>See open projects</Text>
+        <Text style={styles.emptyTitle}>No messages yet</Text>
+        <Text style={styles.emptyBody}>
+          Message anyone from their profile, project, work or event. No match needed.
+        </Text>
+        <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/stories")}>
+          <Text style={styles.emptyBtnText}>Explore</Text>
         </Pressable>
       </ScrollView>
     );
@@ -253,7 +269,7 @@ export default function MatchesScreen() {
                       {m.other_creator.name.split(" ")[0]}
                     </Text>
                     <Text style={styles.newProject} numberOfLines={1}>
-                      {m.other_post.title}
+                      {m.context}
                     </Text>
                   </Pressable>
                 ))}

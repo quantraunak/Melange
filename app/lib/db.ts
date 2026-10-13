@@ -83,8 +83,9 @@ export type Match = {
   id: string;
   user1_id: string;
   user2_id: string;
-  post1_id: string;
-  post2_id: string;
+  /** Null on a conversation someone started by reaching out (13_reach_out.sql). */
+  post1_id: string | null;
+  post2_id: string | null;
   created_at: string;
 };
 
@@ -430,20 +431,35 @@ export async function getMatches(
     if (matchesError) return { data: null, error: matchesError.message };
     if (!matches?.length) return { data: [], error: null };
 
-    const partials: { match: typeof matches[0]; otherUserId: string; otherPostId: string }[] = [];
-    for (const m of matches) {
-      partials.push({
-        match: m,
-        otherUserId: m.user1_id === userId ? m.user2_id : m.user1_id,
-        otherPostId: m.user1_id === userId ? m.post2_id : m.post1_id,
-      });
-    }
+    // Both of a thread's projects are fetched, and which belongs to whom is
+    // decided by owner_id rather than by slot.
+    //
+    // The slots are not aligned with the user columns. create_match
+    // (07_matching.sql) writes post1_id = the post the CALLER swiped, which the
+    // OTHER person owns, so post1_id belongs to user2 and vice versa, while
+    // start_conversation (13_reach_out.sql) writes them aligned. Reading by
+    // position was therefore wrong for every swipe thread, and the website
+    // headed each conversation with the reader's OWN project. Mobile was fixed
+    // and this file was missed, so the bug stayed live on the web.
+    //
+    // Resolving by owner is correct under both conventions, and for rows
+    // written by the pre-07 client whatever order it used.
+    const partials: { match: typeof matches[0]; otherUserId: string }[] = matches.map((m) => ({
+      match: m,
+      otherUserId: m.user1_id === userId ? m.user2_id : m.user1_id,
+    }));
 
-    const postIds = partials.map((p) => p.otherPostId);
-    const { data: postsData } = await supabase
-      .from("collab_posts")
-      .select("*")
-      .in("id", postIds);
+    const postIds = [
+      ...new Set(
+        matches.flatMap((m) => [m.post1_id, m.post2_id]).filter((id): id is string => !!id)
+      ),
+    ];
+    // A failed lookup must not read as "every listing was removed", and must
+    // not silently empty the list. Surface it instead.
+    const { data: postsData, error: postsError } = postIds.length
+      ? await supabase.from("collab_posts").select("*").in("id", postIds)
+      : { data: [], error: null };
+    if (postsError) return { data: null, error: postsError.message };
     const postsMap = new Map<string, CollabPost>(
       (postsData || []).map((p) => [p.id, p as CollabPost])
     );
@@ -476,9 +492,17 @@ export async function getMatches(
     }
 
     const enriched: MatchWithPost[] = [];
-    for (const { match, otherUserId, otherPostId } of partials) {
-      const otherPost = postsMap.get(otherPostId);
-      if (!otherPost) continue;
+    for (const { match, otherUserId } of partials) {
+      const slots = [match.post1_id, match.post2_id].filter((id): id is string => !!id);
+      const posts = slots.map((id) => postsMap.get(id)).filter((p): p is CollabPost => !!p);
+      // Theirs when it resolves, otherwise the project this thread is about,
+      // which for a project reach-out is the recipient's own. Never drop the
+      // thread: a deleted project used to make an open conversation vanish
+      // from the list entirely, messages and all.
+      const otherPost =
+        posts.find((p) => p.owner_id === otherUserId) ??
+        posts.find((p) => p.owner_id === userId) ??
+        directMessagePost(otherUserId, match.created_at);
       enriched.push({
         ...match,
         other_user_id: otherUserId,
@@ -493,6 +517,22 @@ export async function getMatches(
   } catch (err) {
     return { data: null, error: errMsg(err) };
   }
+}
+
+/** Stand-in post for a conversation that isn't about a project, so the chat UI has a title. */
+function directMessagePost(ownerId: string, createdAt: string): CollabPost {
+  return {
+    id: `direct-${ownerId}`,
+    owner_id: ownerId,
+    title: "Direct message",
+    description: null,
+    looking_for: null,
+    location: null,
+    compensation: null,
+    media_urls: null,
+    is_active: false,
+    created_at: createdAt,
+  };
 }
 
 export function isMatchUnread(match: MatchWithPost, userId: string): boolean {

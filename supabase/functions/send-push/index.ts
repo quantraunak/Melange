@@ -49,7 +49,7 @@ type Payload =
     }
   | {
       type: "match";
-      record: { id: string; user1_id: string; user2_id: string };
+      record: { id: string; user1_id: string; user2_id: string; origin?: string | null };
     }
   | {
       type: "like";
@@ -125,7 +125,11 @@ Deno.serve(async (req: Request) => {
       data: { kind: "message", matchId: match_id },
     })));
   } else if (payload.type === "match") {
-    const { id, user1_id, user2_id } = payload.record;
+    const { id, user1_id, user2_id, origin } = payload.record;
+    // A conversation someone started by reaching out (13_reach_out.sql) is not
+    // a mutual match. Its first message arrives in the same transaction and
+    // sends its own push, so a "match" push here would be wrong and doubled.
+    if (origin && origin !== "swipe") return new Response("ok");
 
     for (const recipient of [user1_id, user2_id]) {
       const other = recipient === user1_id ? user2_id : user1_id;
