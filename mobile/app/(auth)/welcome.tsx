@@ -29,7 +29,7 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "intro",
-    icon: <Logo size={96} stroke={colors.brand} />,
+    icon: <Logo size={96} />,
     title: "Find your next collaboration",
     body:
       "Photographers, models, musicians, filmmakers and dancers, matched only when you both say yes.",
