@@ -49,7 +49,7 @@ export default function Login() {
           </View>
 
           <View style={styles.header}>
-            <Logo size={64} stroke={colors.white} />
+            <Logo size={64} tone="onBrand" />
             <Text style={styles.title}>Welcome back</Text>
             <Text style={styles.subtitle}>Sign in to see who picked you.</Text>
           </View>

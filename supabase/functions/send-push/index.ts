@@ -1,9 +1,13 @@
 // Supabase Edge Function: send-push
 // Deploy with: supabase functions deploy send-push --no-verify-jwt
-// Then wire up Database Webhooks:
-//   - messages INSERT  -> POST { type: "message", record }
-//   - matches  INSERT  -> POST { type: "match",   record }
-// (Settings > Webhooks in the Supabase Dashboard.) Set the webhook's
+// The callers are defined in supabase/schema/12_push_webhooks.sql as ordinary
+// Postgres triggers, NOT as Dashboard webhooks:
+//   - swipes   INSERT (right) -> POST { type: "like",    record }
+//   - matches  INSERT         -> POST { type: "match",   record }
+//   - messages INSERT         -> POST { type: "message", record }
+// They were Dashboard webhooks originally, which is why push silently never
+// worked: the only record of the step was this comment telling a human to go
+// click through a settings page, and nobody did. Set the caller's
 // "Authorization" header to `Bearer <PUSH_WEBHOOK_SECRET>` — a dedicated
 // secret set via `supabase secrets set PUSH_WEBHOOK_SECRET=...`, NOT the
 // service_role key, so a leaked webhook header can't grant DB admin access.
@@ -46,6 +50,10 @@ type Payload =
   | {
       type: "match";
       record: { id: string; user1_id: string; user2_id: string };
+    }
+  | {
+      type: "like";
+      record: { id: string; swiper_id: string; post_id: string; direction: string };
     };
 
 async function tokensFor(userId: string): Promise<string[]> {
@@ -131,6 +139,45 @@ Deno.serve(async (req: Request) => {
         data: { kind: "match", matchId: id },
       })));
     }
+  } else if (payload.type === "like") {
+    // A one-way like, and it NAMES the person.
+    //
+    // This first shipped as an anonymous tease, copied from Tinder, which was
+    // wrong: on Tinder you are the scarce side being evaluated as a person, so
+    // withholding the name protects egos and creates something to sell. Here
+    // the roles are reversed. You posted a project and you need crew, so a like
+    // is an applicant raising their hand, and hiding your own applicants from
+    // you is just a broken funnel.
+    //
+    // Nothing about safety is given up. The liker volunteered; naming them to
+    // the owner exposes nobody to unwanted contact. The protection that matters
+    // runs the other way, and still holds: the liker cannot message the owner
+    // until the owner accepts.
+    const { swiper_id, post_id } = payload.record;
+
+    const { data: post } = await admin
+      .from("collab_posts")
+      .select("owner_id,title")
+      .eq("id", post_id)
+      .maybeSingle();
+    if (!post || post.owner_id === swiper_id) return new Response("ok");
+
+    const [tokens, liker] = await Promise.all([
+      tokensFor(post.owner_id),
+      nameFor(swiper_id),
+    ]);
+    const title = (post.title ?? "").trim();
+
+    await sendExpo(tokens.map((to) => ({
+      to,
+      // No pronoun: the name is the one thing known for certain.
+      title: `${liker} is interested`,
+      sound: "default",
+      body: title
+        ? `Liked your project "${title.slice(0, 60)}".`
+        : "Liked one of your projects.",
+      data: { kind: "like", postId: post_id, userId: swiper_id },
+    })));
   }
 
   return new Response("ok");

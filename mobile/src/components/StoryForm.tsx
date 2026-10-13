@@ -47,7 +47,7 @@ export type StoryFormValues = {
 
 type Asset =
   | { kind: "remote"; url: string }
-  | { kind: "local"; uri: string; mimeType?: string };
+  | { kind: "local"; uri: string; mimeType?: string; width?: number; height?: number };
 
 /** "2024-06" from "June 2024", "6/2024", "2024-06". Month precision only. */
 export function normalizeMonth(raw: string): string | null {
@@ -100,6 +100,17 @@ export function StoryForm({
   const [whenIso, setWhenIso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  /**
+   * What the upload is actually doing. The old copy said "Uploading photos…"
+   * next to a spinner that never changed, so a stalled upload and a slow one
+   * looked identical and there was nothing to do but force-quit.
+   */
+  const [progress, setProgress] = useState<{
+    index: number;
+    total: number;
+    fraction: number;
+    attempt: number;
+  } | null>(null);
 
   const addCredit = (c: StoryCredit) => {
     if (credits.length >= STORY_MAX_CREDITS) {
@@ -135,7 +146,13 @@ export function StoryForm({
     });
     if (result.canceled) return;
     setAssets((prev) =>
-      [...prev, ...result.assets.map((a) => ({ kind: "local" as const, uri: a.uri, mimeType: a.mimeType }))].slice(
+      [...prev, ...result.assets.map((a) => ({
+        kind: "local" as const,
+        uri: a.uri,
+        mimeType: a.mimeType,
+        width: a.width,
+        height: a.height,
+      }))].slice(
         0,
         STORY_MAX_IMAGES
       )
@@ -181,20 +198,44 @@ export function StoryForm({
     setUploading(true);
 
     const finalUrls: string[] = [];
+    const toUpload = assets.filter((a) => a.kind === "local").length;
+    let done = 0;
     for (const a of assets) {
       if (a.kind === "remote") {
         finalUrls.push(a.url);
       } else {
-        const { url, error: upErr } = await uploadFile(userId, "posts", a.uri, a.mimeType || "image/jpeg");
+        setProgress({ index: done + 1, total: toUpload, fraction: 0, attempt: 1 });
+        const { url, error: upErr } = await uploadFile(
+          userId,
+          "posts",
+          a.uri,
+          a.mimeType || "image/jpeg",
+          {
+            width: a.width,
+            height: a.height,
+            onProgress: (p) =>
+              setProgress({
+                index: done + 1,
+                total: toUpload,
+                fraction: p.fraction,
+                attempt: p.attempt,
+              }),
+          }
+        );
         if (upErr || !url) {
+          // Everything typed so far stays on screen: the form is not reset, so
+          // the only thing lost is the retry.
           setUploading(false);
+          setProgress(null);
           setError(upErr || "Photo upload failed.");
           return;
         }
+        done += 1;
         finalUrls.push(url);
       }
     }
     setUploading(false);
+    setProgress(null);
 
     const { url: link } = normalizeContactLink(linkText);
     const { error: submitErr } = await onSubmit({
@@ -334,7 +375,15 @@ export function StoryForm({
         {uploading ? (
           <View style={styles.uploadHint}>
             <ActivityIndicator size="small" color={colors.text} />
-            <Text style={styles.uploadHintText}>Uploading photos…</Text>
+            <Text style={styles.uploadHintText}>
+              {progress
+                ? progress.attempt > 1
+                  ? `Photo ${progress.index} of ${progress.total} · retrying`
+                  : `Photo ${progress.index} of ${progress.total} · ${Math.round(
+                      progress.fraction * 100
+                    )}%`
+                : "Getting your photos ready…"}
+            </Text>
           </View>
         ) : null}
       </ScrollView>

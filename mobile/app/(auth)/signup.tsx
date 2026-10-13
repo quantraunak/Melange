@@ -111,7 +111,7 @@ export default function Signup() {
           </View>
 
           <View style={styles.header}>
-            <Logo size={56} stroke={colors.white} />
+            <Logo size={56} tone="onBrand" />
             <Text style={styles.title}>Create your profile</Text>
             <Text style={styles.subtitle}>Only takes a minute.</Text>
           </View>
