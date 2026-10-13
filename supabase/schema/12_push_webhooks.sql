@@ -43,11 +43,27 @@ AS $$
 DECLARE
   v_secret TEXT;
   v_url    TEXT;
+  -- NEW is read as jsonb, never as a record.
+  --
+  -- The first version of this function tested `TG_ARGV[0] = 'like' AND
+  -- NEW.direction <> 'right'` and broke every INSERT into matches and
+  -- messages with: record "new" has no field "direction".
+  --
+  -- PL/pgSQL compiles a condition into one SQL expression and has to resolve
+  -- every field in it before it can run, so `NEW.direction` was looked up on
+  -- the messages record even though the left side of the AND was already
+  -- false. SQL's AND does not save you here: short-circuiting happens during
+  -- execution, and this failed before execution. One shared trigger function
+  -- across three table shapes must therefore not name a column that only one
+  -- of them has. Going through jsonb removes the question entirely.
+  v_rec    JSONB := to_jsonb(NEW);
 BEGIN
   -- Right swipes only. A left swipe is private by construction: telling
   -- someone they were passed on is the one notification nobody wants.
-  IF TG_ARGV[0] = 'like' AND NEW.direction <> 'right' THEN
-    RETURN NEW;
+  IF TG_ARGV[0] = 'like' THEN
+    IF COALESCE(v_rec->>'direction', '') <> 'right' THEN
+      RETURN NEW;
+    END IF;
   END IF;
 
   SELECT decrypted_secret INTO v_secret
@@ -67,7 +83,7 @@ BEGIN
       'Content-Type',  'application/json',
       'Authorization', 'Bearer ' || v_secret
     ),
-    body    := jsonb_build_object('type', TG_ARGV[0], 'record', to_jsonb(NEW)),
+    body    := jsonb_build_object('type', TG_ARGV[0], 'record', v_rec),
     timeout_milliseconds := 5000
   );
 
