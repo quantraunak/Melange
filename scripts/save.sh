@@ -42,6 +42,25 @@ else
   echo "Already on a branch: $BRANCH"
 fi
 
+# Show what is about to be saved before saving it.
+#
+# This script saves EVERYTHING that changed, including files you may have
+# forgotten about, which is usually what you want and is occasionally a
+# surprise. I made exactly that mistake testing this script and committed two
+# unrelated files, so it now prints the list first.
+echo
+echo "About to save:"
+git -c color.ui=never status --short | sed 's/^/  /'
+echo
+
+if [ -t 0 ]; then
+  printf "Looks right? [Y/n] "
+  read -r REPLY
+  case "$REPLY" in
+    [nN]*) echo "Stopped. Nothing was saved."; exit 0 ;;
+  esac
+fi
+
 git add -A
 git commit -q -m "$MSG"
 git push -q -u origin "$BRANCH"
