@@ -63,6 +63,28 @@ fi
 
 git add -A
 git commit -q -m "$MSG"
+
+# Run the same lint the checks will run, on whichever part changed.
+#
+# Lint failures are the usual reason a first pull request goes red, and they
+# are almost always formatting or an unused import rather than anything real.
+# Far better to hear it here, where it is one command to fix, than as a red X
+# on GitHub ten minutes later. This warns and keeps going: saving unfinished
+# work is allowed, and a pull request with a failing check is easy to fix.
+CHANGED="$(git diff --name-only HEAD~1 HEAD || true)"
+lint_area() {
+  local dir="$1" label="$2"
+  ( cd "$dir" && npm run --silent lint >/dev/null 2>&1 ) || {
+    echo
+    echo "Heads up: the $label code has lint problems, so the checks will fail."
+    echo "Most of them fix themselves. Try:"
+    echo "    (cd $dir && npm run lint -- --fix)"
+    echo "then run this script again to save the fixes."
+  }
+}
+if printf '%s' "$CHANGED" | grep -q '^mobile/'; then lint_area mobile "app"; fi
+if printf '%s' "$CHANGED" | grep -qv '^mobile/'; then lint_area . "website"; fi
+
 git push -q -u origin "$BRANCH"
 
 if command -v gh >/dev/null 2>&1; then
