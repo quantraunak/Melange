@@ -121,14 +121,23 @@ export async function getUpcomingEvents(
  */
 export async function getPastEvents(
   currentUserId: string,
+  cityFilter?: string,
   limit = 20
 ): Promise<{ data: EventWithDetails[] | null; error: string | null }> {
   try {
-    const { data: events, error } = await supabase
+    // The city has to be in the query. Filtering after .limit(20) meant the
+    // twenty newest past events app-wide were fetched first and only then
+    // matched against the city, so typing a city with five past events in it
+    // showed nothing at all if none of them were in that global newest twenty.
+    // The reader concluded nothing had ever run where they live.
+    let q = supabase
       .from("events")
       .select("*")
       .eq("is_canceled", false)
-      .lt("start_at", new Date().toISOString())
+      .lt("start_at", new Date().toISOString());
+    const city = (cityFilter ?? "").trim();
+    if (city) q = q.ilike("city", `%${city}%`);
+    const { data: events, error } = await q
       .order("start_at", { ascending: false })
       .limit(limit);
     if (error) return { data: null, error: error.message };

@@ -791,8 +791,13 @@ export async function getMatches(
     const { data: postsData, error: postsError } = postIds.length
       ? await supabase.from("collab_posts").select("*").in("id", postIds)
       : { data: [], error: null };
+    // Surface this rather than logging it. Swallowing it meant one failed
+    // query — offline, an RLS change, a PostgREST hiccup — left postsMap empty,
+    // and the placeholder branch below then relabelled EVERY conversation
+    // "This listing was removed", with no error banner. Users concluded that
+    // all of their collaborators had deleted their projects.
     if (postsError) {
-      console.error("getMatches: failed to load counterpart posts", postsError.message);
+      return { data: null, error: postsError.message };
     }
     const postsMap = new Map<string, CollabPost>((postsData || []).map((p) => [p.id, p as CollabPost]));
 
@@ -911,12 +916,18 @@ function conversationContext(
       return theirPost?.title ?? myPost?.title ?? "Matched";
     case "project":
       return theirPost?.title ?? myPost?.title ?? "About a project";
+    // These used to return one constant per origin, and the Messages screen
+    // groups by exactly this string, so every profile reach-out collapsed
+    // under a single header reading "Direct message" with a count. Three
+    // unrelated one-to-one threads were presented as three threads about one
+    // project, which is the precise confusion the grouping exists to prevent.
+    // A per-thread subject keeps each one its own row.
     case "event":
-      return "About an event";
+      return theirPost?.title ?? "An event";
     case "story":
-      return "About their work";
+      return theirPost?.title ?? "Their work";
     default:
-      return "Direct message";
+      return "";
   }
 }
 
@@ -1409,10 +1420,21 @@ export type ProfileTrust = {
 };
 
 /**
- * Reviews come straight from collab_reviews: RLS returns only the ones both
- * people wrote (mutual reveal), which is also what the rating averages. Past
- * collabs come from public_credits (13_reach_out.sql) and are empty on a
- * database without it.
+ * Reviews for a public profile.
+ *
+ * These do NOT come straight from collab_reviews. That table's SELECT policy
+ * is `reviewer_id = auth.uid() OR reviewee_id = auth.uid() OR
+ * review_has_reciprocal(...)`, so the first branch hands you back anything you
+ * wrote yourself, reciprocated or not. Trusting RLS here meant that if you
+ * reviewed someone who never reviewed you back, you saw your own review
+ * sitting on their public profile, under a header showing no stars at all,
+ * because the averages come from creator_reputation which does require a
+ * reciprocal row. Every reader concluded their review had been published when
+ * only they could see it.
+ *
+ * public_reviews() applies the mutual-reveal rule itself, so what is listed
+ * always matches the rating above it. Past collabs come from public_credits
+ * (13_reach_out.sql); both are empty on a database without that migration.
  */
 export async function getProfileTrust(
   userId: string
@@ -1420,12 +1442,7 @@ export async function getProfileTrust(
   const empty: ProfileTrust = { avg_rating: null, review_count: 0, reviews: [], past_collabs: [] };
   try {
     const [reviewsRes, creditsRes, rep] = await Promise.all([
-      supabase
-        .from("collab_reviews")
-        .select("id,reviewer_id,rating,tags,body,created_at")
-        .eq("reviewee_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(20),
+      supabase.rpc("public_reviews", { p_user_id: userId, p_limit: 20 }),
       supabase.rpc("public_credits", { p_user_id: userId }),
       getReputationForUsers([userId]),
     ]);

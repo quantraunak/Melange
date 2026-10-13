@@ -96,9 +96,34 @@ export default function ReachOutScreen() {
     });
   }, [params.userId, params.about, origin]);
 
+  // Whether loading your own profile has settled, successfully or not.
+  //
+  // The error was discarded here and `mine` stayed null, which made
+  // profileGate(null) fail. The footer renders on gate.ok and the explanation
+  // renders on `!gate.ok && mine`, so a failed load produced a composer with
+  // the opener filled in, free typing, no Send button anywhere, and no reason
+  // given. Tracking the failure separately means you always get one or the
+  // other.
+  const [mineError, setMineError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+
   useEffect(() => {
-    if (me) getProfile(me).then(({ data }) => setMine(data));
-  }, [me]);
+    if (!me) return;
+    let alive = true;
+    setMineError(null);
+    getProfile(me)
+      .then(({ data, error }) => {
+        if (!alive) return;
+        setMine(data);
+        if (!data) setMineError(error || "Couldn't load your profile.");
+      })
+      .catch((e) => {
+        if (alive) setMineError(e instanceof Error ? e.message : "Couldn't load your profile.");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [me, retry]);
 
   const gate = profileGate(mine, "message");
   const isMe = !!me && params.userId === me;
@@ -160,6 +185,13 @@ export default function ReachOutScreen() {
 
               {isMe ? (
                 <Text style={styles.hint}>This is you.</Text>
+              ) : mineError ? (
+                <View style={styles.gate}>
+                  <Text style={styles.gateText}>{mineError}</Text>
+                  <Pressable onPress={() => setRetry((n) => n + 1)} hitSlop={8}>
+                    <Text style={styles.gateLink}>Try again</Text>
+                  </Pressable>
+                </View>
               ) : !gate.ok && mine ? (
                 <View style={styles.gate}>
                   <Text style={styles.gateText}>{gate.line}</Text>

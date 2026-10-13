@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Calendar, Check, Clock, MapPin, MessageCircle, Plus, Star, Users, X } from "lucide-react-native";
 
@@ -41,7 +41,19 @@ function formatEventTime(iso: string): { day: string; time: string } {
  * events stay up as ideas, and every host is a way to reach them: the byline
  * opens their profile, Message opens a conversation without a match.
  */
-export function EventsFeed({ reloadKey = 0 }: { reloadKey?: number }) {
+export function EventsFeed({
+  reloadKey = 0,
+  onLoaded,
+}: {
+  reloadKey?: number;
+  /**
+   * Called whenever a load settles. The parent owns the pull-to-refresh
+   * spinner but this component owns the request, so without this the spinner
+   * snapped back instantly while the refetch was still in flight and the user
+   * assumed the pull had done nothing.
+   */
+  onLoaded?: () => void;
+}) {
   const router = useRouter();
   const { userId } = useAuth();
 
@@ -53,26 +65,34 @@ export function EventsFeed({ reloadKey = 0 }: { reloadKey?: number }) {
   const [cityFilter, setCityFilter] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Which load is current. See loadEvents.
+  const runRef = useRef(0);
+  // Held in a ref so a new callback identity never re-creates loadEvents.
+  // Assigned in an effect, not during render, which React forbids.
+  const onLoadedRef = useRef(onLoaded);
+  useEffect(() => {
+    onLoadedRef.current = onLoaded;
+  }, [onLoaded]);
+  const didFilter = useRef(false);
+
   const loadEvents = useCallback(async () => {
     if (!userId) return;
     setError(null);
+    const city = cityFilter.trim();
+    // Tag each run so a slow early keystroke cannot overwrite a faster later
+    // one and leave the list showing results for a filter you already changed.
+    const run = ++runRef.current;
     const [{ data, error: err }, past] = await Promise.all([
-      getUpcomingEvents(userId, cityFilter.trim() || undefined),
-      getPastEvents(userId),
+      getUpcomingEvents(userId, city || undefined),
+      getPastEvents(userId, city || undefined),
     ]);
+    if (run !== runRef.current) return;
     if (err) setError(err);
     setEvents(data || []);
-    const city = cityFilter.trim().toLowerCase();
-    setPastEvents(
-      (past.data || []).filter(
-        (e) =>
-          !city ||
-          (e.city ?? "").toLowerCase().includes(city) ||
-          (e.location_name ?? "").toLowerCase().includes(city)
-      )
-    );
+    setPastEvents(past.data || []);
     setEventsLoading(false);
     setRefreshing(false);
+    onLoadedRef.current?.();
   }, [userId, cityFilter]);
 
   // Initial load. Deliberately keyed on [userId] (not
@@ -95,6 +115,15 @@ export function EventsFeed({ reloadKey = 0 }: { reloadKey?: number }) {
   // `loading` gate, so the TextInput is never unmounted while typing.
   useEffect(() => {
     if (!userId) return;
+    // Skip the first run. This effect used to fire 400ms after mount with an
+    // empty filter, which issued a second identical load AND flipped
+    // `refreshing` true mid-load; since the skeleton is gated on
+    // `eventsLoading && !refreshing`, that tore the skeleton down and rendered
+    // "No upcoming events" over a request still in flight.
+    if (!didFilter.current) {
+      didFilter.current = true;
+      return;
+    }
     const handle = setTimeout(() => {
       setRefreshing(true);
       loadEvents();
@@ -109,6 +138,20 @@ export function EventsFeed({ reloadKey = 0 }: { reloadKey?: number }) {
     if (reloadKey > 0) loadEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey]);
+
+  // Reload when this screen comes back into focus.
+  //
+  // Posting an event pushes /event/new over this tab and finishes with
+  // router.back(). The tab never unmounted, and userId, cityFilter and
+  // reloadKey are all unchanged on return, so nothing refetched: you saved an
+  // event, landed back here, and still read "No upcoming events". People
+  // concluded it had failed and posted the same event again.
+  useFocusEffect(
+    useCallback(() => {
+      if (userId && didFilter.current) loadEvents();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId])
+  );
 
   const openProfile = (id: string) => router.push({ pathname: "/profile/[userId]", params: { userId: id } });
   const message = (e: EventWithDetails) =>
@@ -151,14 +194,22 @@ export function EventsFeed({ reloadKey = 0 }: { reloadKey?: number }) {
   };
 
   const grouped = (() => {
-    const map = new Map<string, EventWithDetails[]>();
+    // Key by day AND year, label by day alone, except when the year differs
+    // from this one. The old key was the day label by itself, so an event a
+    // year out landed in the group made for the same date this year and
+    // rendered under a header twelve months wrong.
+    const thisYear = new Date().getFullYear();
+    const map = new Map<string, { label: string; items: EventWithDetails[] }>();
     for (const e of events) {
-      const key = formatEventTime(e.start_at).day;
-      const arr = map.get(key) || [];
-      arr.push(e);
-      map.set(key, arr);
+      const year = new Date(e.start_at).getFullYear();
+      const day = formatEventTime(e.start_at).day;
+      const key = `${day} ${year}`;
+      const label = year === thisYear ? day : `${day}, ${year}`;
+      const slot = map.get(key) || { label, items: [] };
+      slot.items.push(e);
+      map.set(key, slot);
     }
-    return Array.from(map.entries());
+    return Array.from(map.values()).map((g) => [g.label, g.items] as const);
   })();
 
   if (eventsLoading && !refreshing) {

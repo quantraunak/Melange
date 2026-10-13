@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Linking,
   Pressable,
@@ -37,6 +38,13 @@ import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const TILE = (SCREEN_W - GUTTER * 2 - spacing.sm * 2) / 3;
+/**
+ * Photographs of people are portrait. A square tile takes a 4:5 frame and
+ * trims it to the middle, which cuts a standing figure off at the chest and
+ * drops whatever the photographer composed at the top. 4:5 is the shape the
+ * work is actually shot in.
+ */
+const TILE_H = Math.round((TILE * 5) / 4);
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
@@ -53,8 +61,43 @@ function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   );
 }
 
+/**
+ * "Mar 2026" for a credit's date.
+ *
+ * public_credits returns `coalesce(project_start::timestamptz, created_at)`,
+ * and project_start is a DATE, so the cast lands on UTC midnight. Parsing that
+ * directly renders the previous day anywhere west of Greenwich, which crosses
+ * a month boundary for anything starting on the 1st: a shoot dated March 1st
+ * read "Feb 2026" across the Americas and "Mar 2026" in Europe. Anchoring a
+ * date-only value at midday keeps it in its own month in every timezone, which
+ * is what projectDates in lib/db.ts already does.
+ */
+/**
+ * Open a profile link, repairing the common case and admitting the rest.
+ *
+ * reel_url, instagram_url and linkedin_url are free text, so people type
+ * "instagram.com/name" with no scheme, which the OS cannot open. The failure
+ * was swallowed, so the tap did nothing at all: no error, no hint, and no way
+ * for the profile's owner to learn their link was dead.
+ */
+async function openLink(url: string, label: string): Promise<void> {
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`;
+  try {
+    await Linking.openURL(candidate);
+  } catch {
+    Alert.alert(`Can't open that ${label} link`, candidate);
+  }
+}
+
 function monthYear(iso: string): string {
-  return new Date(iso).toLocaleDateString([], { month: "short", year: "numeric" });
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const midnightUtc = /^\d{4}-\d{2}-\d{2}T00:00:00(\.0+)?(Z|\+00:?00)$/.test(iso);
+  const anchored = dateOnly
+    ? `${iso}T12:00:00`
+    : midnightUtc
+      ? `${iso.slice(0, 10)}T12:00:00`
+      : iso;
+  return new Date(anchored).toLocaleDateString([], { month: "short", year: "numeric" });
 }
 
 /**
@@ -206,19 +249,21 @@ export default function PublicProfileScreen() {
           </View>
         </View>
 
-        <Pressable
-          style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
-          onPress={() =>
-            router.push({
-              pathname: "/message/[userId]",
-              params: { userId: profile.user_id, origin: "profile" },
-            })
-          }
-          accessibilityRole="button"
-        >
-          <MessageCircle size={18} color={colors.onAccent} />
-          <Text style={styles.messageText}>Message {profile.name.split(" ")[0]}</Text>
-        </Pressable>
+        {profile.user_id !== me ? (
+          <Pressable
+            style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
+            onPress={() =>
+              router.push({
+                pathname: "/message/[userId]",
+                params: { userId: profile.user_id, origin: "profile" },
+              })
+            }
+            accessibilityRole="button"
+          >
+            <MessageCircle size={18} color={colors.onAccent} />
+            <Text style={styles.messageText}>Message {profile.name.split(" ")[0]}</Text>
+          </Pressable>
+        ) : null}
 
         {roles.length ? (
           <View style={styles.roles}>
@@ -236,7 +281,7 @@ export default function PublicProfileScreen() {
               <Pressable
                 key={l.label}
                 style={({ pressed }) => [styles.linkChip, pressed && { opacity: 0.7 }]}
-                onPress={() => Linking.openURL(l.url).catch(() => {})}
+                onPress={() => openLink(l.url, l.label)}
                 accessibilityRole="link"
               >
                 <Link2 size={14} color={colors.brandText} />
@@ -248,13 +293,15 @@ export default function PublicProfileScreen() {
 
         {profile.portfolio_urls?.length ? (
           <View style={styles.block}>
+            <Text style={styles.eyebrow}>Photos</Text>
             <View style={styles.grid}>
               {profile.portfolio_urls.map((url, i) => (
                 <Image
                   key={`${url}-${i}`}
-                  source={{ uri: sized(url, TILE, TILE) }}
+                  source={{ uri: sized(url, TILE, TILE_H) }}
                   style={styles.tile}
                   contentFit="cover"
+                  transition={160}
                 />
               ))}
             </View>
@@ -469,7 +516,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   tile: {
     width: TILE,
-    aspectRatio: 1,
+    height: TILE_H,
     borderRadius: radii.sm,
     backgroundColor: colors.surfaceSunken,
   },

@@ -83,7 +83,7 @@ export type Match = {
   id: string;
   user1_id: string;
   user2_id: string;
-  /** Null on a conversation someone started by reaching out (09_reach_out.sql). */
+  /** Null on a conversation someone started by reaching out (13_reach_out.sql). */
   post1_id: string | null;
   post2_id: string | null;
   created_at: string;
@@ -431,22 +431,35 @@ export async function getMatches(
     if (matchesError) return { data: null, error: matchesError.message };
     if (!matches?.length) return { data: [], error: null };
 
-    const partials: { match: typeof matches[0]; otherUserId: string; otherPostId: string | null }[] = [];
-    for (const m of matches) {
-      partials.push({
-        match: m,
-        otherUserId: m.user1_id === userId ? m.user2_id : m.user1_id,
-        otherPostId: m.user1_id === userId ? m.post2_id : m.post1_id,
-      });
-    }
+    // Both of a thread's projects are fetched, and which belongs to whom is
+    // decided by owner_id rather than by slot.
+    //
+    // The slots are not aligned with the user columns. create_match
+    // (07_matching.sql) writes post1_id = the post the CALLER swiped, which the
+    // OTHER person owns, so post1_id belongs to user2 and vice versa, while
+    // start_conversation (13_reach_out.sql) writes them aligned. Reading by
+    // position was therefore wrong for every swipe thread, and the website
+    // headed each conversation with the reader's OWN project. Mobile was fixed
+    // and this file was missed, so the bug stayed live on the web.
+    //
+    // Resolving by owner is correct under both conventions, and for rows
+    // written by the pre-07 client whatever order it used.
+    const partials: { match: typeof matches[0]; otherUserId: string }[] = matches.map((m) => ({
+      match: m,
+      otherUserId: m.user1_id === userId ? m.user2_id : m.user1_id,
+    }));
 
-    // A reach-out conversation (09_reach_out.sql) can have no post; a null in
-    // the IN list would fail the whole query and hide every conversation.
-    const postIds = partials.map((p) => p.otherPostId).filter((id): id is string => !!id);
-    const { data: postsData } = await supabase
-      .from("collab_posts")
-      .select("*")
-      .in("id", postIds);
+    const postIds = [
+      ...new Set(
+        matches.flatMap((m) => [m.post1_id, m.post2_id]).filter((id): id is string => !!id)
+      ),
+    ];
+    // A failed lookup must not read as "every listing was removed", and must
+    // not silently empty the list. Surface it instead.
+    const { data: postsData, error: postsError } = postIds.length
+      ? await supabase.from("collab_posts").select("*").in("id", postIds)
+      : { data: [], error: null };
+    if (postsError) return { data: null, error: postsError.message };
     const postsMap = new Map<string, CollabPost>(
       (postsData || []).map((p) => [p.id, p as CollabPost])
     );
@@ -479,11 +492,17 @@ export async function getMatches(
     }
 
     const enriched: MatchWithPost[] = [];
-    for (const { match, otherUserId, otherPostId } of partials) {
-      const otherPost = otherPostId
-        ? postsMap.get(otherPostId)
-        : directMessagePost(otherUserId, match.created_at);
-      if (!otherPost) continue;
+    for (const { match, otherUserId } of partials) {
+      const slots = [match.post1_id, match.post2_id].filter((id): id is string => !!id);
+      const posts = slots.map((id) => postsMap.get(id)).filter((p): p is CollabPost => !!p);
+      // Theirs when it resolves, otherwise the project this thread is about,
+      // which for a project reach-out is the recipient's own. Never drop the
+      // thread: a deleted project used to make an open conversation vanish
+      // from the list entirely, messages and all.
+      const otherPost =
+        posts.find((p) => p.owner_id === otherUserId) ??
+        posts.find((p) => p.owner_id === userId) ??
+        directMessagePost(otherUserId, match.created_at);
       enriched.push({
         ...match,
         other_user_id: otherUserId,

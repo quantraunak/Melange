@@ -84,6 +84,11 @@ export default function StoriesScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               if (section === "events") {
+                // Show the spinner and let EventsFeed clear it when its
+                // refetch lands. Returning here used to leave `refreshing`
+                // false, so the indicator vanished instantly and the pull
+                // read as a no-op.
+                setRefreshing(true);
                 setEventsReload((k) => k + 1);
                 return;
               }
@@ -130,7 +135,7 @@ export default function StoriesScreen() {
         </Text>
 
         {section === "events" ? (
-          <EventsFeed reloadKey={eventsReload} />
+          <EventsFeed reloadKey={eventsReload} onLoaded={() => setRefreshing(false)} />
         ) : (
         <>
         <ErrorBanner message={error} />

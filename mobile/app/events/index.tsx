@@ -12,12 +12,20 @@ export default function EventsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [reloadKey, setReloadKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   return (
     <ScrollView
       contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
       refreshControl={
-        <RefreshControl refreshing={false} onRefresh={() => setReloadKey((k) => k + 1)} tintColor={colors.brand} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            setReloadKey((k) => k + 1);
+          }}
+          tintColor={colors.brand}
+        />
       }
       keyboardShouldPersistTaps="handled"
     >
@@ -28,7 +36,7 @@ export default function EventsScreen() {
         <Text style={styles.screenTitle}>Events</Text>
         <View style={{ width: 22 }} />
       </View>
-      <EventsFeed reloadKey={reloadKey} />
+      <EventsFeed reloadKey={reloadKey} onLoaded={() => setRefreshing(false)} />
     </ScrollView>
   );
 }

@@ -81,14 +81,26 @@ export default function MatchesScreen() {
       );
 
     // Group by project, keeping groups in order of their most recent message.
+    //
+    // Only threads that actually have a subject are grouped. A conversation
+    // someone started from a profile has none, and giving those a shared
+    // placeholder put every unrelated one-to-one thread under a single header
+    // with a count, as though they were all about one project. Those now sit
+    // on their own, above nothing.
     const groups = new Map<string, MatchWithPost[]>();
+    const loose: MatchWithPost[] = [];
     for (const m of talking) {
-      const key = m.context || "Direct message";
+      const key = (m.context || "").trim();
+      if (!key) {
+        loose.push(m);
+        continue;
+      }
       const list = groups.get(key);
       if (list) list.push(m);
       else groups.set(key, [m]);
     }
     const flat: Row[] = [];
+    for (const m of loose) flat.push({ kind: "match", key: m.id, match: m });
     for (const [title, list] of groups) {
       flat.push({ kind: "project", key: `project-${title}`, title, count: list.length });
       for (const m of list) flat.push({ kind: "match", key: m.id, match: m });

@@ -63,7 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_matches_started_by ON public.matches(started_by, 
 -- Refuses: yourself, an unknown user, a block in either direction, an empty
 -- or oversized message, a profile below the quality floor (three photos and
 -- a role, 11_profile_gate.sql — the same bar as posting or liking), and more
--- than 20 NEW threads in 24 hours (writing in an existing thread is not
+-- than 5 NEW threads in 24 hours (writing in an existing thread is not
 -- limited here — it is an ordinary message).
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.start_conversation(
@@ -130,7 +130,10 @@ BEGIN
     IF (
       SELECT count(*) FROM public.matches
       WHERE started_by = v_me AND created_at > now() - interval '24 hours'
-    ) >= 20 THEN
+    ) >= 5 THEN
+      -- Five, not twenty. Twenty cold approaches a day is not a limit on an
+      -- app this size; it is the harassment budget. Raise it when there is
+      -- enough density that five is genuinely in the way.
       RAISE EXCEPTION 'You''ve started a lot of conversations today. Try again tomorrow.';
     END IF;
 
@@ -226,3 +229,49 @@ $$;
 
 REVOKE ALL ON FUNCTION public.public_credits(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.public_credits(UUID) TO authenticated;
+
+-- ------------------------------------------------------------
+-- 4. public_reviews(user, limit): the reviews that are actually public
+--
+-- collab_reviews' SELECT policy is
+--     reviewer_id = auth.uid() OR reviewee_id = auth.uid()
+--     OR review_has_reciprocal(match_id, reviewer_id, reviewee_id)
+-- and the first branch is the problem. Reading the table directly to build
+-- someone's public profile returned your OWN review of them even when they
+-- had never reviewed you back, so it appeared in the list under a header
+-- showing no stars, because creator_reputation does require a reciprocal row.
+-- Everyone who reviewed a stranger concluded it had been published.
+--
+-- This applies the mutual-reveal rule itself, so the list always agrees with
+-- the rating above it and shows the same thing to every viewer.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.public_reviews(p_user_id UUID, p_limit INT DEFAULT 20)
+RETURNS TABLE (
+  id          UUID,
+  reviewer_id UUID,
+  rating      INT,
+  tags        TEXT[],
+  body        TEXT,
+  created_at  TIMESTAMPTZ
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT r.id, r.reviewer_id, r.rating, r.tags, r.body, r.created_at
+  FROM public.collab_reviews r
+  WHERE auth.uid() IS NOT NULL
+    AND r.reviewee_id = p_user_id
+    AND EXISTS (
+      SELECT 1 FROM public.collab_reviews back
+      WHERE back.match_id    = r.match_id
+        AND back.reviewer_id = r.reviewee_id
+        AND back.reviewee_id = r.reviewer_id
+    )
+  ORDER BY r.created_at DESC
+  LIMIT greatest(coalesce(p_limit, 20), 1);
+$$;
+
+REVOKE ALL ON FUNCTION public.public_reviews(UUID, INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.public_reviews(UUID, INT) TO authenticated;
