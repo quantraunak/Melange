@@ -315,18 +315,28 @@ export async function deleteStory(id: string): Promise<{ error: string | null }>
  * like it like any other. There is deliberately no path from a story to a
  * direct message.
  */
+export type OpenProject = {
+  id: string;
+  title: string;
+  location: string | null;
+  media_urls: string[] | null;
+  project_start: string | null;
+  project_end: string | null;
+};
+
 export async function getOpenProjectsBy(
   userId: string
 ): Promise<{
-  data: { id: string; title: string; location: string | null }[];
+  data: OpenProject[];
   error: string | null;
 }> {
   try {
     // `location` rides along because a profile has no city of its own: the one
     // on someone's most recent open project is the city they are working in.
+    // `select("*")` because project_start/end only exist after 08_projects.sql.
     const { data, error } = await supabase
       .from("collab_posts")
-      .select("id,title,location")
+      .select("*")
       .eq("owner_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending: false })
@@ -337,6 +347,9 @@ export async function getOpenProjectsBy(
         id: p.id as string,
         title: p.title as string,
         location: (p.location as string | null) ?? null,
+        media_urls: (p.media_urls as string[] | null) ?? null,
+        project_start: (p.project_start as string | null) ?? null,
+        project_end: (p.project_end as string | null) ?? null,
       })),
       error: null,
     };

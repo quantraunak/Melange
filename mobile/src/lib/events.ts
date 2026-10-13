@@ -109,54 +109,90 @@ export async function getUpcomingEvents(
     });
     if (error) return { data: null, error: error.message };
 
-    const list = (events as MelangeEvent[]) || [];
-    if (list.length === 0) return { data: [], error: null };
-
-    const ids = list.map((e) => e.id);
-    const hostIds = [...new Set(list.map((e) => e.host_id))];
-
-    const [hosts, { data: counts }, { data: myRsvps }] = await Promise.all([
-      fetchHosts(hostIds),
-      supabase.rpc("event_attendee_counts", { p_event_ids: ids }),
-      supabase
-        .from("event_rsvps")
-        .select("event_id,state")
-        .eq("user_id", currentUserId)
-        .in("event_id", ids),
-    ]);
-
-    const countMap = new Map<string, { going: number; interested: number }>();
-    for (const c of (counts as { event_id: string; going_count: number; interested_count: number }[]) || []) {
-      countMap.set(c.event_id, {
-        going: Number(c.going_count ?? 0),
-        interested: Number(c.interested_count ?? 0),
-      });
-    }
-    const rsvpMap = new Map<string, "going" | "interested">();
-    for (const r of (myRsvps as { event_id: string; state: "going" | "interested" }[]) || []) {
-      rsvpMap.set(r.event_id, r.state);
-    }
-
-    const enriched: EventWithDetails[] = list.map((e) => {
-      const c = countMap.get(e.id) ?? { going: 0, interested: 0 };
-      return {
-        ...e,
-        host: hosts.get(e.host_id) ?? {
-          user_id: e.host_id,
-          name: "Unknown",
-          role: null,
-          avatar_url: null,
-        },
-        going_count: c.going,
-        interested_count: c.interested,
-        my_rsvp: rsvpMap.get(e.id) ?? null,
-      };
-    });
-
-    return { data: enriched, error: null };
+    return { data: await withDetails((events as MelangeEvent[]) || [], currentUserId), error: null };
   } catch (err) {
     return { data: null, error: errMsg(err) };
   }
+}
+
+/**
+ * Events that already happened, newest first. Kept on Explore as ideas: what
+ * people around you have been running, and who to ask about the next one.
+ */
+export async function getPastEvents(
+  currentUserId: string,
+  limit = 20
+): Promise<{ data: EventWithDetails[] | null; error: string | null }> {
+  try {
+    const { data: events, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_canceled", false)
+      .lt("start_at", new Date().toISOString())
+      .order("start_at", { ascending: false })
+      .limit(limit);
+    if (error) return { data: null, error: error.message };
+    const now = Date.now();
+    // Same "has it ended" rule as upcoming_events: an event without an end
+    // time is treated as four hours long, so one in progress isn't "past".
+    const ended = ((events as MelangeEvent[]) || []).filter((e) => {
+      const end = e.end_at ? Date.parse(e.end_at) : Date.parse(e.start_at) + 4 * 3600_000;
+      return end <= now;
+    });
+    return { data: await withDetails(ended, currentUserId), error: null };
+  } catch (err) {
+    return { data: null, error: errMsg(err) };
+  }
+}
+
+async function withDetails(
+  list: MelangeEvent[],
+  currentUserId: string
+): Promise<EventWithDetails[]> {
+  if (list.length === 0) return [];
+
+  const ids = list.map((e) => e.id);
+  const hostIds = [...new Set(list.map((e) => e.host_id))];
+
+  const [hosts, { data: counts }, { data: myRsvps }] = await Promise.all([
+    fetchHosts(hostIds),
+    supabase.rpc("event_attendee_counts", { p_event_ids: ids }),
+    supabase
+      .from("event_rsvps")
+      .select("event_id,state")
+      .eq("user_id", currentUserId)
+      .in("event_id", ids),
+  ]);
+
+  const countMap = new Map<string, { going: number; interested: number }>();
+  for (const c of (counts as { event_id: string; going_count: number; interested_count: number }[]) || []) {
+    countMap.set(c.event_id, {
+      going: Number(c.going_count ?? 0),
+      interested: Number(c.interested_count ?? 0),
+    });
+  }
+  const rsvpMap = new Map<string, "going" | "interested">();
+  for (const r of (myRsvps as { event_id: string; state: "going" | "interested" }[]) || []) {
+    rsvpMap.set(r.event_id, r.state);
+  }
+
+  const enriched: EventWithDetails[] = list.map((e) => {
+    const c = countMap.get(e.id) ?? { going: 0, interested: 0 };
+    return {
+      ...e,
+      host: hosts.get(e.host_id) ?? {
+        user_id: e.host_id,
+        name: "Unknown",
+        role: null,
+        avatar_url: null,
+      },
+      going_count: c.going,
+      interested_count: c.interested,
+      my_rsvp: rsvpMap.get(e.id) ?? null,
+    };
+  });
+
+  return enriched;
 }
 
 export async function getEvent(

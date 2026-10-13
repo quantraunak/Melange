@@ -83,8 +83,9 @@ export type Match = {
   id: string;
   user1_id: string;
   user2_id: string;
-  post1_id: string;
-  post2_id: string;
+  /** Null on a conversation someone started by reaching out (09_reach_out.sql). */
+  post1_id: string | null;
+  post2_id: string | null;
   created_at: string;
 };
 
@@ -430,7 +431,7 @@ export async function getMatches(
     if (matchesError) return { data: null, error: matchesError.message };
     if (!matches?.length) return { data: [], error: null };
 
-    const partials: { match: typeof matches[0]; otherUserId: string; otherPostId: string }[] = [];
+    const partials: { match: typeof matches[0]; otherUserId: string; otherPostId: string | null }[] = [];
     for (const m of matches) {
       partials.push({
         match: m,
@@ -439,7 +440,9 @@ export async function getMatches(
       });
     }
 
-    const postIds = partials.map((p) => p.otherPostId);
+    // A reach-out conversation (09_reach_out.sql) can have no post; a null in
+    // the IN list would fail the whole query and hide every conversation.
+    const postIds = partials.map((p) => p.otherPostId).filter((id): id is string => !!id);
     const { data: postsData } = await supabase
       .from("collab_posts")
       .select("*")
@@ -477,7 +480,9 @@ export async function getMatches(
 
     const enriched: MatchWithPost[] = [];
     for (const { match, otherUserId, otherPostId } of partials) {
-      const otherPost = postsMap.get(otherPostId);
+      const otherPost = otherPostId
+        ? postsMap.get(otherPostId)
+        : directMessagePost(otherUserId, match.created_at);
       if (!otherPost) continue;
       enriched.push({
         ...match,
@@ -493,6 +498,22 @@ export async function getMatches(
   } catch (err) {
     return { data: null, error: errMsg(err) };
   }
+}
+
+/** Stand-in post for a conversation that isn't about a project, so the chat UI has a title. */
+function directMessagePost(ownerId: string, createdAt: string): CollabPost {
+  return {
+    id: `direct-${ownerId}`,
+    owner_id: ownerId,
+    title: "Direct message",
+    description: null,
+    looking_for: null,
+    location: null,
+    compensation: null,
+    media_urls: null,
+    is_active: false,
+    created_at: createdAt,
+  };
 }
 
 export function isMatchUnread(match: MatchWithPost, userId: string): boolean {

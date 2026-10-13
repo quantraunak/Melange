@@ -322,9 +322,8 @@ export default function ProfileScreen() {
               <Pressable
                 key={p.id}
                 style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
-                onPress={() =>
-                  router.push({ pathname: "/post/edit/[id]", params: { id: p.id } })
-                }
+                onPress={() => router.push({ pathname: "/post/[id]", params: { id: p.id } })}
+                accessibilityHint="Shows the project the way other people see it"
               >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
@@ -336,7 +335,13 @@ export default function ProfileScreen() {
                     {p.is_active ? "" : " · inactive"}
                   </Text>
                 </View>
-                <Pencil size={16} color={colors.iconFaint} />
+                <Pressable
+                  hitSlop={10}
+                  onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: p.id } })}
+                  accessibilityLabel={`Edit ${p.title}`}
+                >
+                  <Pencil size={16} color={colors.iconFaint} />
+                </Pressable>
               </Pressable>
             ))
           )}

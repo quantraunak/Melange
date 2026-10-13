@@ -112,7 +112,7 @@ export default function NewEventScreen() {
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Host an event</Text>
+        <Text style={styles.headerTitle}>Post an event</Text>
         <Pressable hitSlop={12} onPress={() => router.back()}>
           <X size={22} color={colors.text} />
         </Pressable>
@@ -120,7 +120,8 @@ export default function NewEventScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.hint}>
-          Photo walks, open calls, meetups — bring creatives together in real life.
+          Photo walks, open calls, meetups, small shows. Coming up or already done: past
+          events stay on Explore as ideas, and people can message you about the next one.
         </Text>
 
         <Pressable style={styles.coverBox} onPress={pickCover}>
@@ -170,7 +171,7 @@ export default function NewEventScreen() {
           />
         </Field>
 
-        <Field label="Starts (local time)">
+        <Field label="Starts (local time)" hint="Already happened? Put the date it was on.">
           <TextInput
             value={startLocal}
             onChangeText={setStartLocal}
