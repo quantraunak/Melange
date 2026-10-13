@@ -140,10 +140,19 @@ Deno.serve(async (req: Request) => {
       })));
     }
   } else if (payload.type === "like") {
-    // A one-way like. The owner is told that someone liked the project and
-    // deliberately NOT who: seeing the name is the thing worth charging for
-    // later, and a notification that names the liker gives it away for free.
-    // Telling them something happened is what brings them back to the app.
+    // A one-way like, and it NAMES the person.
+    //
+    // This first shipped as an anonymous tease, copied from Tinder, which was
+    // wrong: on Tinder you are the scarce side being evaluated as a person, so
+    // withholding the name protects egos and creates something to sell. Here
+    // the roles are reversed. You posted a project and you need crew, so a like
+    // is an applicant raising their hand, and hiding your own applicants from
+    // you is just a broken funnel.
+    //
+    // Nothing about safety is given up. The liker volunteered; naming them to
+    // the owner exposes nobody to unwanted contact. The protection that matters
+    // runs the other way, and still holds: the liker cannot message the owner
+    // until the owner accepts.
     const { swiper_id, post_id } = payload.record;
 
     const { data: post } = await admin
@@ -153,17 +162,21 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (!post || post.owner_id === swiper_id) return new Response("ok");
 
-    const tokens = await tokensFor(post.owner_id);
+    const [tokens, liker] = await Promise.all([
+      tokensFor(post.owner_id),
+      nameFor(swiper_id),
+    ]);
     const title = (post.title ?? "").trim();
 
     await sendExpo(tokens.map((to) => ({
       to,
+      // No pronoun: the name is the one thing known for certain.
+      title: `${liker} is interested`,
       sound: "default",
-      title: "Someone liked your project",
       body: title
-        ? `Swipe on them back to open a chat about "${title.slice(0, 60)}".`
-        : "Swipe on them back to open a chat.",
-      data: { kind: "like", postId: post_id },
+        ? `Liked your project "${title.slice(0, 60)}".`
+        : "Liked one of your projects.",
+      data: { kind: "like", postId: post_id, userId: swiper_id },
     })));
   }
 
