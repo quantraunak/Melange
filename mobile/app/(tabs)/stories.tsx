@@ -15,6 +15,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { BookOpen, CalendarRange, Pencil, Users } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { EventsFeed } from "@/components/EventsFeed";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { Glass } from "@/components/ui/Glass";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -28,13 +29,17 @@ import { sized } from "@/lib/imageUrl";
 const { width: SCREEN_W } = Dimensions.get("window");
 
 
+type Section = "stories" | "events";
+
 /**
- * Work — what people already made.
+ * Explore — collabs that went great, and events.
  *
- * The swipe deck is work that is looking for people; this is work that
- * happened. It is the half of the app that is worth opening on a day when
- * nobody has posted a project, because anyone can write up a collaboration
- * from last year, including one made entirely off Melange.
+ * Stories: the swipe deck is work that is looking for people; this is work
+ * that happened. It is the half of the app that is worth opening on a day
+ * when nobody has posted a project, because anyone can write up a
+ * collaboration from last year, including one made entirely off Melange.
+ *
+ * Events: photo walks, open calls and meetups, coming up and already done.
  */
 export default function StoriesScreen() {
   const router = useRouter();
@@ -47,6 +52,8 @@ export default function StoriesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [section, setSection] = useState<Section>("stories");
+  const [eventsReload, setEventsReload] = useState(0);
 
   const load = useCallback(async () => {
     const res = await getStories();
@@ -76,6 +83,10 @@ export default function StoriesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
+              if (section === "events") {
+                setEventsReload((k) => k + 1);
+                return;
+              }
               setRefreshing(true);
               load();
             }}
@@ -85,15 +96,43 @@ export default function StoriesScreen() {
       >
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.heading}>Work</Text>
+            <Text style={styles.heading}>Explore</Text>
           </View>
-          {!unavailable && userId ? (
+          {section === "stories" && !unavailable && userId ? (
             <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
               <Text style={styles.headerAction}>Add</Text>
             </Pressable>
           ) : null}
         </View>
 
+        <View style={styles.segments} accessibilityRole="tablist">
+          {(
+            [
+              ["stories", "Stories"],
+              ["events", "Events"],
+            ] as const
+          ).map(([key, label]) => (
+            <Pressable
+              key={key}
+              onPress={() => setSection(key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: section === key }}
+              style={[styles.segment, section === key && styles.segmentOn]}
+            >
+              <Text style={[styles.segmentText, section === key && styles.segmentTextOn]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.sectionHint}>
+          {section === "stories"
+            ? "Collabs that went great. Ideas for your next one."
+            : "Meetups and shoots, coming up and already done."}
+        </Text>
+
+        {section === "events" ? (
+          <EventsFeed reloadKey={eventsReload} />
+        ) : (
+        <>
         <ErrorBanner message={error} />
 
         {loading ? (
@@ -134,6 +173,8 @@ export default function StoriesScreen() {
               />
             ))}
           </View>
+        )}
+        </>
         )}
       </ScrollView>
     </View>
@@ -245,6 +286,19 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "flex-end" },
   heading: typography.display1,
   headerAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
+  segments: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+    padding: 3,
+  },
+  segment: { flex: 1, paddingVertical: 8, borderRadius: radii.pill, alignItems: "center" },
+  segmentOn: { backgroundColor: colors.surface, ...shadows.card },
+  segmentText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
+  segmentTextOn: { color: colors.text },
+  sectionHint: { ...typography.caption, color: colors.textSecondary, marginTop: -4 },
 
   card: {
     borderRadius: radii.lg,

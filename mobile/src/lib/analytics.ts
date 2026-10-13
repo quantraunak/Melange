@@ -12,7 +12,8 @@ export type AnalyticsEvent =
   | "message_sent"
   | "review_submitted"
   | "event_rsvp"
-  | "event_created";
+  | "event_created"
+  | "conversation_started";
 
 export function trackEvent(
   event: AnalyticsEvent,

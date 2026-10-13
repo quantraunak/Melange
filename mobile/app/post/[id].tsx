@@ -16,6 +16,9 @@ import * as Haptics from "expo-haptics";
 import {
   CalendarDays,
   Check,
+  ChevronRight,
+  Eye,
+  MessageCircle,
   Sparkles,
   Flag,
   MapPin,
@@ -234,29 +237,52 @@ export default function ProjectDetailScreen() {
             ) : null}
           </Glass>
 
+          {isMine ? (
+            <View style={styles.previewNote}>
+              <Eye size={16} color={colors.brandText} />
+              <Text style={styles.previewNoteText}>
+                Preview: this is how your project looks to everyone else.
+                {post.is_active ? "" : " It's inactive, so nobody else sees it right now."}
+              </Text>
+            </View>
+          ) : null}
+
           {creator ? (
-            <Glass radius={radii.md} style={styles.byCard}>
-              <Avatar creator={creator} size="lg" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.eyebrow}>Posted by</Text>
-                <Text style={styles.byName}>
-                  {creator.name}
-                  {creator.verification_status === "verified" ? " ✓" : ""}
-                </Text>
-                {creator.role ? <Text style={styles.byRole}>{creator.role}</Text> : null}
-              </View>
-              {!isMine ? (
-                <Pressable
-                  hitSlop={10}
-                  accessibilityLabel="Report this project"
-                  onPress={() =>
-                    router.push({ pathname: "/report/[kind]/[id]", params: { kind: "post", id: post.id } })
-                  }
-                >
-                  <Flag size={18} color={colors.iconFaint} />
-                </Pressable>
-              ) : null}
-            </Glass>
+            <Pressable
+              onPress={
+                isMine
+                  ? undefined
+                  : () => router.push({ pathname: "/profile/[userId]", params: { userId: post.owner_id } })
+              }
+              disabled={isMine}
+              accessibilityRole={isMine ? undefined : "button"}
+              accessibilityLabel={isMine ? undefined : `${creator.name}'s profile`}
+              style={({ pressed }) => [pressed && !isMine && { opacity: 0.7 }]}
+            >
+              <Glass radius={radii.md} style={styles.byCard}>
+                <Avatar creator={creator} size="lg" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.eyebrow}>Posted by</Text>
+                  <Text style={styles.byName}>
+                    {creator.name}
+                    {creator.verification_status === "verified" ? " ✓" : ""}
+                  </Text>
+                  {creator.role ? <Text style={styles.byRole}>{creator.role}</Text> : null}
+                </View>
+                {!isMine ? (
+                  <Pressable
+                    hitSlop={10}
+                    accessibilityLabel="Report this project"
+                    onPress={() =>
+                      router.push({ pathname: "/report/[kind]/[id]", params: { kind: "post", id: post.id } })
+                    }
+                  >
+                    <Flag size={18} color={colors.iconFaint} />
+                  </Pressable>
+                ) : null}
+                {!isMine ? <ChevronRight size={18} color={colors.iconFaint} /> : null}
+              </Glass>
+            </Pressable>
           ) : null}
 
           <Text style={styles.posted}>Posted {new Date(post.created_at).toLocaleDateString()}</Text>
@@ -267,6 +293,21 @@ export default function ProjectDetailScreen() {
             content is short, so there is never a dead gap above it. */}
         {!isMine ? (
           <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/message/[userId]",
+                  params: { userId: post.owner_id, origin: "project", originId: post.id, about: post.title },
+                })
+              }
+              style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
+              accessibilityRole="button"
+            >
+              <MessageCircle size={18} color={colors.accentInk} />
+              <Text style={styles.messageText}>
+                Message {creator?.name.split(" ")[0] ?? "them"} about this
+              </Text>
+            </Pressable>
             {swiped === "right" ? (
               <View style={styles.applied}>
                 <Check size={18} color={colors.accent} strokeWidth={2.75} />
@@ -291,7 +332,16 @@ export default function ProjectDetailScreen() {
             )}
           </View>
         ) : (
-          <View style={{ height: Math.max(insets.bottom, 16) }} />
+          <View style={[styles.applyBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Pressable
+              onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: post.id } })}
+              style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
+              accessibilityRole="button"
+            >
+              <Pencil size={16} color={colors.accentInk} />
+              <Text style={styles.messageText}>Edit project</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
 
@@ -379,7 +429,29 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     paddingHorizontal: 16,
     paddingTop: 20,
+    gap: 10,
   },
+  messageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 50,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentSoft,
+  },
+  messageText: { ...typography.bodyStrong, color: colors.accentInk },
+  previewNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+  },
+  previewNoteText: { ...typography.caption, flex: 1, color: colors.brandText },
   applyBtn: {
     flexDirection: "row",
     alignItems: "center",

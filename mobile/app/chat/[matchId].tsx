@@ -260,7 +260,7 @@ export default function ChatScreen() {
               {match.other_creator.name}
             </Text>
             <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {match.other_post.title}
+              {match.context}
             </Text>
           </View>
         </Pressable>
