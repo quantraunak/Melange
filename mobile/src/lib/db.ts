@@ -1,6 +1,7 @@
+import { Image as RNImage } from "react-native";
 import * as FileSystem from "expo-file-system";
-import { decode as decodeBase64 } from "base64-arraybuffer";
-import { supabase } from "./supabase";
+import * as ImageManipulator from "expo-image-manipulator";
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase";
 import { getReputationForUsers } from "./reviews";
 
 // ============================================================
@@ -275,45 +276,194 @@ function errMsg(e: unknown): string {
 // Storage
 // ============================================================
 
+/** Longest edge, in pixels, that an uploaded image is reduced to. */
+const MAX_IMAGE_EDGE = 1600;
+/** How long one image gets before the upload is cancelled and reported. */
+const UPLOAD_TIMEOUT_MS = 45_000;
+/** Attempts per image, including the first. */
+const UPLOAD_ATTEMPTS = 3;
+
+export type UploadProgress = {
+  /** 0 to 1 for the current image. */
+  fraction: number;
+  /** Which attempt is in flight, 1-based. */
+  attempt: number;
+};
+
+/** Read an image's pixel dimensions from its header. Null if that fails. */
+async function imageSize(uri: string): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    RNImage.getSize(
+      uri,
+      (w, h) => resolve({ w, h }),
+      () => resolve(null)
+    );
+  });
+}
+
 /**
- * Upload a local file URI or Blob to Supabase Storage.
- * Returns the public URL on success.
+ * Downscale and re-encode an image before it goes over the network.
+ *
+ * A photo straight out of an iPhone is about 4032x3024 and three to five
+ * megabytes. Melange never displays one larger than a phone screen, so sending
+ * the original wastes the user's upload bandwidth by roughly a factor of ten.
+ * Re-encoding also normalises HEIC to JPEG, which the previous code assumed had
+ * already happened.
+ *
+ * Falls back to the original file if the resize fails for any reason: a smaller
+ * image is an optimisation, not a requirement.
+ */
+async function prepareImage(
+  fileUri: string,
+  hint?: { width?: number; height?: number }
+): Promise<{ uri: string; contentType: string }> {
+  try {
+    const dims =
+      hint?.width && hint?.height
+        ? { w: hint.width, h: hint.height }
+        : await imageSize(fileUri);
+
+    const actions: ImageManipulator.Action[] = [];
+    if (dims && Math.max(dims.w, dims.h) > MAX_IMAGE_EDGE) {
+      // Constrain the LONGER edge, so a portrait photo is not left tall.
+      actions.push(
+        dims.w >= dims.h
+          ? { resize: { width: MAX_IMAGE_EDGE } }
+          : { resize: { height: MAX_IMAGE_EDGE } }
+      );
+    }
+
+    const out = await ImageManipulator.manipulateAsync(fileUri, actions, {
+      compress: 0.8,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
+    return { uri: out.uri, contentType: "image/jpeg" };
+  } catch {
+    return { uri: fileUri, contentType: "image/jpeg" };
+  }
+}
+
+/** A status that another attempt might clear. 4xx other than 429 will not. */
+function isRetryable(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Upload a local image to Supabase Storage. Returns the public URL on success.
+ *
+ * This deliberately does not use supabase-js's storage client. That path read
+ * the file with `FileSystem.readAsStringAsync` as base64 and decoded it to an
+ * ArrayBuffer, so a five megabyte photo became a seven megabyte JS string plus
+ * a five megabyte buffer, allocated on the JS thread, five times over for a
+ * five-photo post. It also had no timeout, so a weak connection left the form
+ * spinning with no way out, and no retry, so one dropped packet discarded four
+ * screens of typing.
+ *
+ * `createUploadTask` streams the file from native code, reports progress, and
+ * can be cancelled, which is what makes the timeout and the retry possible.
  */
 export async function uploadFile(
   userId: string,
   folder: "avatars" | "posts",
   fileUri: string,
-  contentType: string = "image/jpeg"
+  contentType: string = "image/jpeg",
+  opts?: {
+    width?: number;
+    height?: number;
+    onProgress?: (p: UploadProgress) => void;
+  }
 ): Promise<{ url: string | null; error: string | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) {
+    return { url: null, error: "You are signed out. Sign in again and retry." };
+  }
+
+  let prepared: { uri: string; contentType: string };
   try {
-    // fetch(fileUri).blob() is unreliable on React Native (esp. with the New
-    // Architecture) and silently produces empty/corrupt uploads. Read the
-    // file as base64 via expo-file-system and decode to an ArrayBuffer instead.
-    const base64 = await FileSystem.readAsStringAsync(fileUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    const fileData = decodeBase64(base64);
-
-    const ext = (() => {
-      const m = fileUri.match(/\.([a-zA-Z0-9]+)(?:\?.*)?$/);
-      if (m) return m[1].toLowerCase();
-      if (contentType.includes("png")) return "png";
-      return "jpg";
-    })();
-
-    const path = `${folder}/${userId}/${Date.now()}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from("media")
-      .upload(path, fileData, { upsert: true, contentType });
-
-    if (error) return { url: null, error: error.message };
-
-    const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-    return { url: urlData.publicUrl, error: null };
+    prepared = await prepareImage(fileUri, opts);
   } catch (err) {
     return { url: null, error: errMsg(err) };
   }
+
+  const ext = prepared.contentType.includes("png") ? "png" : "jpg";
+  const path = `${folder}/${userId}/${Date.now()}.${ext}`;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+
+  let lastError = "Upload failed.";
+
+  for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
+    opts?.onProgress?.({ fraction: 0, attempt });
+
+    const task = FileSystem.createUploadTask(
+      endpoint,
+      prepared.uri,
+      {
+        httpMethod: "POST",
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": prepared.contentType,
+          "x-upsert": "true",
+        },
+      },
+      (p) => {
+        const total = p.totalBytesExpectedToSend || 0;
+        if (total > 0) {
+          opts?.onProgress?.({
+            fraction: Math.min(1, p.totalBytesSent / total),
+            attempt,
+          });
+        }
+      }
+    );
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timedOut = false;
+
+    try {
+      const res = await Promise.race([
+        task.uploadAsync(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            timedOut = true;
+            task.cancelAsync().catch(() => {});
+            reject(new Error("timeout"));
+          }, UPLOAD_TIMEOUT_MS);
+        }),
+      ]);
+
+      if (!res) {
+        lastError = "Upload was cancelled.";
+      } else if (res.status >= 200 && res.status < 300) {
+        const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+        opts?.onProgress?.({ fraction: 1, attempt });
+        return { url: urlData.publicUrl, error: null };
+      } else if (res.status === 401 || res.status === 403) {
+        // Permission, not connectivity. Another attempt cannot help.
+        return {
+          url: null,
+          error: "That upload was refused. Sign out and back in, then retry.",
+        };
+      } else {
+        lastError = `Upload failed (${res.status}).`;
+        if (!isRetryable(res.status)) return { url: null, error: lastError };
+      }
+    } catch (err) {
+      lastError = timedOut
+        ? "That image is taking too long on this connection."
+        : errMsg(err);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+
+    if (attempt < UPLOAD_ATTEMPTS) await sleep(attempt * 1500);
+  }
+
+  return { url: null, error: `${lastError} Check your connection and retry.` };
 }
 
 // ============================================================

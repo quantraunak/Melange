@@ -42,7 +42,7 @@ export type ProjectFormValues = {
 
 type Asset =
   | { kind: "remote"; url: string }
-  | { kind: "local"; uri: string; mimeType?: string };
+  | { kind: "local"; uri: string; mimeType?: string; width?: number; height?: number };
 
 const STEPS = ["What", "Roles", "When & where", "Pay & poster"] as const;
 
@@ -141,6 +141,17 @@ export function ProjectForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  /**
+   * What the upload is actually doing. The old copy said "Uploading images…"
+   * next to a spinner that never changed, so a stalled upload and a slow one
+   * looked identical and there was nothing to do but force-quit.
+   */
+  const [progress, setProgress] = useState<{
+    index: number;
+    total: number;
+    fraction: number;
+    attempt: number;
+  } | null>(null);
 
   const picks = useMemo(() => weekendPicks(), []);
 
@@ -179,6 +190,8 @@ export function ProjectForm({
       kind: "local",
       uri: a.uri,
       mimeType: a.mimeType,
+      width: a.width,
+      height: a.height,
     }));
     setAssets((prev) => [...prev, ...newAssets].slice(0, MAX_IMAGES));
   };
@@ -223,20 +236,44 @@ export function ProjectForm({
     setUploading(true);
 
     const finalUrls: string[] = [];
+    const toUpload = assets.filter((a) => a.kind === "local").length;
+    let done = 0;
     for (const a of assets) {
       if (a.kind === "remote") {
         finalUrls.push(a.url);
       } else {
-        const { url, error: upErr } = await uploadFile(userId, "posts", a.uri, a.mimeType || "image/jpeg");
+        setProgress({ index: done + 1, total: toUpload, fraction: 0, attempt: 1 });
+        const { url, error: upErr } = await uploadFile(
+          userId,
+          "posts",
+          a.uri,
+          a.mimeType || "image/jpeg",
+          {
+            width: a.width,
+            height: a.height,
+            onProgress: (p) =>
+              setProgress({
+                index: done + 1,
+                total: toUpload,
+                fraction: p.fraction,
+                attempt: p.attempt,
+              }),
+          }
+        );
         if (upErr || !url) {
+          // Everything typed so far stays on screen: the form is not reset, so
+          // the only thing lost is the retry.
           setUploading(false);
+          setProgress(null);
           setError(upErr || "Image upload failed.");
           return;
         }
+        done += 1;
         finalUrls.push(url);
       }
     }
     setUploading(false);
+    setProgress(null);
 
     const { error: submitErr } = await onSubmit({
       title: title.trim(),
@@ -385,7 +422,15 @@ export function ProjectForm({
         {uploading ? (
           <View style={styles.uploadHint}>
             <ActivityIndicator size="small" color={colors.text} />
-            <Text style={styles.uploadHintText}>Uploading images…</Text>
+            <Text style={styles.uploadHintText}>
+              {progress
+                ? progress.attempt > 1
+                  ? `Photo ${progress.index} of ${progress.total} · retrying`
+                  : `Photo ${progress.index} of ${progress.total} · ${Math.round(
+                      progress.fraction * 100
+                    )}%`
+                : "Getting your photos ready…"}
+            </Text>
           </View>
         ) : null}
       </ScrollView>

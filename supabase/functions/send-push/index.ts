@@ -1,9 +1,13 @@
 // Supabase Edge Function: send-push
 // Deploy with: supabase functions deploy send-push --no-verify-jwt
-// Then wire up Database Webhooks:
-//   - messages INSERT  -> POST { type: "message", record }
-//   - matches  INSERT  -> POST { type: "match",   record }
-// (Settings > Webhooks in the Supabase Dashboard.) Set the webhook's
+// The callers are defined in supabase/schema/12_push_webhooks.sql as ordinary
+// Postgres triggers, NOT as Dashboard webhooks:
+//   - swipes   INSERT (right) -> POST { type: "like",    record }
+//   - matches  INSERT         -> POST { type: "match",   record }
+//   - messages INSERT         -> POST { type: "message", record }
+// They were Dashboard webhooks originally, which is why push silently never
+// worked: the only record of the step was this comment telling a human to go
+// click through a settings page, and nobody did. Set the caller's
 // "Authorization" header to `Bearer <PUSH_WEBHOOK_SECRET>` — a dedicated
 // secret set via `supabase secrets set PUSH_WEBHOOK_SECRET=...`, NOT the
 // service_role key, so a leaked webhook header can't grant DB admin access.
@@ -46,6 +50,10 @@ type Payload =
   | {
       type: "match";
       record: { id: string; user1_id: string; user2_id: string };
+    }
+  | {
+      type: "like";
+      record: { id: string; swiper_id: string; post_id: string; direction: string };
     };
 
 async function tokensFor(userId: string): Promise<string[]> {
@@ -131,6 +139,32 @@ Deno.serve(async (req: Request) => {
         data: { kind: "match", matchId: id },
       })));
     }
+  } else if (payload.type === "like") {
+    // A one-way like. The owner is told that someone liked the project and
+    // deliberately NOT who: seeing the name is the thing worth charging for
+    // later, and a notification that names the liker gives it away for free.
+    // Telling them something happened is what brings them back to the app.
+    const { swiper_id, post_id } = payload.record;
+
+    const { data: post } = await admin
+      .from("collab_posts")
+      .select("owner_id,title")
+      .eq("id", post_id)
+      .maybeSingle();
+    if (!post || post.owner_id === swiper_id) return new Response("ok");
+
+    const tokens = await tokensFor(post.owner_id);
+    const title = (post.title ?? "").trim();
+
+    await sendExpo(tokens.map((to) => ({
+      to,
+      sound: "default",
+      title: "Someone liked your project",
+      body: title
+        ? `Swipe on them back to open a chat about "${title.slice(0, 60)}".`
+        : "Swipe on them back to open a chat.",
+      data: { kind: "like", postId: post_id },
+    })));
   }
 
   return new Response("ok");

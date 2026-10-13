@@ -19,6 +19,16 @@ if (!url || !anon) {
   );
 }
 
+/**
+ * Exported because uploads do not go through supabase-js. The storage client
+ * reads the whole file into memory as base64 before sending it, which stalls
+ * the JS thread on a full-resolution phone photo; `uploadFile` in db.ts streams
+ * the file natively against the storage REST endpoint instead, and needs the
+ * project URL and anon key to address it.
+ */
+export const SUPABASE_URL = url;
+export const SUPABASE_ANON_KEY = anon;
+
 export const supabase = createClient(url, anon, {
   auth: {
     storage: AsyncStorage,
