@@ -20,6 +20,7 @@ import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
 import { colors, fonts, radii, typography } from "@/lib/theme";
+import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 
 const ROLES = [
@@ -71,6 +72,11 @@ export default function Signup() {
       );
       return;
     }
+
+    // The top of the funnel, and it was never recorded. Without it there is no
+    // way to tell someone who signed up and left from someone who never arrived,
+    // which is exactly the question the only real signup so far poses.
+    trackEvent("signup_completed", { has_role: Boolean(role) });
 
     const skillsArr = skills.split(",").map((s) => s.trim()).filter(Boolean);
 

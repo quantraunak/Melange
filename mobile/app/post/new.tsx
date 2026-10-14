@@ -8,6 +8,7 @@ import { ProjectForm } from "@/components/ProjectForm";
 import { Button } from "@/components/ui/Button";
 import { colors, spacing, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { trackEvent } from "@/lib/analytics";
 import { createPost, getProfile, profileGate, type Profile } from "@/lib/db";
 
 export default function NewProjectsScreen() {
@@ -73,7 +74,14 @@ export default function NewProjectsScreen() {
             media_urls: v.mediaUrls.length ? v.mediaUrls : undefined,
           });
           setBusy(false);
-          if (!error) router.back();
+          if (!error) {
+            trackEvent("post_created", {
+              roles: v.roles.length,
+              photos: v.mediaUrls.length,
+              pay_type: v.payType ?? null,
+            });
+            router.back();
+          }
           return { error };
         }}
       />

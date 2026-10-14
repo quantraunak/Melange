@@ -18,6 +18,7 @@ import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
 import { colors, fonts, radii, typography } from "@/lib/theme";
+import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
@@ -32,7 +33,11 @@ export default function Login() {
     setError(null);
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
-    if (err) setError(err.message);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    trackEvent("login");
   };
 
   return (
