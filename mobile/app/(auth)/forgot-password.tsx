@@ -90,7 +90,7 @@ export default function ForgotPassword() {
           </View>
 
           <View style={styles.header}>
-            <Logo size={64} tone="onBrand" />
+            <Logo size={64} />
             <Text style={styles.title}>Reset your password</Text>
             <Text style={styles.subtitle}>
               {sent
