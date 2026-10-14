@@ -64,7 +64,7 @@ export function PushPrimer({ userId }: { userId: string }) {
     <View style={styles.bar}>
       <Bell size={15} color={colors.textSecondary} />
       <Text style={styles.text} numberOfLines={2}>
-        Get notified when someone matches you.
+        Get notified when someone likes your project.
       </Text>
       <Pressable onPress={enable} disabled={busy} hitSlop={10}>
         <Text style={styles.action}>{busy ? "…" : "Turn on"}</Text>

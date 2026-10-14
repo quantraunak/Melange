@@ -11,6 +11,9 @@ import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCar
 import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { PushPrimer } from "@/components/PushPrimer";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, GUTTER, motion, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
@@ -32,6 +35,9 @@ import {
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
+/** Set the first time someone likes a project. See hasLiked. */
+const LIKED_KEY = "melange.hasLiked.v1";
+
 export default function DiscoverScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -49,6 +55,16 @@ export default function DiscoverScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [swiping, setSwiping] = useState(false);
   const [pendingButtonSwipe, setPendingButtonSwipe] = useState<SwipeDir | null>(null);
+  /**
+   * Whether this person has ever liked anything, which is when the offer of a
+   * notification is worth making. See the slot at the bottom of the screen.
+   */
+  const [hasLiked, setHasLiked] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem(LIKED_KEY)
+      .then((v) => setHasLiked(v === "1"))
+      .catch(() => {});
+  }, []);
 
   const [celebration, setCelebration] = useState<
     { creator: CreatorInfo; matchId: string; projectTitle: string } | null
@@ -163,6 +179,10 @@ export default function DiscoverScreen() {
       });
 
       if (dir === "right") {
+        // The moment asking about notifications makes sense: they have just
+        // said they want something, and the answer arrives later or not at all.
+        setHasLiked(true);
+        AsyncStorage.setItem(LIKED_KEY, "1").catch(() => {});
         const { match, error: matchErr } = await checkAndCreateMatch(userId, post.id);
         if (matchErr) setError(matchErr);
         if (match) {
@@ -343,6 +363,21 @@ export default function DiscoverScreen() {
               <Text style={styles.gateAction}>Edit profile</Text>
             </Pressable>
           </Glass>
+        </View>
+      ) : hasLiked && userId ? (
+        /**
+         * Notifications are offered here, not only on Messages.
+         *
+         * The only ask used to live in the Messages list header, with the
+         * reasoning that by then you have matches. But you have no reason to
+         * open Messages until you already have one, and the notification worth
+         * having is the one telling you that you just got your first. So the
+         * ask was unreachable exactly when it mattered: of twelve accounts,
+         * ten had never registered a device and could not be notified of
+         * anything, including the owner.
+         */
+        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
+          <PushPrimer userId={userId} />
         </View>
       ) : null}
     </View>

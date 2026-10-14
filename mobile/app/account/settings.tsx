@@ -3,7 +3,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
-  CalendarDays,
   ChevronRight,
   FileText,
   LogOut,
@@ -44,11 +43,6 @@ export default function SettingsScreen() {
       icon: <User size={18} color={colors.iconFaint} />,
       label: "Edit profile",
       onPress: () => router.push("/account/edit-profile"),
-    },
-    {
-      icon: <CalendarDays size={18} color={colors.iconFaint} />,
-      label: "Events",
-      onPress: () => router.push("/events"),
     },
     {
       icon: <ShieldOff size={18} color={colors.iconFaint} />,
