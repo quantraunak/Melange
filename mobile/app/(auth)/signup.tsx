@@ -80,7 +80,7 @@ export default function Signup() {
 
     const skillsArr = skills.split(",").map((s) => s.trim()).filter(Boolean);
 
-    const { error: profileErr } = await supabase.from("profiles").insert({
+    const { error: profileErr } = await supabase.from("profiles").upsert({
       user_id: userId,
       name: name.trim(),
       role: role || null,
@@ -88,7 +88,7 @@ export default function Signup() {
       current_project: project.trim() || null,
       skills: skillsArr.length ? skillsArr : null,
       avatar_url: null,
-    });
+    }, { onConflict: "user_id" });
 
     setLoading(false);
 

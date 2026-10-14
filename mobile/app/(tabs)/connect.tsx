@@ -22,6 +22,7 @@ import { trackEvent } from "@/lib/analytics";
 import { useBarTop } from "./_layout";
 import {
   checkAndCreateMatch,
+  getExplorePosts,
   getFeedPosts,
   getProfile,
   profileGate,
@@ -48,6 +49,17 @@ export default function DiscoverScreen() {
   const tx = useSharedValue(0);
 
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
+  /**
+   * How many active projects exist that this person did not write, regardless
+   * of whether they have swiped them.
+   *
+   * Without this the deck cannot tell "nobody has posted anything" from "you
+   * have seen all of them", and it showed the first message in both cases.
+   * With ten projects in the whole app, everyone who actually used Discover
+   * swiped through all of them and was then told, falsely, that there were no
+   * open collabs and that they should post a project they had already posted.
+   */
+  const [catalogueSize, setCatalogueSize] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +95,11 @@ export default function DiscoverScreen() {
   const load = useCallback(async () => {
     if (!userId) return;
     setError(null);
+    // Counted separately from the deck, which excludes anything already swiped.
+    getExplorePosts(userId)
+      .then(({ data: all }) => setCatalogueSize(all ? all.length : null))
+      .catch(() => {});
+
     const { data, error: err } = await getFeedPosts(userId);
     if (err) setError(err);
     else if (data) {
@@ -248,23 +265,38 @@ export default function DiscoverScreen() {
         ) : !current ? (
           <View style={[styles.centered, { paddingBottom: barTop + GUTTER }]}>
             <Glass style={styles.empty} elevated>
-              <Text style={styles.emptyTitle}>
-                {search ? "No projects match that." : "No open collabs right now."}
-              </Text>
-              <Text style={styles.emptyBody}>
-                {search
-                  ? "Try a role or a city instead."
-                  : "Post your own project so people can find you."}
-              </Text>
               {search ? (
-                <Pressable onPress={() => setSearch("")}>
-                  <Text style={styles.emptyLink}>Clear filter</Text>
-                </Pressable>
+                <>
+                  <Text style={styles.emptyTitle}>No projects match that.</Text>
+                  <Text style={styles.emptyBody}>Try a role or a city instead.</Text>
+                  <Pressable onPress={() => setSearch("")}>
+                    <Text style={styles.emptyLink}>Clear filter</Text>
+                  </Pressable>
+                </>
+              ) : catalogueSize && catalogueSize > 0 ? (
+                <>
+                  <Text style={styles.emptyTitle}>You&apos;re all caught up.</Text>
+                  <Text style={styles.emptyBody}>
+                    You&apos;ve seen every open project for now. New ones show up here.
+                  </Text>
+                  <Pressable
+                    onPress={() => router.push("/stories")}
+                    style={styles.emptyCta}
+                  >
+                    <Text style={styles.emptyCtaText}>Browse everything</Text>
+                  </Pressable>
+                </>
               ) : (
-                <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
-                  <Plus size={14} color={colors.onBrand} />
-                  <Text style={styles.emptyCtaText}>Post a project</Text>
-                </Pressable>
+                <>
+                  <Text style={styles.emptyTitle}>No open collabs right now.</Text>
+                  <Text style={styles.emptyBody}>
+                    Post your own project so people can find you.
+                  </Text>
+                  <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
+                    <Plus size={14} color={colors.onBrand} />
+                    <Text style={styles.emptyCtaText}>Post a project</Text>
+                  </Pressable>
+                </>
               )}
             </Glass>
           </View>

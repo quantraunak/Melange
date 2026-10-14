@@ -133,7 +133,7 @@ export default function AuthPage() {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const { error: profileErr } = await supabase.from("profiles").insert({
+      const { error: profileErr } = await supabase.from("profiles").upsert({
         user_id: userId,
         name: signupForm.name,
         role: signupForm.role || null,
@@ -141,7 +141,7 @@ export default function AuthPage() {
         current_project: signupForm.currentProject || null,
         skills: skillsArray.length ? skillsArray : null,
         avatar_url: null,
-      });
+      }, { onConflict: "user_id" });
 
       if (profileErr) {
         setSignupError(`Profile insert failed: ${profileErr.message}`);
