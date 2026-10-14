@@ -14,7 +14,10 @@ import {
   getUnswipedPosts,
   isMatchUnread,
   markMatchRead,
+  payLabel,
   PORTFOLIO_MAX_IMAGES,
+  projectDates,
+  projectRoles,
   recordSwipe,
   sendMessage,
   updatePortfolio,
@@ -1347,14 +1350,17 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
                   {detailPost.description && (
                     <div><span className="font-medium text-gray-700">Description:</span> <span className="text-gray-500">{detailPost.description}</span></div>
                   )}
-                  {detailPost.looking_for && detailPost.looking_for.length > 0 && (
-                    <div><span className="font-medium text-gray-700">Looking for:</span> <span className="text-gray-500">{detailPost.looking_for.join(", ")}</span></div>
+                  {projectRoles(detailPost).length > 0 && (
+                    <div><span className="font-medium text-gray-700">Looking for:</span> <span className="text-gray-500">{projectRoles(detailPost).join(", ")}</span></div>
                   )}
                   {detailPost.location && (
                     <div><span className="font-medium text-gray-700">Location:</span> <span className="text-gray-500">{detailPost.location}</span></div>
                   )}
-                  {detailPost.compensation && (
-                    <div><span className="font-medium text-gray-700">Compensation:</span> <span className="text-gray-500">{detailPost.compensation}</span></div>
+                  {projectDates(detailPost) && (
+                    <div><span className="font-medium text-gray-700">Dates:</span> <span className="text-gray-500">{projectDates(detailPost)}</span></div>
+                  )}
+                  {payLabel(detailPost) && (
+                    <div><span className="font-medium text-gray-700">Compensation:</span> <span className="text-gray-500">{payLabel(detailPost)}</span></div>
                   )}
                   <div><span className="font-medium text-gray-700">Posted:</span> <span className="text-gray-500">{new Date(detailPost.created_at).toLocaleDateString()}</span></div>
                 </div>

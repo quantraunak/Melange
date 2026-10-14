@@ -21,7 +21,12 @@ export type CollabReview = {
   created_at: string;
 };
 
-export type ReviewWithReviewer = CollabReview & {
+/**
+ * One review as a public profile shows it. match_id and reviewee_id are
+ * deliberately absent: public_reviews() does not return them, and nothing on
+ * the profile needs them.
+ */
+export type ReviewWithReviewer = Omit<CollabReview, "match_id" | "reviewee_id"> & {
   reviewer_name: string;
   reviewer_avatar_url: string | null;
 };
@@ -69,27 +74,44 @@ export async function getReputationForUsers(
   return map;
 }
 
+/**
+ * The reviews on someone's public profile.
+ *
+ * This used to read collab_reviews directly and apply the mutual-reveal rule in
+ * JavaScript, and the filter could never match. The list was fetched with
+ * `.eq("reviewee_id", X)`, so every row in it has reviewee_id = X; the filter
+ * then looked within that same list for a row whose reviewee_id equals the
+ * first row's REVIEWER — which is never X unless someone reviewed themselves,
+ * and the insert policy forbids that. So the function returned an empty array
+ * for every user, always, and every profile on the web read "No public reviews
+ * yet" no matter how many mutually revealed reviews existed. Confirmed against
+ * production: with two reciprocal reviews inserted in a rolled-back
+ * transaction, the client filter yielded 0 rows and the mutual-reveal rule
+ * yielded 1.
+ *
+ * public_reviews() (13_reach_out.sql) applies the rule in the database, which
+ * is what the iPhone app uses, so the two clients now agree.
+ */
 export async function getVisibleReviewsForUser(
   revieweeId: string
 ): Promise<{ data: ReviewWithReviewer[]; error: string | null }> {
   try {
-    const { data: reviews, error } = await supabase
-      .from("collab_reviews")
-      .select("*")
-      .eq("reviewee_id", revieweeId)
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.rpc("public_reviews", {
+      p_user_id: revieweeId,
+      p_limit: 20,
+    });
 
     if (error) return { data: [], error: error.message };
 
-    const list = (reviews as CollabReview[]) || [];
-    const visible = list.filter((r) =>
-      list.some(
-        (other) =>
-          other.match_id === r.match_id &&
-          other.reviewer_id === r.reviewee_id &&
-          other.reviewee_id === r.reviewer_id
-      )
-    );
+    const visible = (data || []) as {
+      id: string;
+      reviewer_id: string;
+      rating: number;
+      tags: string[] | null;
+      body: string | null;
+      created_at: string;
+    }[];
+    if (visible.length === 0) return { data: [], error: null };
 
     const reviewerIds = [...new Set(visible.map((r) => r.reviewer_id))];
     const { data: profiles } = await supabase
@@ -106,7 +128,12 @@ export async function getVisibleReviewsForUser(
 
     return {
       data: visible.map((r) => ({
-        ...r,
+        id: r.id,
+        reviewer_id: r.reviewer_id,
+        rating: r.rating,
+        tags: r.tags ?? [],
+        body: r.body,
+        created_at: r.created_at,
         reviewer_name: names.get(r.reviewer_id)?.name ?? "Collaborator",
         reviewer_avatar_url: names.get(r.reviewer_id)?.avatar ?? null,
       })),

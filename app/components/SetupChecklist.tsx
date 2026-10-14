@@ -1,19 +1,27 @@
 "use client";
 
 import { Check, Circle } from "lucide-react";
-import type { Profile } from "../lib/db";
+import { PROFILE_MIN_IMAGES, type Profile } from "../lib/db";
 
 export default function SetupChecklist({ profile }: { profile: Profile }) {
   const hasRole = !!profile.role?.trim();
   const hasBio = !!profile.bio?.trim();
   const portfolioN = profile.portfolio_urls?.length ?? 0;
-  const hasPortfolio = portfolioN >= 1;
+  // Three, not one. Three images and a role is the quality floor the iPhone app
+  // enforces before you can post or like (profileGate in mobile/src/lib/db.ts,
+  // profile_meets_floor in 11_profile_gate.sql). Telling someone on the web
+  // that one image completes their profile, and then refusing their first like
+  // on the phone, is the contradiction this line used to create.
+  const hasPortfolio = portfolioN >= PROFILE_MIN_IMAGES;
   const hasVibes = (profile.vibes?.length ?? 0) > 0;
   const hasInstagram = !!profile.instagram_url;
 
   const steps = [
     { done: hasRole, label: "Add your role (e.g. Photographer)" },
-    { done: hasPortfolio, label: "Add at least 1 portfolio image" },
+    {
+      done: hasPortfolio,
+      label: `Add ${PROFILE_MIN_IMAGES} portfolio images (${Math.min(portfolioN, PROFILE_MIN_IMAGES)}/${PROFILE_MIN_IMAGES})`,
+    },
     { done: hasVibes, label: "Pick creative vibes for better matches" },
     { done: hasBio, label: "Write a short bio" },
     { done: hasInstagram, label: "Link Instagram (helps earn Verified)" },

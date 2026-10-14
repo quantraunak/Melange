@@ -18,7 +18,7 @@ import { ArrowLeft, MoreVertical, Send } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, radii, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import {
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   input: {
-    ...typography.body,
+    ...inputText,
     flex: 1,
     backgroundColor: colors.surfaceSunken,
     borderRadius: radii.lg,

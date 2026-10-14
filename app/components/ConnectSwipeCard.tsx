@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   DollarSign,
@@ -12,7 +13,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { PostWithCreator } from "../lib/db";
+import { payLabel, projectDates, projectRoles, type PostWithCreator } from "../lib/db";
 import ReputationBadge from "./ReputationBadge";
 import VerifiedBadge from "./VerifiedBadge";
 
@@ -79,6 +80,12 @@ export default function ConnectSwipeCard({
   const rotate = useTransform(x, [-180, 180], [-10, 10]);
   const likeOpacity = useTransform(x, [20, 100], [0, 1]);
   const passOpacity = useTransform(x, [-100, -20], [1, 0]);
+
+  // Structured project fields (08_projects.sql) with the old free-text columns
+  // as the fallback, so a project posted from either client reads the same.
+  const roles = projectRoles(post);
+  const dates = projectDates(post);
+  const pay = payLabel(post);
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (info.offset.x > SWIPE_THRESHOLD) onSwipe("right");
@@ -159,14 +166,19 @@ export default function ConnectSwipeCard({
                 <MapPin className="h-3 w-3" /> {post.location}
               </span>
             ) : null}
-            {post.looking_for && post.looking_for.length > 0 ? (
+            {roles.length > 0 ? (
               <span className="flex items-center gap-0.5">
-                <Users className="h-3 w-3" /> {post.looking_for.join(", ")}
+                <Users className="h-3 w-3" /> {roles.join(", ")}
               </span>
             ) : null}
-            {post.compensation ? (
+            {dates ? (
               <span className="flex items-center gap-0.5">
-                <DollarSign className="h-3 w-3" /> {post.compensation}
+                <CalendarDays className="h-3 w-3" /> {dates}
+              </span>
+            ) : null}
+            {pay ? (
+              <span className="flex items-center gap-0.5">
+                <DollarSign className="h-3 w-3" /> {pay}
               </span>
             ) : null}
           </div>

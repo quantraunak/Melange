@@ -137,6 +137,52 @@ export const VIBE_PRESETS = [
 
 export const PORTFOLIO_MAX_IMAGES = 9;
 
+/**
+ * The quality floor: three portfolio images and a role before you may post a
+ * project or like someone. Mirrors PROFILE_MIN_IMAGES in mobile/src/lib/db.ts
+ * and profile_meets_floor() in 11_profile_gate.sql — change all three together.
+ */
+export const PROFILE_MIN_IMAGES = 3;
+
+export const PAY_TYPES: { key: NonNullable<CollabPost["pay_type"]>; label: string }[] = [
+  { key: "paid", label: "Paid" },
+  { key: "tfp", label: "Trade (TFP)" },
+  { key: "credit", label: "Credit" },
+];
+
+/**
+ * Roles on a project, structured column first.
+ *
+ * 08_projects.sql added `roles`, `project_start`, `project_end` and `pay_type`,
+ * and the iPhone app writes and reads them. The web read only the older
+ * free-text `looking_for` and `compensation`, so a project posted from the
+ * phone with pay_type 'credit' and no compensation string showed no pay at all
+ * on the web, and project dates never appeared. These three helpers mirror
+ * projectRoles/projectDates/payLabel in mobile/src/lib/db.ts.
+ */
+export function projectRoles(post: Pick<CollabPost, "roles" | "looking_for">): string[] {
+  if (post.roles?.length) return post.roles;
+  return post.looking_for ?? [];
+}
+
+/** "Oct 12" or "Oct 12 to 14", or null when no dates were set. */
+export function projectDates(
+  post: Pick<CollabPost, "project_start" | "project_end">
+): string | null {
+  if (!post.project_start) return null;
+  const fmt = (iso: string) =>
+    new Date(`${iso}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" });
+  const start = fmt(post.project_start);
+  if (!post.project_end || post.project_end === post.project_start) return start;
+  return `${start} to ${fmt(post.project_end)}`;
+}
+
+export function payLabel(post: Pick<CollabPost, "pay_type" | "compensation">): string | null {
+  const t = PAY_TYPES.find((x) => x.key === post.pay_type);
+  if (t) return post.compensation ? `${t.label} · ${post.compensation}` : t.label;
+  return post.compensation || null;
+}
+
 export type ReportReason =
   | "spam"
   | "harassment"

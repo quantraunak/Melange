@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, radii, typography, inputText } from "@/lib/theme";
 
 type Props = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
   },
-  input: { ...typography.body, backgroundColor: colors.surfaceSunken, borderColor: colors.lineStrong, borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, width: "100%" },
+  input: { ...inputText, backgroundColor: colors.surfaceSunken, borderColor: colors.lineStrong, borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, width: "100%" },
   leading: {
     position: "absolute",
     left: 12,

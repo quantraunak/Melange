@@ -248,3 +248,18 @@ export const haptics = {
   win: "success",
   fail: "error",
 } as const;
+
+/**
+ * `typography.body` with lineHeight removed, for use on a TextInput.
+ *
+ * On iOS a lineHeight set on a TextInput is applied as a paragraph style and
+ * clips the glyph box, so descenders are cut off: the tails of g, y, p, q and j
+ * disappear while you type. Our body token is 15/23, which is comfortable for
+ * paragraphs and too tight for an input at that size.
+ *
+ * Text, not TextInput, keeps the lineHeight — the clipping only affects inputs.
+ */
+export const inputText: TextStyle = (() => {
+  const { lineHeight: _ignored, ...rest } = typography.body;
+  return rest;
+})();

@@ -141,10 +141,19 @@ export default function EventsView({
 
   const handleRsvp = async (event: EventWithDetails, next: "going" | "interested" | null) => {
     setBusyEventId(event.id);
-    if (next === null) {
-      await cancelRsvp(event.id, userId);
-    } else {
-      await rsvpToEvent(event.id, userId, next);
+    // The result used to be discarded, and the optimistic update below ran
+    // regardless: a refused write — a deleted event, a lost connection — still
+    // read back as "Going", and stayed that way until the next reload.
+    const { error: rsvpError } = next === null
+      ? await cancelRsvp(event.id, userId)
+      : await rsvpToEvent(event.id, userId, next);
+    if (rsvpError) {
+      setError(rsvpError);
+      setBusyEventId(null);
+      await load();
+      return;
+    }
+    if (next !== null) {
       trackEvent("event_rsvp", { event_id: event.id, state: next });
     }
 

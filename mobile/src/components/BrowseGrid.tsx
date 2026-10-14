@@ -17,7 +17,7 @@ import { Avatar } from "@/components/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, GUTTER, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, shadows, typography, inputText } from "@/lib/theme";
 import { trackEvent } from "@/lib/analytics";
 import {
   checkAndCreateMatch,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   searchWrap: { flex: 1, position: "relative", justifyContent: "center" },
   searchIcon: { position: "absolute", left: 12, zIndex: 1 },
-  search: { ...typography.body, backgroundColor: colors.surface, borderColor: colors.lineStrong, borderWidth: 1, borderRadius: radii.sm, paddingVertical: 11, paddingLeft: 34, paddingRight: 32, color: colors.text },
+  search: { ...inputText, backgroundColor: colors.surface, borderColor: colors.lineStrong, borderWidth: 1, borderRadius: radii.sm, paddingVertical: 11, paddingLeft: 34, paddingRight: 32, color: colors.text },
   searchClear: { position: "absolute", right: 10, zIndex: 1 },
   filterBtn: {
     width: 42,

@@ -17,7 +17,7 @@ import { Send, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, spacing, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { trackEvent } from "@/lib/analytics";
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   aboutLabel: { ...typography.eyebrow, color: colors.textSecondary },
   aboutText: { ...typography.bodyStrong, color: colors.text },
   input: {
-    ...typography.body,
+    ...inputText,
     minHeight: 140,
     backgroundColor: colors.surfaceSunken,
     borderRadius: radii.sm,

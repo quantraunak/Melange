@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { TextArea } from "@/components/ui/TextArea";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { trackEvent } from "@/lib/analytics";
 import { uploadFile } from "@/lib/db";
@@ -264,5 +264,5 @@ const styles = StyleSheet.create({
   catEmoji: { ...typography.headline },
   catText: { ...typography.micro, color: colors.textSecondary, textAlign: "center", marginTop: 2 },
   catTextOn: { color: colors.brandText, fontFamily: fonts.semibold },
-  input: { ...typography.body, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, backgroundColor: colors.white },
+  input: { ...inputText, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, backgroundColor: colors.white },
 });

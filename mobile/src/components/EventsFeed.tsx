@@ -7,7 +7,7 @@ import { Calendar, Check, Clock, MapPin, MessageCircle, Plus, Star, Users, X } f
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, shadows, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import {
   cancelRsvp,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   },
   hostBtnText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.white },
   searchWrap: { position: "relative" },
-  search: { ...typography.body, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, color: colors.text, paddingRight: 36 },
+  search: { ...inputText, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, color: colors.text, paddingRight: 36 },
   clearBtn: {
     position: "absolute",
     right: 12,
