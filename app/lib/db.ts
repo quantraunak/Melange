@@ -87,6 +87,24 @@ export type Match = {
   post1_id: string | null;
   post2_id: string | null;
   created_at: string;
+  /**
+   * 13_reach_out.sql. getMatches() selects `*`, so these already arrive on
+   * every row; they were simply untyped here, which is how the web drifted
+   * behind mobile on reach-out threads in the first place. Declared so the
+   * next reader can see that a match is not necessarily a swipe and that
+   * neither post slot is guaranteed.
+   *
+   * origin: "swipe" is the mutual-like path (both slots set); the rest are
+   * reach-outs from start_conversation, where at least one slot is NULL.
+   * Production currently holds 3 swipe rows and 1 project row whose post2_id
+   * is NULL. NOT NULL in the database, and matches_origin_check pins the set
+   * to exactly these five.
+   */
+  origin: "swipe" | "project" | "profile" | "event" | "story";
+  /** The profile or project the reach-out came from. NULL for a swipe. */
+  origin_id: string | null;
+  /** Who opened a reach-out thread. NULL for a swipe (neither side "started" it). */
+  started_by: string | null;
 };
 
 export type MatchWithPost = Match & {
@@ -676,8 +694,33 @@ export async function updateProfile(
   }
 ): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase.from("profiles").update(updates).eq("user_id", userId);
-    return { error: error?.message ?? null };
+    // `.select("user_id")` is what makes a zero-row UPDATE detectable.
+    //
+    // PostgREST reports no error when an UPDATE matches nothing, so the plain
+    // `.update(...).eq("user_id", userId)` returned error:null for an account
+    // with no profiles row. handleSaveProfile then took the full success path:
+    // "Profile saved!", a profile_saved analytics event and a
+    // refresh_profile_verification call, with nothing written anywhere. The
+    // same no-op also reached updatePortfolio, so added images reported
+    // success and disappeared on reload.
+    //
+    // trg_create_profile_on_signup -> handle_new_user() now creates the row at
+    // signup (verified: 0 orphaned accounts in production), so this should not
+    // trigger any more. It stays because a save that writes nothing must never
+    // read as a save — if the row goes missing again for any other reason, the
+    // user sees a failure instead of a lie.
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("user_id", userId)
+      .select("user_id");
+    if (error) return { error: error.message };
+    if (!data?.length) {
+      return {
+        error: "We couldn't find your profile to save to. Try signing out and back in.",
+      };
+    }
+    return { error: null };
   } catch (err) {
     return { error: errMsg(err) };
   }

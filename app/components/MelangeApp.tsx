@@ -67,7 +67,6 @@ import EditPostDialog from "./EditPostDialog";
 import AccountSafetyDialog from "./AccountSafetyDialog";
 import ConnectSwipeCard from "./ConnectSwipeCard";
 import ExploreView from "./ExploreView";
-import EventsView from "./EventsView";
 import Logo from "./Logo";
 import PortfolioLightbox from "./PortfolioLightbox";
 import ProfileReviews from "./ProfileReviews";
@@ -82,7 +81,12 @@ import {
 import { trackEvent } from "../lib/analytics";
 import VerifiedBadge from "./VerifiedBadge";
 
-type Tab = "connect" | "explore" | "events" | "messages" | "profile";
+// No "events" tab: Events used to be reachable both here and as Explore's
+// "Local Events" sub-tab — one screen, two entry points, differing only in
+// EventsView's `embedded` chrome. Commit 64663df removed exactly this
+// duplication on mobile and settled on Explore as the single home; the web
+// client was missed. Explore -> Local Events is now the only path here too.
+type Tab = "connect" | "explore" | "messages" | "profile";
 type MessagesSubTab = "messages" | "matches";
 
 function formatTimeAgo(iso: string): string {
@@ -793,7 +797,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: "connect", label: "Connect" },
     { key: "explore", label: "Explore" },
-    { key: "events", label: "Events" },
     { key: "messages", label: "Messages", badge: unreadCount },
     { key: "profile", label: "Profile" },
   ];
@@ -976,11 +979,6 @@ export default function MelangeApp({ onSignOut }: { onSignOut: () => void }) {
               onNewIdea={() => setShowCreatePost(true)}
               onOpenPost={(post) => setDetailPost(post)}
             />
-          )}
-
-          {/* ======================== EVENTS TAB ======================== */}
-          {activeTab === "events" && userId && (
-            <EventsView userId={userId} />
           )}
 
           {/* ======================== MESSAGES TAB ======================== */}

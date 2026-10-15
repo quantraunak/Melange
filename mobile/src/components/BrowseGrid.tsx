@@ -23,10 +23,12 @@ import {
   checkAndCreateMatch,
   getExplorePosts,
   getMySwipes,
+  getProfile,
   projectRoles,
-  recordSwipe,
   type PostWithCreator,
+  type Profile,
 } from "@/lib/db";
+import { likeProject } from "@/lib/likeProject";
 
 /**
  * Browse — the Explore tab's first half.
@@ -70,6 +72,15 @@ export function BrowseGrid({ userId }: { userId: string }) {
   const [hideSeen, setHideSeen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [likingId, setLikingId] = useState<string | null>(null);
+  /**
+   * The grid's hearts write the same right swipe the deck does, so they are
+   * subject to the same photo/role floor — and the floor needs the whole
+   * profile, not a name. Browse used to skip the check entirely, which let a
+   * below-floor account like from here and (when the server-side floor was
+   * live) answered with a bare row-level-security string.
+   */
+  const [myProfile, setMyProfile] = useState<Profile | null>(null);
+  const [gateLine, setGateLine] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -86,6 +97,10 @@ export function BrowseGrid({ userId }: { userId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    getProfile(userId).then(({ data }) => setMyProfile(data));
+  }, [userId]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -109,14 +124,30 @@ export function BrowseGrid({ userId }: { userId: string }) {
     async (post: PostWithCreator) => {
       if (likingId) return;
       setLikingId(post.id);
+      setError(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { error: swErr } = await recordSwipe(userId, post.id, "right");
-      if (swErr) {
-        setError(swErr);
+      const outcome = await likeProject({
+        userId,
+        postId: post.id,
+        profile: myProfile,
+        // A "Passed" tile keeps a live heart on purpose — changing your mind
+        // is the point of seeing passes at all — so the write has to replace
+        // the existing 'left' row instead of colliding with it.
+        passed: swipes.get(post.id) === "left",
+      });
+      if (outcome.status === "blocked") {
+        setGateLine(outcome.line);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
         setLikingId(null);
         return;
       }
+      if (outcome.status === "failed") {
+        setError(outcome.message);
+        setLikingId(null);
+        return;
+      }
+      setGateLine(null);
       setSwipes((prev) => new Map(prev).set(post.id, "right"));
       trackEvent("swipe_right", { post_id: post.id, owner_id: post.owner_id, source: "browse" });
 
@@ -129,7 +160,7 @@ export function BrowseGrid({ userId }: { userId: string }) {
       }
       setLikingId(null);
     },
-    [userId, likingId, router]
+    [userId, likingId, router, myProfile, swipes]
   );
 
   if (loading) {
@@ -212,6 +243,17 @@ export function BrowseGrid({ userId }: { userId: string }) {
       ) : null}
 
       <ErrorBanner message={error} />
+
+      {/* Not an error: the same one line Discover shows, next to the action
+          that was refused, with the screen that fixes it one tap away. */}
+      {gateLine ? (
+        <View style={styles.gate}>
+          <Text style={styles.gateLine}>{gateLine}</Text>
+          <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={8}>
+            <Text style={styles.gateAction}>Edit profile</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.metaLine}>
         <Text style={styles.metaText}>
@@ -312,6 +354,10 @@ export function BrowseGrid({ userId }: { userId: string }) {
                   ) : null}
                 </View>
 
+                {/* Enabled on a "Passed" tile deliberately: tapping it now
+                    replaces the pass with a like (see likeProject) instead of
+                    colliding with the swipes unique index. Only an existing
+                    like leaves nothing to do. */}
                 <Pressable
                   onPress={() => like(post)}
                   disabled={swiped === "right" || likingId === post.id}
@@ -322,7 +368,11 @@ export function BrowseGrid({ userId }: { userId: string }) {
                     likingId === post.id && { opacity: 0.5 },
                   ]}
                   accessibilityLabel={
-                    swiped === "right" ? `Already liked ${post.title}` : `Like ${post.title}`
+                    swiped === "right"
+                      ? `Already liked ${post.title}`
+                      : swiped === "left"
+                        ? `Like ${post.title} instead of passing`
+                        : `Like ${post.title}`
                   }
                 >
                   <Heart
@@ -448,6 +498,19 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   chipText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   chipTextOn: { color: colors.white },
+
+  gate: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: radii.sm,
+    backgroundColor: colors.accentSoft,
+  },
+  gateLine: { ...typography.caption, flex: 1, fontFamily: fonts.semibold, color: colors.accentInk },
+  gateAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
   metaLine: { paddingHorizontal: 2 },
   metaText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary },

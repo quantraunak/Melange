@@ -33,6 +33,7 @@ import {
   type PostWithCreator,
   type Profile,
 } from "@/lib/db";
+import { likeProject } from "@/lib/likeProject";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -180,7 +181,36 @@ export default function DiscoverScreen() {
       setLastSwipe({ post, dir });
       tx.value = 0;
 
-      const { error: swErr } = await recordSwipe(userId, post.id, dir);
+      /**
+       * Right swipes go through likeProject, which is also what the Browse
+       * heart and post detail call — the deck's gate and their missing one
+       * were the divergence, and one shared write is what stops it coming
+       * back. The synchronous check above stays because it has to answer
+       * before the card leaves the screen.
+       */
+      let swErr: string | null = null;
+      if (dir === "right") {
+        const outcome = await likeProject({
+          userId,
+          postId: post.id,
+          profile: myProfile,
+          // The deck never serves a project this person has swiped, so any
+          // existing row was written on another surface since it loaded;
+          // likeProject reads the row itself in that case.
+          passed: false,
+        });
+        if (outcome.status === "blocked") {
+          setIndex((i) => Math.max(0, i - 1));
+          setLastSwipe(null);
+          setGateLine(outcome.line);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+          setSwiping(false);
+          return;
+        }
+        if (outcome.status === "failed") swErr = outcome.message;
+      } else {
+        swErr = (await recordSwipe(userId, post.id, "left")).error;
+      }
       if (swErr) {
         setIndex((i) => Math.max(0, i - 1));
         setLastSwipe(null);

@@ -26,6 +26,7 @@ import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
+import { sized } from "@/lib/imageUrl";
 import { useBarTop } from "./_layout";
 import { useAuth } from "@/lib/auth";
 import {
@@ -273,7 +274,13 @@ export default function ProfileScreen() {
               style={({ pressed }) => [styles.listRow, pressed && w.onPress && { opacity: 0.6 }]}
             >
               {w.image ? (
-                <Image source={{ uri: w.image }} style={styles.thumb} />
+                /* Through sized(): this row thumb is 44x44pt, and the seeded
+                   story heroes are stored 1200x1600, so the raw URL fetched
+                   ~1.9 MP to draw 0.017 MP. The other screens already call
+                   sized() here (profile/[userId].tsx:334) — this one was
+                   missed. Supabase uploads still come back untouched; see
+                   imageUrl.ts for why. */
+                <Image source={{ uri: sized(w.image, 44, 44) }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbEmpty]}>
                   <ImageIcon size={16} color={colors.iconFaint} strokeWidth={1.6} />
@@ -301,7 +308,14 @@ export default function ProfileScreen() {
           {profile.portfolio_urls?.length ? (
             <View style={styles.grid}>
               {profile.portfolio_urls.map((url, idx) => (
-                <Image key={`${url}-${idx}`} source={{ uri: url }} style={styles.tile} />
+                /* Same omission as the Work thumb above: a third-of-a-screen
+                   tile (TILE is ~113pt on a 390pt-wide phone) was being fed
+                   the full stored image. */
+                <Image
+                  key={`${url}-${idx}`}
+                  source={{ uri: sized(url, TILE, TILE) }}
+                  style={styles.tile}
+                />
               ))}
             </View>
           ) : null}

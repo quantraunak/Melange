@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors, radii, typography, inputText } from "@/lib/theme";
+import { colors, radii, inputText } from "@/lib/theme";
 
 type Props = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;

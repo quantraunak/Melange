@@ -4,6 +4,47 @@ import { PixelRatio } from "react-native";
 const MAX_EDGE = 4000;
 
 /**
+ * True for a Supabase Storage public-object URL, which we cannot resize.
+ *
+ * Supabase does publish a transform endpoint that would be exactly what this
+ * module wants:
+ *
+ *   /storage/v1/render/image/public/<bucket>/<path>?width=&height=&resize=cover&quality=
+ *
+ * It is not available on this project. Measured 2026-10-14 against production
+ * (project thkwuhxsattnmsdfozzq), on both an avatar and a post photo:
+ *
+ *   GET /storage/v1/object/public/media/avatars/<id>/1787710410177.jpg
+ *     -> 200, image/jpeg, 3,894,468 bytes
+ *   GET /storage/v1/render/image/public/media/avatars/<id>/1787710410177.jpg
+ *       ?width=256&height=256&resize=cover&quality=80
+ *     -> 403 {"error":"FeatureNotEnabled",
+ *             "message":"feature not enabled for this tenant"}
+ *
+ * Image Transformations are a paid Storage add-on and this tenant does not
+ * have it. Rewriting these URLs would turn every working 200 into a hard 403,
+ * i.e. trade a slow avatar for no avatar at all, so we return the original.
+ *
+ * What that costs today, measured over every storage object currently
+ * referenced in production (4 avatars, 5 post photos): avatars 0.81-3.71 MB
+ * each, post photos 0.11-2.24 MB each. The 3.71 MB avatar is a straight
+ * 4032x3024 camera frame — 12.2 MP downloaded and decoded to paint a 44x44pt
+ * row thumb, i.e. 132x132px at 3x, about 700x the pixels we draw.
+ *
+ * Two ways out, neither of which lives in this file:
+ *   1. Buy the Storage transformation add-on. Then delete this function and
+ *      rewrite these URLs through /render/image/public with the same
+ *      PixelRatio maths the Unsplash branch already uses.
+ *   2. Write a second, smaller object at upload time (uploadFile in
+ *      src/lib/db.ts — e.g. `<ts>_sm.jpg` at 512px next to the original) and
+ *      have sized() swap in the `_sm` suffix when the requested edge is
+ *      small. No add-on, but it only helps images uploaded after the change.
+ */
+function storageIsUntransformable(uri: string): boolean {
+  return uri.includes("/storage/v1/object/public/");
+}
+
+/**
  * Ask the image host for the pixels we are actually going to draw.
  *
  * The seeded photographs are landscape — 1200x796 is typical — and the
@@ -30,11 +71,16 @@ const MAX_EDGE = 4000;
  * `contentFit: "cover"`'s job, and a centre trim of a subject-centred 3:4 is
  * safe. Uncomposed URLs keep the old behaviour and are cropped by content.
  *
- * Only Unsplash URLs are rewritten. User uploads living in Supabase storage
- * have no such API and are returned untouched.
+ * Only Unsplash URLs are rewritten. Supabase-hosted uploads are returned
+ * untouched on purpose — see storageIsUntransformable() above.
  */
 export function sized(uri: string | undefined, widthPt: number, heightPt: number): string | undefined {
-  if (!uri || !uri.includes("images.unsplash.com")) return uri;
+  if (!uri) return uri;
+  // Supabase storage: deliberately a no-op, not an oversight. Checked first so
+  // the reason is attached to the URLs it applies to rather than buried in a
+  // catch-all `!includes("unsplash")` early return.
+  if (storageIsUntransformable(uri)) return uri;
+  if (!uri.includes("images.unsplash.com")) return uri;
   const scale = PixelRatio.get();
   const frameW = Math.round(widthPt * scale);
   const frameH = Math.round(heightPt * scale);

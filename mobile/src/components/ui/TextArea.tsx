@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { StyleSheet, TextInput, type TextInputProps } from "react-native";
-import { colors, radii, typography, inputText } from "@/lib/theme";
+import { colors, radii, inputText } from "@/lib/theme";
 
 export const TextArea = forwardRef<TextInput, TextInputProps>(function TextArea(
   { style, ...rest },

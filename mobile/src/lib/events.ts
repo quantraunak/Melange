@@ -136,7 +136,18 @@ export async function getPastEvents(
       .eq("is_canceled", false)
       .lt("start_at", new Date().toISOString());
     const city = (cityFilter ?? "").trim();
-    if (city) q = q.ilike("city", `%${city}%`);
+    if (city) {
+      // Match city OR location_name, the same rule the upcoming_events RPC
+      // uses. One search box drives both queries and its placeholder promises
+      // "city or location", but this half filtered on city alone: typing a
+      // venue name ("Washington Square Park") matched no past event at all.
+      // Worse, city is optional on the event form, and `NULL ILIKE '%term%'`
+      // is NULL, so every past event without a city was dropped from any
+      // filtered search. Values are double-quoted because an unquoted comma
+      // or parenthesis in the term would be read as PostgREST filter syntax.
+      const pattern = `%${city.replace(/[\\"]/g, "\\$&")}%`;
+      q = q.or(`city.ilike."${pattern}",location_name.ilike."${pattern}"`);
+    }
     const { data: events, error } = await q
       .order("start_at", { ascending: false })
       .limit(limit);
@@ -339,8 +350,57 @@ export async function updateEvent(
   }
 }
 
-export async function cancelEvent(eventId: string): Promise<{ error: string | null }> {
-  return await updateEvent(eventId, { is_canceled: true }).then((r) => ({ error: r.error }));
+/**
+ * Mark an event canceled. `is_canceled` had no writer anywhere in the app, so
+ * a host who posted the wrong date had no way out of it; upcoming_events
+ * filters on this column, so flipping it takes the event off the feed.
+ *
+ * host_id is in the filter as well as the id. RLS ("Hosts update their own
+ * events": auth.uid() = host_id) already restricts this, but an RLS-blocked
+ * UPDATE matches zero rows and PostgREST then fails .single() with an opaque
+ * "JSON object requested" message; filtering explicitly lets us say what
+ * actually went wrong.
+ */
+export async function cancelEvent(
+  eventId: string,
+  hostId: string
+): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .update({ is_canceled: true })
+      .eq("id", eventId)
+      .eq("host_id", hostId)
+      .select("id")
+      .maybeSingle();
+    if (error) return { error: error.message };
+    if (!data) return { error: "Only the host can cancel this event." };
+    return { error: null };
+  } catch (err) {
+    return { error: errMsg(err) };
+  }
+}
+
+/**
+ * Whether a 'going' RSVP would push the event past the cap the host set.
+ *
+ * Capacity was collected by the form and written to events.capacity and then
+ * read by nothing: no screen showed it and no code compared it to the going
+ * count, so RSVPs sailed past a cap of 20 with no sign to host or attendee.
+ *
+ * NOTE: this is a client-side guard only. There is no trigger on
+ * event_rsvps and its INSERT policy checks only `auth.uid() = user_id`, so
+ * the server does not enforce capacity — two people RSVPing at once, or any
+ * direct API call, can still overfill the event. Real enforcement needs a
+ * BEFORE INSERT/UPDATE trigger on event_rsvps that counts 'going' rows.
+ */
+export function isEventFull(
+  event: Pick<EventWithDetails, "capacity" | "going_count" | "my_rsvp">
+): boolean {
+  if (event.capacity == null || event.capacity <= 0) return false;
+  // Someone already counted as going is not blocked by the cap they are in.
+  if (event.my_rsvp === "going") return false;
+  return event.going_count >= event.capacity;
 }
 
 export async function rsvpToEvent(

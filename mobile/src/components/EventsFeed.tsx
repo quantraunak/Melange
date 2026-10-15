@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Calendar, Check, Clock, MapPin, MessageCircle, Plus, Star, Users, X } from "lucide-react-native";
+import { Calendar, CalendarX, Check, Clock, MapPin, MessageCircle, Plus, Star, Users, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -10,10 +10,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, fonts, radii, shadows, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import {
+  cancelEvent,
   cancelRsvp,
   categoryDisplay,
   getPastEvents,
   getUpcomingEvents,
+  isEventFull,
   rsvpToEvent,
   type EventWithDetails,
 } from "@/lib/events";
@@ -193,6 +195,37 @@ export function EventsFeed({
     setBusyId(null);
   };
 
+  // Cancel an event you host. is_canceled had no writer in the whole app:
+  // a host who posted the wrong date or lost the venue could do nothing but
+  // let people turn up. upcoming_events and getPastEvents both exclude
+  // canceled rows, so the event leaves every feed once this lands. RLS
+  // ("Hosts update their own events") is what actually enforces ownership.
+  const handleCancelEvent = (event: EventWithDetails) => {
+    if (!userId || event.host_id !== userId) return;
+    Alert.alert(
+      "Cancel this event?",
+      `"${event.title}" comes off Explore for everyone. Anyone who RSVPed is not notified, so message them if it matters.`,
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Cancel event",
+          style: "destructive",
+          onPress: async () => {
+            setBusyId(event.id);
+            const { error: err } = await cancelEvent(event.id, userId);
+            setBusyId(null);
+            if (err) {
+              setError(err);
+              return;
+            }
+            setEvents((prev) => prev.filter((e) => e.id !== event.id));
+            setPastEvents((prev) => prev.filter((e) => e.id !== event.id));
+          },
+        },
+      ]
+    );
+  };
+
   const grouped = (() => {
     // Key by day AND year, label by day alone, except when the year differs
     // from this one. The old key was the day label by itself, so an event a
@@ -274,6 +307,7 @@ export function EventsFeed({
                     onRsvp={(next) => handleRsvp(e, next)}
                     onOpenHost={() => openProfile(e.host_id)}
                     onMessage={() => message(e)}
+                    onCancelEvent={() => handleCancelEvent(e)}
                   />
                 ))}
               </View>
@@ -324,6 +358,7 @@ function EventCard({
   onRsvp,
   onOpenHost,
   onMessage,
+  onCancelEvent,
 }: {
   event: EventWithDetails;
   busy: boolean;
@@ -332,11 +367,18 @@ function EventCard({
   onRsvp: (next: "going" | "interested" | null) => void;
   onOpenHost: () => void;
   onMessage: () => void;
+  /** Host-only. Absent on past events, which cannot be canceled after the fact. */
+  onCancelEvent?: () => void;
 }) {
   const cat = categoryDisplay(event.category);
   const { day, time } = formatEventTime(event.start_at);
   const going = event.my_rsvp === "going";
   const interested = event.my_rsvp === "interested";
+  // The cap the host set was stored and then shown to nobody, and no code
+  // compared it to the going count, so RSVPs ran past a limit of 20 with no
+  // sign of it. Note the server still does not enforce capacity (no trigger
+  // on event_rsvps) — this blocks the button, not the API.
+  const full = isEventFull(event);
 
   return (
     <View style={[styles.card, shadows.card]}>
@@ -369,6 +411,16 @@ function EventCard({
             <MapPin size={12} color={colors.iconFaint} />
             <Text style={styles.metaText} numberOfLines={1}>
               {event.location_name}
+            </Text>
+          </View>
+        ) : null}
+        {event.capacity != null && event.capacity > 0 ? (
+          <View style={styles.metaRow}>
+            <Users size={12} color={full ? colors.danger : colors.iconFaint} />
+            <Text style={[styles.metaText, full && styles.metaTextFull]}>
+              {full
+                ? `Full — ${event.capacity} spot${event.capacity === 1 ? "" : "s"}`
+                : `${event.going_count} going of ${event.capacity} spot${event.capacity === 1 ? "" : "s"}`}
             </Text>
           </View>
         ) : null}
@@ -426,16 +478,32 @@ function EventCard({
           style={({ pressed }) => [
             styles.rsvpBtn,
             going && styles.rsvpGoing,
+            full && styles.rsvpDisabled,
             pressed && styles.pressedOpacity,
           ]}
           onPress={() => onRsvp(going ? null : "going")}
-          disabled={busy}
+          disabled={busy || full}
+          accessibilityState={{ disabled: busy || full }}
         >
           <Check size={14} color={going ? colors.white : colors.textSecondary} />
           <Text style={[styles.rsvpLabel, going && styles.rsvpLabelGoing]}>
-            {going ? "Going" : "I'm going"}
+            {going ? "Going" : full ? "Full" : "I'm going"}
           </Text>
         </Pressable>
+        {isMine && onCancelEvent ? (
+          <>
+            <View style={styles.rsvpDivider} />
+            <Pressable
+              style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
+              onPress={onCancelEvent}
+              disabled={busy}
+              accessibilityLabel={`Cancel ${event.title}`}
+            >
+              <CalendarX size={14} color={colors.danger} />
+              <Text style={[styles.rsvpLabel, { color: colors.danger }]}>Cancel</Text>
+            </Pressable>
+          </>
+        ) : null}
         {isMine ? null : (
           <>
             <View style={styles.rsvpDivider} />
@@ -539,5 +607,7 @@ const styles = StyleSheet.create({
   rsvpDivider: { width: 1, backgroundColor: colors.lineStrong },
   rsvpLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   rsvpLabelActive: { color: colors.brandText },
+  rsvpDisabled: { backgroundColor: colors.surfaceSunken },
+  metaTextFull: { color: colors.danger },
   rsvpLabelGoing: { color: colors.white },
 });

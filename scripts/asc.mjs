@@ -184,6 +184,20 @@ if (cmd === "versions") {
     data: { type: "builds", id: builds.data[0].id },
   });
   console.log(`build ${num} attached to ${v}`);
+} else if (cmd === "withdraw") {
+  // Remove a version from review. Apple exposes this as cancelling the open
+  // reviewSubmission; the version falls back to PREPARE_FOR_SUBMISSION and the
+  // build stays attached, so it can be resubmitted without rebuilding.
+  const open = await call(
+    "GET",
+    `/v1/apps/${APP_ID}/reviewSubmissions?filter[state]=READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW&limit=1`
+  );
+  const sub = open.data[0];
+  if (!sub) throw new Error("no open review submission to withdraw");
+  await call("PATCH", `/v1/reviewSubmissions/${sub.id}`, {
+    data: { type: "reviewSubmissions", id: sub.id, attributes: { canceled: true } },
+  });
+  console.log(`withdrew review submission ${sub.id}`);
 } else if (cmd === "submit") {
   // /v1/appStoreVersionSubmissions is retired (403). The current flow is a
   // reviewSubmission that you add items to and then mark submitted.
@@ -222,5 +236,5 @@ if (cmd === "versions") {
   });
   console.log(`${rest[0]} submitted for review`);
 } else {
-  console.log("usage: node scripts/asc.mjs versions | ensure-version <v> | whatsnew <v> <text> | screenshots <v> <dir> | attach-build <v> <num> | submit <v> | GET <endpoint>");
+  console.log("usage: node scripts/asc.mjs versions | ensure-version <v> | whatsnew <v> <text> | screenshots <v> <dir> | attach-build <v> <num> | submit <v> | withdraw | GET <endpoint>");
 }

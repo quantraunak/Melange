@@ -42,12 +42,13 @@ import {
   getMySwipes,
   getProfile,
   payLabel,
-  recordSwipe,
   projectDates,
   projectRoles,
   type CollabPost,
   type CreatorInfo,
+  type Profile,
 } from "@/lib/db";
+import { likeProject } from "@/lib/likeProject";
 
 const { width } = Dimensions.get("window");
 const HERO_H = 400;
@@ -71,6 +72,13 @@ export default function ProjectDetailScreen() {
   const [applying, setApplying] = useState(false);
   const [celebration, setCelebration] = useState<{ matchId: string } | null>(null);
   const [me, setMe] = useState<Pick<CreatorInfo, "name" | "avatar_url">>({ name: "You", avatar_url: null });
+  /**
+   * Liking from here is the same right swipe as a deck swipe, so it answers to
+   * the same photo/role floor. This screen used to load the profile for the
+   * match celebration only and never checked the floor at all.
+   */
+  const [myProfile, setMyProfile] = useState<Profile | null>(null);
+  const [gateLine, setGateLine] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -113,6 +121,7 @@ export default function ProjectDetailScreen() {
     if (!userId || !id) return;
     getMySwipes(userId).then(({ data: map }) => setSwiped(map.get(id) ?? null));
     getProfile(userId).then(({ data: p }) => {
+      setMyProfile(p);
       if (p) setMe({ name: p.name, avatar_url: p.avatar_url ?? null });
     });
   }, [userId, id]);
@@ -121,12 +130,32 @@ export default function ProjectDetailScreen() {
     if (!userId || !data || applying) return;
     setApplying(true);
     setError(null);
-    const { error: swErr } = await recordSwipe(userId, data.post.id, "right");
-    if (swErr && !/duplicate|unique/i.test(swErr)) {
-      setError(swErr);
+    /**
+     * This used to call recordSwipe and then drop any error matching
+     * /duplicate|unique/, which is precisely the error you get for liking a
+     * project you had already passed: the insert never happened, the row still
+     * read 'left', and the screen said "Liked. If they like you back, a chat
+     * opens." Nothing was ever going to open. likeProject replaces the pass
+     * for real, so there is nothing left to swallow and every error is shown.
+     */
+    const outcome = await likeProject({
+      userId,
+      postId: data.post.id,
+      profile: myProfile,
+      passed: swiped === "left",
+    });
+    if (outcome.status === "blocked") {
+      setGateLine(outcome.line);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       setApplying(false);
       return;
     }
+    if (outcome.status === "failed") {
+      setError(outcome.message);
+      setApplying(false);
+      return;
+    }
+    setGateLine(null);
     trackEvent("swipe_right", { post_id: data.post.id, owner_id: data.post.owner_id, from: "detail" });
     setSwiped("right");
     const { match, error: mErr } = await checkAndCreateMatch(userId, data.post.id);
@@ -308,6 +337,16 @@ export default function ProjectDetailScreen() {
                 Message {creator?.name.split(" ")[0] ?? "them"} about this
               </Text>
             </Pressable>
+            {/* The floor, said the way Discover says it: one line at the point
+                of the action and a way to fix it, not a red error banner. */}
+            {gateLine ? (
+              <View style={styles.gate}>
+                <Text style={styles.gateLine}>{gateLine}</Text>
+                <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={8}>
+                  <Text style={styles.gateAction}>Edit profile</Text>
+                </Pressable>
+              </View>
+            ) : null}
             {swiped === "right" ? (
               <View style={styles.applied}>
                 <Check size={18} color={colors.accent} strokeWidth={2.75} />
@@ -441,6 +480,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   messageText: { ...typography.bodyStrong, color: colors.accentInk },
+  gate: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: radii.sm,
+    backgroundColor: colors.accentSoft,
+  },
+  gateLine: { ...typography.caption, flex: 1, fontFamily: fonts.semibold, color: colors.accentInk },
+  gateAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   previewNote: {
     flexDirection: "row",
     alignItems: "center",

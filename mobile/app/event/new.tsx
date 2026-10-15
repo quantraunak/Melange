@@ -29,8 +29,45 @@ function defaultStartLocal(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function localToISO(local: string): string {
-  return new Date(local).toISOString();
+/**
+ * Parse what someone typed into the Starts field as a *local* instant, or
+ * return null if it isn't a date at all.
+ *
+ * Two bugs lived in the one-line `new Date(local).toISOString()` this
+ * replaces:
+ *
+ * 1. Anything Date could not parse ("next friday", "10/20", a half-typed
+ *    value) made toISOString() throw RangeError. onSubmit had no try/catch,
+ *    so the throw escaped as an unhandled rejection after setBusy(true) —
+ *    the Publish button span forever and no error was ever shown.
+ * 2. A bare "2026-10-20" — which the field's own hint invites — is parsed by
+ *    spec as UTC midnight, while every value with a time in it is parsed as
+ *    local. West of UTC that stored the event on the previous day, and with
+ *    the 4-hour default duration it could land in "Already happened"
+ *    immediately. Same fix the rest of the app uses: anchor a date-only
+ *    value at 12:00 local (see projectDates in src/lib/db.ts and monthYear
+ *    in app/profile/[userId].tsx), and build the Date from explicit
+ *    components so no string-parsing rule can reinterpret it.
+ */
+function parseLocalStart(raw: string): Date | null {
+  const s = raw.trim().replace(" ", "T");
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{1,2}):(\d{2}))?$/.exec(s);
+  if (!m) return null;
+  const [, yy, mm, dd, hh, mi] = m;
+  const year = Number(yy);
+  const month = Number(mm) - 1;
+  const day = Number(dd);
+  // Noon, not midnight, when only a date was given: it is the same calendar
+  // day in every timezone the value might later be rendered in.
+  const hour = hh === undefined ? 12 : Number(hh);
+  const minute = mi === undefined ? 0 : Number(mi);
+  if (hour > 23 || minute > 59) return null;
+  const d = new Date(year, month, day, hour, minute, 0, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  // Date rolls overflow forward (Feb 31 becomes Mar 3). Reject instead of
+  // silently publishing an event on a day nobody typed.
+  if (d.getFullYear() !== year || d.getMonth() !== month || d.getDate() !== day) return null;
+  return d;
 }
 
 export default function NewEventScreen() {
@@ -74,38 +111,51 @@ export default function NewEventScreen() {
       setError("Start date and time are required.");
       return;
     }
+    // Parse before setBusy, so an unparseable value is an error message
+    // rather than a Publish button that spins for the rest of the session.
+    const start = parseLocalStart(startLocal);
+    if (!start) {
+      setError("Use the format 2026-10-16T14:30, or just 2026-10-16 for the date.");
+      return;
+    }
     setBusy(true);
     setError(null);
 
-    let coverUrl: string | undefined;
-    if (coverUri) {
-      const { url, error: upErr } = await uploadFile(userId, "posts", coverUri, "image/jpeg");
-      if (upErr || !url) {
-        setBusy(false);
-        setError(upErr || "Cover upload failed.");
+    // Everything below can throw (upload, network, PostgREST). Without this
+    // try/finally a throw left busy stuck true and the form dead.
+    try {
+      let coverUrl: string | undefined;
+      if (coverUri) {
+        const { url, error: upErr } = await uploadFile(userId, "posts", coverUri, "image/jpeg");
+        if (upErr || !url) {
+          setError(upErr || "Cover upload failed.");
+          return;
+        }
+        coverUrl = url;
+      }
+
+      const { error: createErr } = await createEvent(userId, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        category,
+        start_at: start.toISOString(),
+        location_name: locationName.trim() || undefined,
+        city: city.trim() || undefined,
+        capacity: capacity ? Number(capacity) : undefined,
+        cover_url: coverUrl,
+      });
+
+      if (createErr) {
+        setError(createErr);
         return;
       }
-      coverUrl = url;
+      trackEvent("event_created", { category, city: city.trim() || "" });
+      router.back();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not publish the event.");
+    } finally {
+      setBusy(false);
     }
-
-    const { error: createErr } = await createEvent(userId, {
-      title: title.trim(),
-      description: description.trim() || undefined,
-      category,
-      start_at: localToISO(startLocal),
-      location_name: locationName.trim() || undefined,
-      city: city.trim() || undefined,
-      capacity: capacity ? Number(capacity) : undefined,
-      cover_url: coverUrl,
-    });
-
-    setBusy(false);
-    if (createErr) {
-      setError(createErr);
-      return;
-    }
-    trackEvent("event_created", { category, city: city.trim() || "" });
-    router.back();
   };
 
   return (
@@ -171,11 +221,14 @@ export default function NewEventScreen() {
           />
         </Field>
 
-        <Field label="Starts (local time)" hint="Already happened? Put the date it was on.">
+        <Field
+          label="Starts (local time)"
+          hint="Already happened? Put the date it was on — a date on its own is fine."
+        >
           <TextInput
             value={startLocal}
             onChangeText={setStartLocal}
-            placeholder="YYYY-MM-DDTHH:mm"
+            placeholder="2026-10-16T14:30"
             style={styles.input}
             placeholderTextColor={colors.textTertiary}
             autoCapitalize="none"

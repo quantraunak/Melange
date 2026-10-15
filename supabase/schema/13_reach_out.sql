@@ -127,9 +127,13 @@ BEGIN
   WHERE user1_id = v_user1 AND user2_id = v_user2;
 
   IF v_match IS NULL THEN
+    -- Counted against reach_outs, not matches. The limit used to count the
+    -- matches rows themselves, and unmatching DELETEs those, so sending five
+    -- and deleting them reset the counter to zero. reach_outs is never
+    -- deleted, so the window means what it says. See 17_audit_fixes.sql.
     IF (
-      SELECT count(*) FROM public.matches
-      WHERE started_by = v_me AND created_at > now() - interval '24 hours'
+      SELECT count(*) FROM public.reach_outs
+      WHERE sender_id = v_me AND created_at > now() - interval '24 hours'
     ) >= 5 THEN
       -- Five, not twenty. Twenty cold approaches a day is not a limit on an
       -- app this size; it is the harassment budget. Raise it when there is
@@ -159,6 +163,10 @@ BEGIN
       SELECT id INTO v_match
       FROM public.matches
       WHERE user1_id = v_user1 AND user2_id = v_user2;
+    ELSE
+      -- Only a genuinely new thread counts against the daily limit, and the
+      -- record outlives the thread so deleting it cannot refund the quota.
+      INSERT INTO public.reach_outs (sender_id, other_id) VALUES (v_me, p_other);
     END IF;
   END IF;
 
