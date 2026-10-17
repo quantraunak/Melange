@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Heart } from "lucide-react-native";
@@ -24,13 +24,24 @@ export function HeartButton({
   label?: boolean;
 }) {
   const { userId } = useAuth();
-  const [on, setOn] = useState(false);
+  // null until the read settles. Rendering an unknown heart as un-hearted is
+  // how the first tap silently deleted an existing one. See isHearted.
+  const [on, setOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  // A ref, not state: two taps dispatched before a re-render both read the old
+  // `busy` from their own closure and both fire toggle_heart, so one inserts,
+  // one deletes, and whichever resolves last decides what the pill claims.
+  const inFlight = useRef(false);
+  // Set once the user acts, so a slow initial read cannot land afterwards and
+  // overwrite what they just did.
+  const touched = useRef(false);
 
   useEffect(() => {
     if (!userId) return;
     let alive = true;
-    isHearted(userId, kind, targetId).then((v) => alive && setOn(v));
+    isHearted(userId, kind, targetId).then((v) => {
+      if (alive && !touched.current) setOn(v);
+    });
     return () => {
       alive = false;
     };
@@ -39,12 +50,17 @@ export function HeartButton({
   if (!userId || userId === ownerId) return null;
 
   const press = async () => {
-    if (busy) return;
+    // Unknown state: do not guess. Pressing would be a coin flip between
+    // adding and removing a heart.
+    if (inFlight.current || on === null) return;
+    inFlight.current = true;
+    touched.current = true;
     setBusy(true);
     const next = !on;
     setOn(next);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { hearted, error } = await toggleHeart(kind, targetId);
+    inFlight.current = false;
     setBusy(false);
     if (error) {
       setOn(!next);
@@ -57,11 +73,19 @@ export function HeartButton({
   return (
     <Pressable
       onPress={press}
+      disabled={on === null}
       hitSlop={10}
       accessibilityRole="button"
-      accessibilityState={{ selected: on }}
+      accessibilityState={{ selected: on === true, disabled: on === null }}
       accessibilityLabel={on ? "Remove heart" : "Heart"}
-      style={({ pressed }) => [label ? styles.pill : styles.icon, on && label && styles.pillOn, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [
+        label ? styles.pill : styles.icon,
+        on && label && styles.pillOn,
+        // Dimmed while we do not yet know whether this is hearted, so the
+        // control never looks ready when pressing it would be a guess.
+        on === null && { opacity: 0.45 },
+        pressed && { opacity: 0.7 },
+      ]}
     >
       <Heart size={18} color={on ? colors.danger : colors.textSecondary} fill={on ? colors.danger : "transparent"} />
       {label ? <Text style={[styles.text, on && styles.textOn]}>{on ? "Hearted" : "Heart"}</Text> : null}

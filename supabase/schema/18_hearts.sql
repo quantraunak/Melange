@@ -242,6 +242,21 @@ BEGIN
   IF length(v_body) > 2000 THEN
     RAISE EXCEPTION 'That message is too long.';
   END IF;
+
+  -- A cold approach needs one photo and a role. Not three: three is a
+  -- portfolio, and this only has to show there is a person behind the
+  -- message. No bar at all when you already have a thread or share a heart,
+  -- because they raised their hand first. See 20_message_floor.sql, which
+  -- defines the same rule for can_message so the button and the send agree.
+  IF NOT EXISTS (
+       SELECT 1 FROM public.matches m
+       WHERE (m.user1_id = v_me AND m.user2_id = p_other)
+          OR (m.user1_id = p_other AND m.user2_id = v_me)
+     )
+     AND NOT public.has_heart_between(v_me, p_other)
+     AND NOT COALESCE(public.meets_message_floor(v_me), false) THEN
+    RAISE EXCEPTION 'Add a photo and your role before messaging someone new.';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = p_other) THEN
     RAISE EXCEPTION 'That person''s account no longer exists.';
   END IF;

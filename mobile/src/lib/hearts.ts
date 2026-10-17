@@ -42,8 +42,23 @@ export async function toggleHeart(
   }
 }
 
-/** Whether I have hearted this target. False on a database without hearts. */
-export async function isHearted(userId: string, kind: HeartKind, targetId: string): Promise<boolean> {
+/**
+ * Whether I have hearted this target. `null` means we could not find out.
+ *
+ * This used to collapse every failure into `false`, which the button then
+ * rendered as an un-hearted pill. So on a slow or failed read of a profile you
+ * HAD hearted, the first tap ran toggle_heart and DELETED the heart, reported
+ * nothing, and left the pill looking exactly as it had. The distinction
+ * between "not hearted" and "do not know yet" is the whole safety of a toggle.
+ *
+ * A database without 18_hearts.sql is the one failure that really does mean
+ * "no heart", so that one still answers false.
+ */
+export async function isHearted(
+  userId: string,
+  kind: HeartKind,
+  targetId: string
+): Promise<boolean | null> {
   try {
     const { data, error } = await supabase
       .from("hearts")
@@ -52,9 +67,10 @@ export async function isHearted(userId: string, kind: HeartKind, targetId: strin
       .eq("kind", kind)
       .eq("target_id", targetId)
       .maybeSingle();
-    return !error && !!data;
+    if (error) return isMissing(error.message) ? false : null;
+    return !!data;
   } catch {
-    return false;
+    return null;
   }
 }
 

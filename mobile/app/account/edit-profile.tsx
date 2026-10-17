@@ -178,6 +178,9 @@ export default function EditProfileScreen() {
       role: form.role.trim() || undefined,
       bio: form.bio.trim() || undefined,
       current_project: form.currentProject.trim() || undefined,
+      // Saving from this screen is the consent: it is the screen that shows
+      // the field is public, under the label "What you're looking for".
+      looking_for_is_public: true,
       skills: skillsArr.length ? skillsArr : undefined,
       vibes: vibes.length ? vibes : [],
       instagram_url: normalizeSocialUrl("instagram", form.instagram),

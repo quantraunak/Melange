@@ -102,7 +102,12 @@ export function ProfileAbout({ profile, emptyHint }: { profile: Profile; emptyHi
     [profile]
   );
 
-  const lookingFor = profile.current_project?.trim();
+  // Shown only once the owner has saved their profile from a build that
+  // labels this field publicly. It was collected for years inside Edit
+  // profile as "Current project" and never displayed to anyone, so printing
+  // the existing values would publish text five real people wrote in private.
+  // See 19_looking_for_consent.sql.
+  const lookingFor = profile.looking_for_is_public ? profile.current_project?.trim() : undefined;
   const bio = profile.bio?.trim();
   const photos = profile.portfolio_urls ?? [];
   const empty = !roles.length && !lookingFor && !bio && !links.length && !photos.length;
