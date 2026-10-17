@@ -21,7 +21,7 @@ export default function NewStoryScreen() {
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Post a story</Text>
+        <Text style={styles.headerTitle}>Add to showcase</Text>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
           <X size={22} color={colors.text} />
         </Pressable>
