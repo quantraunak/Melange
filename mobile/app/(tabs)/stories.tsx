@@ -113,7 +113,7 @@ export default function StoriesScreen() {
         <View style={styles.segments} accessibilityRole="tablist">
           {(
             [
-              ["stories", "Stories"],
+              ["stories", "Showcase"],
               ["events", "Events"],
             ] as const
           ).map(([key, label]) => (
@@ -130,7 +130,7 @@ export default function StoriesScreen() {
         </View>
         <Text style={styles.sectionHint}>
           {section === "stories"
-            ? "Collabs that went great. Ideas for your next one."
+            ? "What people made together. Get ideas, find people, show your own."
             : "Meetups and shoots, coming up and already done."}
         </Text>
 

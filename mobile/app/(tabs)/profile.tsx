@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Dimensions,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +22,11 @@ import {
 } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import {
+  ProfileAbout,
+  ProfileTrustSections,
+  RatingLine,
+} from "@/components/ProfileSections";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
@@ -33,6 +37,7 @@ import {
   getCredits,
   getMyPosts,
   getProfile,
+  getProfileTrust,
   projectDates,
   projectRoles,
   updateProfile,
@@ -40,12 +45,11 @@ import {
   type CollabPost,
   type Credit,
   type Profile,
+  type ProfileTrust,
 } from "@/lib/db";
 import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
 import { formatRecordDate } from "@/lib/format";
 
-/** Three columns that fill the measure: the gutters are real, so the cells are too. */
-const TILE = (Dimensions.get("window").width - GUTTER * 2 - spacing.sm * 2) / 3;
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -57,6 +61,7 @@ export default function ProfileScreen() {
   const [myPosts, setMyPosts] = useState<CollabPost[]>([]);
   const [credits, setCredits] = useState<Credit[]>([]);
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
+  const [trust, setTrust] = useState<ProfileTrust | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,11 +76,13 @@ export default function ProfileScreen() {
       { data: postsData },
       { data: creditData },
       storyRes,
+      trustRes,
     ] = await Promise.all([
       getProfile(userId),
       getMyPosts(userId),
       getCredits(userId),
       getStoriesForUser(userId),
+      getProfileTrust(userId),
     ]);
     if (profileData) {
       setProfile(profileData);
@@ -85,6 +92,7 @@ export default function ProfileScreen() {
     setMyPosts(postsData || []);
     setCredits(creditData || []);
     setStories(storyRes.data);
+    setTrust(trustRes.data);
     setLoading(false);
   }, [userId]);
 
@@ -237,9 +245,10 @@ export default function ProfileScreen() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName} numberOfLines={1}>{profile.name}</Text>
-            {profile.role ? (
+            {profile.role && profile.role !== "other" ? (
               <Text style={styles.profileRole} numberOfLines={1}>{profile.role}</Text>
             ) : null}
+            <RatingLine trust={trust} />
             <Pressable
               onPress={() => router.push("/account/edit-profile")}
               hitSlop={12}
@@ -250,21 +259,28 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Profile: about you. Everyone sees exactly this on your page. */}
+        <ProfileAbout
+          profile={profile}
+          emptyHint="Add what you do, what you're looking for, a bio, your Instagram and photos in Edit profile."
+        />
+
         {/* One section. A credit, a story and an uploaded image were three
             sections split by where the row came from — match, story or
             upload — which is plumbing, not a distinction anyone makes about
             their own work. */}
         <View style={styles.block}>
           <View style={styles.blockHead}>
-            <Text style={styles.sectionTitle}>Work</Text>
+            <Text style={styles.sectionTitle}>Showcase</Text>
             <Pressable onPress={() => router.push("/story/new")} hitSlop={12}>
               <Text style={styles.sectionAction}>Add</Text>
             </Pressable>
           </View>
+          <Text style={styles.sectionHint}>
+            Past work you made with people. It shows on Explore too, so others get ideas and find you.
+          </Text>
 
-          {work.length === 0 && (profile.portfolio_urls?.length ?? 0) === 0 ? (
-            <Text style={styles.muted}>Nothing here yet.</Text>
-          ) : null}
+          {work.length === 0 ? <Text style={styles.muted}>Nothing here yet.</Text> : null}
 
           {work.map((w) => (
             <Pressable
@@ -300,35 +316,17 @@ export default function ProfileScreen() {
             </Pressable>
           ))}
 
-          {/* Loose images live in the same section — they are work too. The
-              grid is a grid: three columns of photographs, or nothing. A lone
-              add tile floating under the list was a fourth way to add work;
-              the section header already has the one action. Images are added
-              and removed in Edit profile. */}
-          {profile.portfolio_urls?.length ? (
-            <View style={styles.grid}>
-              {profile.portfolio_urls.map((url, idx) => (
-                /* Same omission as the Work thumb above: a third-of-a-screen
-                   tile (TILE is ~113pt on a 390pt-wide phone) was being fed
-                   the full stored image. */
-                <Image
-                  key={`${url}-${idx}`}
-                  source={{ uri: sized(url, TILE, TILE) }}
-                  style={styles.tile}
-                />
-              ))}
-            </View>
-          ) : null}
         </View>
 
         {/* My projects */}
         <View style={styles.block}>
           <View style={styles.blockHead}>
-            <Text style={styles.sectionTitle}>Your projects</Text>
+            <Text style={styles.sectionTitle}>Projects</Text>
             <Pressable onPress={() => router.push("/post/new")} hitSlop={12}>
               <Text style={styles.sectionAction}>Post</Text>
             </Pressable>
           </View>
+          <Text style={styles.sectionHint}>What you&apos;re making now and who you&apos;re looking for.</Text>
           {projects.length === 0 ? (
             <Text style={styles.muted}>Nothing open.</Text>
           ) : (
@@ -360,6 +358,11 @@ export default function ProfileScreen() {
             ))
           )}
         </View>
+
+        <ProfileTrustSections
+          trust={trust}
+          onOpenPerson={(id) => id && router.push({ pathname: "/profile/[userId]", params: { userId: id } })}
+        />
 
         {/* Account & safety, Events and Sign out used to end the page while
             the gear sat in the header: two homes for one thing. They are
@@ -426,6 +429,7 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.eyebrow, color: colors.textSecondary },
   sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   sectionCount: { ...typography.caption, color: colors.textTertiary },
+  sectionHint: { ...typography.caption, color: colors.textTertiary, marginTop: -4 },
 
   /* Every list row in this screen is the same row. */
   listRow: {
@@ -443,12 +447,4 @@ const styles = StyleSheet.create({
   thumbEmpty: { alignItems: "center", justifyContent: "center" },
   muted: { ...typography.caption, color: colors.textSecondary },
 
-  /* Three columns, fixed gutters, every cell a photograph. */
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  tile: {
-    width: TILE,
-    aspectRatio: 1,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surfaceSunken,
-  },
 });

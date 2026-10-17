@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { LikesList } from "@/components/LikesList";
 import { PushPrimer } from "@/components/PushPrimer";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -52,9 +53,11 @@ export default function MatchesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [likesReload, setLikesReload] = useState(0);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setLikesReload((k) => k + 1);
     await refresh();
     setRefreshing(false);
   }, [refresh]);
@@ -197,6 +200,9 @@ export default function MatchesScreen() {
         }
       >
         {error ? <ErrorBanner message={error} /> : null}
+        <View style={{ alignSelf: "stretch" }}>
+          <LikesList reloadKey={likesReload} />
+        </View>
         <View style={styles.emptyIcon}>
           <Sparkles size={28} color={colors.accent} />
         </View>
@@ -228,6 +234,8 @@ export default function MatchesScreen() {
           {/* Asked here rather than at launch: by the time someone is on this
               screen they have matches, which is the thing being offered. */}
           {userId ? <PushPrimer userId={userId} /> : null}
+
+          <LikesList reloadKey={likesReload} />
 
           {matches.length > 4 ? (
             <Input

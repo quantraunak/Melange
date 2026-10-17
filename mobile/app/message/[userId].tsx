@@ -23,7 +23,6 @@ import { useMatches } from "@/lib/matches";
 import { trackEvent } from "@/lib/analytics";
 import {
   getProfile,
-  profileGate,
   startConversation,
   type ConversationOrigin,
   type Profile,
@@ -73,7 +72,6 @@ export default function ReachOutScreen() {
   );
 
   const [them, setThem] = useState<Profile | null>(null);
-  const [mine, setMine] = useState<Profile | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,40 +94,10 @@ export default function ReachOutScreen() {
     });
   }, [params.userId, params.about, origin]);
 
-  // Whether loading your own profile has settled, successfully or not.
-  //
-  // The error was discarded here and `mine` stayed null, which made
-  // profileGate(null) fail. The footer renders on gate.ok and the explanation
-  // renders on `!gate.ok && mine`, so a failed load produced a composer with
-  // the opener filled in, free typing, no Send button anywhere, and no reason
-  // given. Tracking the failure separately means you always get one or the
-  // other.
-  const [mineError, setMineError] = useState<string | null>(null);
-  const [retry, setRetry] = useState(0);
-
-  useEffect(() => {
-    if (!me) return;
-    let alive = true;
-    setMineError(null);
-    getProfile(me)
-      .then(({ data, error }) => {
-        if (!alive) return;
-        setMine(data);
-        if (!data) setMineError(error || "Couldn't load your profile.");
-      })
-      .catch((e) => {
-        if (alive) setMineError(e instanceof Error ? e.message : "Couldn't load your profile.");
-      });
-    return () => {
-      alive = false;
-    };
-  }, [me, retry]);
-
-  const gate = profileGate(mine, "message");
   const isMe = !!me && params.userId === me;
 
   const send = async () => {
-    if (!me || !params.userId || !text.trim() || sending || !gate.ok) return;
+    if (!me || !params.userId || !text.trim() || sending) return;
     setSending(true);
     setError(null);
     const { matchId, error: err } = await startConversation(
@@ -185,20 +153,6 @@ export default function ReachOutScreen() {
 
               {isMe ? (
                 <Text style={styles.hint}>This is you.</Text>
-              ) : mineError ? (
-                <View style={styles.gate}>
-                  <Text style={styles.gateText}>{mineError}</Text>
-                  <Pressable onPress={() => setRetry((n) => n + 1)} hitSlop={8}>
-                    <Text style={styles.gateLink}>Try again</Text>
-                  </Pressable>
-                </View>
-              ) : !gate.ok && mine ? (
-                <View style={styles.gate}>
-                  <Text style={styles.gateText}>{gate.line}</Text>
-                  <Pressable onPress={() => router.replace("/account/edit-profile")} hitSlop={8}>
-                    <Text style={styles.gateLink}>Edit profile</Text>
-                  </Pressable>
-                </View>
               ) : (
                 <>
                   <TextInput
@@ -221,7 +175,7 @@ export default function ReachOutScreen() {
           )}
         </ScrollView>
 
-        {them && !isMe && !existing && gate.ok ? (
+        {them && !isMe && !existing ? (
           <View style={styles.footer}>
             <Pressable
               onPress={send}
@@ -283,9 +237,6 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   hint: { ...typography.caption, color: colors.textSecondary },
-  gate: { gap: spacing.sm },
-  gateText: { ...typography.body, color: colors.text },
-  gateLink: { ...typography.bodyStrong, color: colors.brandText },
   footer: {
     padding: GUTTER,
     borderTopWidth: StyleSheet.hairlineWidth,
