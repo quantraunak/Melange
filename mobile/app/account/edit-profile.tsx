@@ -303,11 +303,11 @@ export default function EditProfileScreen() {
               />
             </Field>
 
-            <Field label="Current project">
+            <Field label="What you're looking for" hint="Shown at the top of your profile.">
               <Input
                 value={form.currentProject}
                 onChangeText={(t) => setForm({ ...form, currentProject: t })}
-                placeholder="What you're working on right now"
+                placeholder="e.g. A stylist for an editorial in LA this month"
               />
             </Field>
 
