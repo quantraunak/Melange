@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, CalendarRange, ExternalLink, MessageCircle, Trash2, Users } from "lucide-react-native";
 
+import { HeartButton } from "@/components/HeartButton";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
@@ -251,6 +252,7 @@ export default function StoryDetailScreen() {
                     style={{ flex: 1 }}
                   />
                 ) : null}
+                {!mine ? <HeartButton kind="story" targetId={story.id} ownerId={story.author_id} label /> : null}
                 {story.contact_link ? (
                   <Button
                     title={mine ? "Open link" : "Their work"}
@@ -339,7 +341,7 @@ const styles = StyleSheet.create({
   howTitle: { ...typography.eyebrow, color: colors.textSecondary },
   howBody: { ...typography.body, lineHeight: 23, color: colors.text },
 
-  ctaRow: { flexDirection: "row", gap: 10, marginTop: 2 },
+  ctaRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 },
 
   deleteRow: {
     flexDirection: "row",

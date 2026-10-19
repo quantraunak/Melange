@@ -5,6 +5,7 @@
 //   - swipes   INSERT (right) -> POST { type: "like",    record }
 //   - matches  INSERT         -> POST { type: "match",   record }
 //   - messages INSERT         -> POST { type: "message", record }
+//   - hearts   INSERT         -> POST { type: "heart",   record }
 // They were Dashboard webhooks originally, which is why push silently never
 // worked: the only record of the step was this comment telling a human to go
 // click through a settings page, and nobody did. Set the caller's
@@ -54,6 +55,10 @@ type Payload =
   | {
       type: "like";
       record: { id: string; swiper_id: string; post_id: string; direction: string };
+    }
+  | {
+      type: "heart";
+      record: { id: string; from_user: string; to_user: string; kind: string; target_id: string };
     };
 
 async function tokensFor(userId: string): Promise<string[]> {
@@ -181,6 +186,31 @@ Deno.serve(async (req: Request) => {
         ? `Liked your project "${title.slice(0, 60)}".`
         : "Liked one of your projects.",
       data: { kind: "like", postId: post_id, userId: swiper_id },
+    })));
+  } else if (payload.type === "heart") {
+    // A heart on a profile or a piece of work (18_hearts.sql). Named, like a
+    // project like, and it says what was hearted so the person knows where.
+    const { from_user, to_user, kind, target_id } = payload.record;
+    if (from_user === to_user) return new Response("ok");
+
+    let what = "your profile";
+    if (kind === "story") {
+      const { data: story } = await admin
+        .from("collab_stories")
+        .select("title")
+        .eq("id", target_id)
+        .maybeSingle();
+      const t = (story?.title ?? "").trim();
+      what = t ? `"${t.slice(0, 60)}"` : "your work";
+    }
+
+    const [tokens, name] = await Promise.all([tokensFor(to_user), nameFor(from_user)]);
+    await sendExpo(tokens.map((to) => ({
+      to,
+      title: `${name} hearted ${what}`,
+      sound: "default",
+      body: "Say hi. You can message them from Messages.",
+      data: { kind: "heart", userId: from_user },
     })));
   }
 

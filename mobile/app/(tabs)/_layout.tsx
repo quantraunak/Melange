@@ -30,6 +30,9 @@ function PushBootstrap() {
         | undefined;
       if (data?.matchId) {
         router.push({ pathname: "/chat/[matchId]", params: { matchId: data.matchId } });
+      } else if (data?.kind === "heart" || data?.kind === "like") {
+        // Who hearted what, with Message, is on the Messages tab.
+        router.push("/(tabs)/messages");
       }
     });
     return () => sub.remove();

@@ -176,6 +176,8 @@ export type Profile = {
   role: string | null;
   bio: string | null;
   current_project: string | null;
+  /** See 19_looking_for_consent.sql. Until true, current_project stays private. */
+  looking_for_is_public?: boolean;
   skills: string[] | null;
   avatar_url: string | null;
   portfolio_urls: string[] | null;
@@ -1051,6 +1053,7 @@ export async function updateProfile(
     role?: string;
     bio?: string;
     current_project?: string;
+    looking_for_is_public?: boolean;
     skills?: string[];
     avatar_url?: string;
     portfolio_urls?: string[];

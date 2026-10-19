@@ -307,6 +307,7 @@ export function EventsFeed({
                     onRsvp={(next) => handleRsvp(e, next)}
                     onOpenHost={() => openProfile(e.host_id)}
                     onMessage={() => message(e)}
+                  onOpen={() => router.push({ pathname: "/event/[id]", params: { id: e.id } })}
                     onCancelEvent={() => handleCancelEvent(e)}
                   />
                 ))}
@@ -328,6 +329,7 @@ export function EventsFeed({
                   onRsvp={() => {}}
                   onOpenHost={() => openProfile(e.host_id)}
                   onMessage={() => message(e)}
+                  onOpen={() => router.push({ pathname: "/event/[id]", params: { id: e.id } })}
                 />
               ))}
             </View>
@@ -359,6 +361,7 @@ function EventCard({
   onOpenHost,
   onMessage,
   onCancelEvent,
+  onOpen,
 }: {
   event: EventWithDetails;
   busy: boolean;
@@ -369,6 +372,8 @@ function EventCard({
   onMessage: () => void;
   /** Host-only. Absent on past events, which cannot be canceled after the fact. */
   onCancelEvent?: () => void;
+  /** Opens the event page: details, and everyone going, each a way to reach them. */
+  onOpen: () => void;
 }) {
   const cat = categoryDisplay(event.category);
   const { day, time } = formatEventTime(event.start_at);
@@ -382,7 +387,12 @@ function EventCard({
 
   return (
     <View style={[styles.card, shadows.card]}>
-      <View style={styles.cover}>
+      <Pressable
+        style={styles.cover}
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`${event.title}, details and who's going`}
+      >
         {event.cover_url ? (
           <Image source={{ uri: event.cover_url }} style={styles.coverImg} />
         ) : (
@@ -394,7 +404,7 @@ function EventCard({
           <Clock size={12} color={colors.white} />
           <Text style={styles.timePillText}>{past ? day : time}</Text>
         </View>
-      </View>
+      </Pressable>
 
       <View style={styles.cardBody}>
         <Text style={styles.catText}>
@@ -444,6 +454,14 @@ function EventCard({
               <Text style={styles.goingCountText}>{event.going_count}</Text>
             </View>
           ) : null}
+        </Pressable>
+        <Pressable onPress={onOpen} hitSlop={8} style={({ pressed }) => [pressed && styles.pressedOpacity]}>
+          <Text style={styles.peopleLink}>
+            {past ? "See who went" : "See who's going"}
+            {event.going_count + event.interested_count > 0
+              ? ` · ${event.going_count + event.interested_count}`
+              : ""}
+          </Text>
         </Pressable>
       </View>
 
@@ -525,6 +543,7 @@ function EventCard({
 
 const styles = StyleSheet.create({
   feed: { gap: 12 },
+  peopleLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText, marginTop: 2 },
   pastHint: { ...typography.caption, color: colors.textSecondary, marginTop: -4 },
   actionRow: { flexDirection: "row", justifyContent: "flex-end" },
   hostBtn: {

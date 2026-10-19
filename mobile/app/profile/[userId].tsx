@@ -1,9 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Dimensions,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,10 +10,15 @@ import {
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Flag, Link2, MapPin, MessageCircle, Star } from "lucide-react-native";
+import { ArrowLeft, Flag, MapPin, MessageCircle } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
-import { Chip } from "@/components/ui/Chip";
+import { HeartButton } from "@/components/HeartButton";
+import {
+  ProfileAbout,
+  ProfileTrustSections,
+  RatingLine,
+} from "@/components/ProfileSections";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { useAuth } from "@/lib/auth";
 import {
@@ -36,69 +38,7 @@ import {
 } from "@/lib/stories";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
 
-const { width: SCREEN_W } = Dimensions.get("window");
-const TILE = (SCREEN_W - GUTTER * 2 - spacing.sm * 2) / 3;
-/**
- * Photographs of people are portrait. A square tile takes a 4:5 frame and
- * trims it to the middle, which cuts a standing figure off at the chest and
- * drops whatever the photographer composed at the top. 4:5 is the shape the
- * work is actually shot in.
- */
-const TILE_H = Math.round((TILE * 5) / 4);
 
-function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 1 }}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={size}
-          color={colors.accent}
-          fill={n <= Math.round(rating) ? colors.accent : "transparent"}
-        />
-      ))}
-    </View>
-  );
-}
-
-/**
- * "Mar 2026" for a credit's date.
- *
- * public_credits returns `coalesce(project_start::timestamptz, created_at)`,
- * and project_start is a DATE, so the cast lands on UTC midnight. Parsing that
- * directly renders the previous day anywhere west of Greenwich, which crosses
- * a month boundary for anything starting on the 1st: a shoot dated March 1st
- * read "Feb 2026" across the Americas and "Mar 2026" in Europe. Anchoring a
- * date-only value at midday keeps it in its own month in every timezone, which
- * is what projectDates in lib/db.ts already does.
- */
-/**
- * Open a profile link, repairing the common case and admitting the rest.
- *
- * reel_url, instagram_url and linkedin_url are free text, so people type
- * "instagram.com/name" with no scheme, which the OS cannot open. The failure
- * was swallowed, so the tap did nothing at all: no error, no hint, and no way
- * for the profile's owner to learn their link was dead.
- */
-async function openLink(url: string, label: string): Promise<void> {
-  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`;
-  try {
-    await Linking.openURL(candidate);
-  } catch {
-    Alert.alert(`Can't open that ${label} link`, candidate);
-  }
-}
-
-function monthYear(iso: string): string {
-  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
-  const midnightUtc = /^\d{4}-\d{2}-\d{2}T00:00:00(\.0+)?(Z|\+00:?00)$/.test(iso);
-  const anchored = dateOnly
-    ? `${iso}T12:00:00`
-    : midnightUtc
-      ? `${iso.slice(0, 10)}T12:00:00`
-      : iso;
-  return new Date(anchored).toLocaleDateString([], { month: "short", year: "numeric" });
-}
 
 /**
  * Someone else's profile.
@@ -155,23 +95,6 @@ export default function PublicProfileScreen() {
   useEffect(() => {
     if (me && viewedId && me === viewedId) router.replace("/(tabs)/profile");
   }, [me, viewedId, router]);
-
-  const links = useMemo(
-    () =>
-      [
-        profile?.reel_url ? { label: "Reel / portfolio", url: profile.reel_url } : null,
-        profile?.instagram_url ? { label: "Instagram", url: profile.instagram_url } : null,
-        profile?.linkedin_url ? { label: "LinkedIn", url: profile.linkedin_url } : null,
-      ].filter((l): l is { label: string; url: string } => !!l),
-    [profile]
-  );
-
-  const roles = useMemo(() => {
-    const out = [profile?.role, ...(profile?.skills ?? [])].filter(
-      (r): r is string => !!r && !!r.trim()
-    );
-    return [...new Set(out)].slice(0, 4);
-  }, [profile]);
 
   const header = (
     <View style={styles.header}>
@@ -237,79 +160,34 @@ export default function PublicProfileScreen() {
                 </Text>
               </View>
             ) : null}
-            {trust && trust.review_count > 0 && trust.avg_rating != null ? (
-              <View style={styles.ratingRow}>
-                <Stars rating={trust.avg_rating} />
-                <Text style={styles.ratingText}>
-                  {trust.avg_rating.toFixed(1)} · {trust.review_count} review
-                  {trust.review_count === 1 ? "" : "s"}
-                </Text>
-              </View>
-            ) : null}
+            <RatingLine trust={trust} />
           </View>
         </View>
 
         {profile.user_id !== me ? (
-          <Pressable
-            style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
-            onPress={() =>
-              router.push({
-                pathname: "/message/[userId]",
-                params: { userId: profile.user_id, origin: "profile" },
-              })
-            }
-            accessibilityRole="button"
-          >
-            <MessageCircle size={18} color={colors.onAccent} />
-            <Text style={styles.messageText}>Message {profile.name.split(" ")[0]}</Text>
-          </Pressable>
-        ) : null}
-
-        {roles.length ? (
-          <View style={styles.roles}>
-            {roles.map((r) => (
-              <Chip key={r} label={r} size="sm" />
-            ))}
+          <View style={styles.actions}>
+            <Pressable
+              style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
+              onPress={() =>
+                router.push({
+                  pathname: "/message/[userId]",
+                  params: { userId: profile.user_id, origin: "profile" },
+                })
+              }
+              accessibilityRole="button"
+            >
+              <MessageCircle size={18} color={colors.onAccent} />
+              <Text style={styles.messageText}>Message {profile.name.split(" ")[0]}</Text>
+            </Pressable>
+            <HeartButton kind="profile" targetId={profile.user_id} ownerId={profile.user_id} label />
           </View>
         ) : null}
 
-        {profile.bio?.trim() ? <Text style={styles.bio}>{profile.bio.trim()}</Text> : null}
-
-        {links.length ? (
-          <View style={styles.links}>
-            {links.map((l) => (
-              <Pressable
-                key={l.label}
-                style={({ pressed }) => [styles.linkChip, pressed && { opacity: 0.7 }]}
-                onPress={() => openLink(l.url, l.label)}
-                accessibilityRole="link"
-              >
-                <Link2 size={14} color={colors.brandText} />
-                <Text style={styles.linkText}>{l.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-
-        {profile.portfolio_urls?.length ? (
-          <View style={styles.block}>
-            <Text style={styles.eyebrow}>Photos</Text>
-            <View style={styles.grid}>
-              {profile.portfolio_urls.map((url, i) => (
-                <Image
-                  key={`${url}-${i}`}
-                  source={{ uri: sized(url, TILE, TILE_H) }}
-                  style={styles.tile}
-                  contentFit="cover"
-                  transition={160}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
+        <ProfileAbout profile={profile} />
 
         <View style={styles.block}>
-          <Text style={styles.eyebrow}>Work</Text>
+          <Text style={styles.eyebrow}>Showcase</Text>
+          <Text style={styles.hint}>Things {profile.name.split(" ")[0]} has made, and who with.</Text>
           {work.length === 0 ? (
             <Text style={styles.muted}>Nothing yet.</Text>
           ) : (
@@ -359,7 +237,8 @@ export default function PublicProfileScreen() {
 
         {projects.length ? (
           <View style={styles.block}>
-            <Text style={styles.eyebrow}>Open now</Text>
+            <Text style={styles.eyebrow}>Projects</Text>
+            <Text style={styles.hint}>Open now, and who they&apos;re looking for.</Text>
             {projects.map((pr) => (
               <Pressable
                 key={pr.id}
@@ -388,62 +267,7 @@ export default function PublicProfileScreen() {
           </View>
         ) : null}
 
-        <View style={styles.block}>
-          <Text style={styles.eyebrow}>Past collabs</Text>
-          {!trust?.past_collabs.length ? (
-            <Text style={styles.muted}>None confirmed yet. One shows here once both people review each other.</Text>
-          ) : (
-            trust.past_collabs.map((c) => (
-              <Pressable
-                key={c.match_id}
-                onPress={() => openPerson(c.with.user_id)}
-                style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
-              >
-                <Avatar creator={c.with} size="sm" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {c.title ?? `With ${c.with.name}`}
-                  </Text>
-                  <Text style={styles.rowMeta} numberOfLines={1}>
-                    {c.title ? `with ${c.with.name} · ` : ""}
-                    {monthYear(c.date)}
-                  </Text>
-                </View>
-                <Stars rating={c.rating} size={11} />
-              </Pressable>
-            ))
-          )}
-        </View>
-
-        <View style={styles.block}>
-          <Text style={styles.eyebrow}>
-            {trust?.review_count ? `Reviews (${trust.review_count})` : "Reviews"}
-          </Text>
-          {!trust?.reviews.length ? (
-            <Text style={styles.muted}>No reviews yet. They appear once both people on a collab have written one.</Text>
-          ) : (
-            trust.reviews.map((r) => (
-              <View key={r.id} style={styles.review}>
-                <Pressable style={styles.reviewHead} onPress={() => openPerson(r.reviewer.user_id)}>
-                  <Avatar creator={r.reviewer} size="sm" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowTitle}>{r.reviewer.name}</Text>
-                    <Text style={styles.rowWhen}>{monthYear(r.created_at)}</Text>
-                  </View>
-                  <Stars rating={r.rating} size={11} />
-                </Pressable>
-                {r.body ? <Text style={styles.reviewBody}>{r.body}</Text> : null}
-                {r.tags.length ? (
-                  <View style={styles.roles}>
-                    {r.tags.map((t) => (
-                      <Chip key={t} label={t} size="sm" />
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            ))
-          )}
-        </View>
+        <ProfileTrustSections trust={trust} onOpenPerson={openPerson} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -465,9 +289,9 @@ const styles = StyleSheet.create({
   name: { ...typography.display2, color: colors.text },
   cityRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.xs },
   city: { ...typography.caption, color: colors.textSecondary },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.xs },
-  ratingText: { ...typography.caption, color: colors.text },
+  actions: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.lg },
   messageBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -475,33 +299,9 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: radii.pill,
     backgroundColor: colors.accent,
-    marginTop: spacing.lg,
   },
   messageText: { ...typography.bodyStrong, fontFamily: fonts.semibold, color: colors.onAccent },
-  links: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
-  linkChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    backgroundColor: colors.surface,
-  },
-  linkText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
-  review: {
-    gap: spacing.sm,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  reviewHead: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  reviewBody: { ...typography.body, color: colors.text },
 
-  roles: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.lg },
-  bio: { ...typography.body, color: colors.textSecondary, marginTop: spacing.lg },
 
   block: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -511,15 +311,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   eyebrow: { ...typography.eyebrow, color: colors.textSecondary },
+  hint: { ...typography.caption, color: colors.textTertiary, marginTop: -4 },
   muted: { ...typography.caption, color: colors.textSecondary },
 
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  tile: {
-    width: TILE,
-    height: TILE_H,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surfaceSunken,
-  },
 
   row: {
     flexDirection: "row",

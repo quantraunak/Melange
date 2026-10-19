@@ -178,6 +178,9 @@ export default function EditProfileScreen() {
       role: form.role.trim() || undefined,
       bio: form.bio.trim() || undefined,
       current_project: form.currentProject.trim() || undefined,
+      // Saving from this screen is the consent: it is the screen that shows
+      // the field is public, under the label "What you're looking for".
+      looking_for_is_public: true,
       skills: skillsArr.length ? skillsArr : undefined,
       vibes: vibes.length ? vibes : [],
       instagram_url: normalizeSocialUrl("instagram", form.instagram),
@@ -303,11 +306,11 @@ export default function EditProfileScreen() {
               />
             </Field>
 
-            <Field label="Current project">
+            <Field label="What you're looking for" hint="Shown at the top of your profile.">
               <Input
                 value={form.currentProject}
                 onChangeText={(t) => setForm({ ...form, currentProject: t })}
-                placeholder="What you're working on right now"
+                placeholder="e.g. A stylist for an editorial in LA this month"
               />
             </Field>
 
