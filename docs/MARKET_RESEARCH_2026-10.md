@@ -128,3 +128,85 @@ Backstage pricing (403, sources differ ±40%); PurplePort VIP exact price;
 anything about Kavyar; Peerspace profitability; several SaaS prices that are
 JS-rendered or aggregator-sourced. Third-party revenue estimates (Growjo,
 Tracxn) are directional only.
+
+---
+
+# Addendum: what people actually complain about
+
+A third thread finished after the above was written and **corrects one of its
+conclusions**. Method note: rather than keyword-searching (which biases toward
+what you went looking for), this pulled the **top 100 posts of the past year**
+from r/MODELING, r/photography, r/AskPhotography, r/WeddingPhotography and
+r/Hairstylist and categorised them. That measures what communities actually
+upvote. Reddit blocks the crawler, so sources came via RSS endpoints and the
+Arctic Shift archive. r/Beauty_Boss returned 429 throughout, so MUA/stylist
+evidence is thinner.
+
+## Correction: delivery is NOT the pain
+
+Earlier in this document and repeatedly in conversation, "the photographer
+never sent the photos" was treated as the pain to build on. **The evidence does
+not support it.**
+
+- It is real, named, and **twenty years old** — Model Mayhem threads from 2006
+  and 2008 use nearly identical wording to 2024 Reddit threads.
+- It did **not appear at all** in the top 100 r/MODELING posts of the past year.
+- The stakes are low (the shoot was free), expectations are pre-deflated, and
+  the remedy is reputational: *"Wastes of time on both sides get black listed
+  pretty quickly by the rest of the local community."*
+- In PAID work the complaint runs the **opposite** way — photographers ranting
+  about clients who will not wait the contracted turnaround. Top-100 keyword
+  hits in r/WeddingPhotography: delivery/turnaround **2**, client-non-response
+  **9**.
+
+Software cannot fix TFP non-delivery anyway: the person who does not deliver is
+exactly the person who will not install your app.
+
+## What the evidence actually ranks first
+
+**1. "Which of my images should I use, and are they good enough?"**
+The densest cluster found anywhere. Of the top 100 r/MODELING posts this year:
+**34 are explicit feedback/critique requests**, **26 mention digitals,
+polaroids or comp cards**. All 2026.
+Fits every constraint: recurs constantly, felt by ONE person, no network
+required, currently solved by asking strangers on Reddit. The hard part is that
+what they are buying is other humans' *taste and market knowledge* ("would this
+get me signed in NY vs Milan"), which is not obviously automatable. Checking
+against agency submission specs is.
+
+**2. Nobody knows where their work ended up or who got credited.**
+7 of the top 100 r/photography posts are discovering unauthorised use *by
+accident*. The mirror side is sharper — a model's parent searching for their
+kid's published images: *"So I committed two etiquette violations and asked the
+photographers where to find the photos. Turns out, they're not sure either. The
+brands buy the images from them with full usage rights, and photographers don't
+know what happens after."*
+Reverse-image monitoring exists for stock/editorial (Pixsy, PhotoClaim). What
+does not exist is the collaboration version: where did this shoot end up, who
+got credited, which of these five people may post it.
+
+**3. Model releases, now sharpened by AI. A 2026-only theme.**
+Absent from pre-2025 material. A model: *"I've had two photographers send me
+images that were in completely AI generated outfits and locations."* Models now
+refusing to sign releases; one countered by asking for a delivery guarantee
+instead. An unprompted product request exists: *"Online model release signing
+options?"*
+This is the one artifact where rights, delivery and AI consent are the same
+document, and **both sides asked for it in their own words**.
+
+**4. Chasing people for information (highest raw frequency, wrong market).**
+9 of the top 100 r/WeddingPhotography posts. The community proposes the fix
+itself: structured intake plus deadline-pegged reminders. But it is a paid
+wedding-client workflow problem adjacent to a crowded CRM space, not a
+creative-collaboration one.
+
+## Confirmed independently
+
+- Nobody thinks the answer to "I can't find models" is a better matching app.
+  The community's answer is *"Stop TFP and hire a professional model"* and one
+  commenter simply names **PurplePort**.
+- Flakiness tracks **free work**, not the activity. A working photographer who
+  pays people: *"I might get one no show a year at most... I do 2-3 shoots per
+  week."*
+- The top 100 r/AskPhotography posts contain **essentially zero**
+  collaboration-logistics posts. Hobbyists do not experience this as a problem.
