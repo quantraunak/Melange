@@ -13,6 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, CalendarDays, MapPin, MessageCircle } from "lucide-react-native";
 
+import { supabase } from "@/lib/supabase";
+
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
@@ -47,6 +49,34 @@ export default function EventScreen() {
   const [event, setEvent] = useState<EventWithDetails | null>(null);
   const [going, setGoing] = useState<AttendeeInfo[]>([]);
   const [interested, setInterested] = useState<AttendeeInfo[]>([]);
+
+  // Which of these people can actually be messaged, answered by the server.
+  //
+  // can_message() applies a block in either direction, whether a thread or a
+  // heart already exists, and the cold-approach floor. None of that is
+  // visible from here, and guessing is how the button and the send drift
+  // apart: Raunak pressed Message on someone he and that person had blocked
+  // back in August, wrote a message, and only then was told he could not.
+  const [reachable, setReachable] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    const ids = [...new Set([...going, ...interested].map((a) => a.user_id))].filter(
+      (id) => id !== userId
+    );
+    if (!ids.length) return;
+    let alive = true;
+    Promise.all(
+      ids.map((id) =>
+        supabase
+          .rpc("can_message", { p_other: id })
+          .then(({ data, error }) => [id, error ? true : data === true] as const)
+      )
+    ).then((pairs) => {
+      if (alive) setReachable(Object.fromEntries(pairs));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [going, interested, userId]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +146,7 @@ export default function EventScreen() {
   const cat = categoryDisplay(event.category);
   const hostIsMe = event.host_id === userId;
 
+
   const personRow = (p: Person, note?: string) => (
     <View key={p.user_id} style={styles.row}>
       <Pressable
@@ -136,7 +167,9 @@ export default function EventScreen() {
           ) : null}
         </View>
       </Pressable>
-      {p.user_id !== userId ? (
+      {/* Only when the server says it will work. A button that opens a
+          composer, accepts a message and then refuses is worse than none. */}
+      {p.user_id !== userId && reachable[p.user_id] ? (
         <Pressable
           onPress={() => message(p.user_id)}
           style={({ pressed }) => [styles.msgBtn, pressed && { opacity: 0.8 }]}
