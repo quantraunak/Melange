@@ -27,7 +27,7 @@ export default function GlobalError({
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">
             This wasn&apos;t your fault, and we&apos;ve been notified. Try again
-            — if it keeps happening, email support@melange.app.
+            — if it keeps happening, tell us at melange-psi.vercel.app/support.
           </p>
           <button
             onClick={reset}

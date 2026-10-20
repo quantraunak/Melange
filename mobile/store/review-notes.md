@@ -95,7 +95,7 @@ on launch.
 **Demo account (already in the Sign-In Information fields):**
 
 - Email: `review@melange.app`
-- Password: `ReviewMelange2026!`
+- Password: entered in the App Store Connect Sign-In Information field
 
 There is only one account type — every user has identical capabilities. There is
 no admin tier, no paid tier, and no role-gated functionality.

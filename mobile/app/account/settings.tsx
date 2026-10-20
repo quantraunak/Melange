@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ChevronRight,
   FileText,
+  LifeBuoy,
   LogOut,
   ShieldOff,
   Trash2,
@@ -48,6 +49,13 @@ export default function SettingsScreen() {
       icon: <ShieldOff size={18} color={colors.iconFaint} />,
       label: "Blocked users",
       onPress: () => router.push("/account/blocked"),
+    },
+    {
+      // The only published contact used to be support@melange.app, a parked
+      // domain we don't own. The form reaches a person (21_trust_and_support.sql).
+      icon: <LifeBuoy size={18} color={colors.iconFaint} />,
+      label: "Help & support",
+      onPress: () => Linking.openURL("https://melange-psi.vercel.app/support"),
     },
     {
       icon: <FileText size={18} color={colors.iconFaint} />,

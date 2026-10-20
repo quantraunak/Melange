@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: May 2026_
+_Last updated: October 2026_
 
 Melange ("we", "us") helps creative people find each other and collaborate. We take your privacy seriously. This document explains what data we collect and why.
 
@@ -11,7 +11,7 @@ When you create an account we collect:
 - Your **email address and password** (handled by Supabase Auth — your password is hashed and never visible to us)
 - Your **profile**: name, role, skills, bio, current project, and an optional avatar photo
 - **Posts** you publish: title, description, what you're looking for, location, compensation, and any images you upload
-- **Swipes**: which posts you liked or passed on
+- **Swipes and hearts**: which posts you liked or passed on, and which profiles or work you hearted
 - **Matches**: which other users mutually liked your posts
 - **Messages** you send through the app
 - A **device push token** (only if you opt in to notifications), used to send you a notification when you match with someone or receive a new message
@@ -23,7 +23,7 @@ We **do not** collect your contact list, location (beyond what you type into you
 
 - To run the app: show you other creatives, deliver messages, send push notifications
 - To keep the community safe: handle reports and blocks
-- To improve the product: anonymous aggregate usage analytics
+- To improve the product: usage analytics (which screens and actions are used), linked to your account so we can measure what works. We do not sell it or use it for ads.
 
 We do not sell your personal data and we do not show ads.
 
@@ -31,7 +31,7 @@ We do not sell your personal data and we do not show ads.
 
 - Your **profile**, **posts**, and **avatar** are visible to other signed-in Melange users.
 - **Messages** are private between you and the other person in a match.
-- **Swipes** are private to you (the post owner cannot see whether you liked or passed).
+- **Likes and hearts are not private.** When you like someone's project or heart their profile or work, they are told it was you, and they can message you. **Passes are private**: nobody is ever told you passed on them.
 - **Reports** and **blocks** are only visible to you and to our moderation team.
 
 ## Your rights
@@ -39,8 +39,8 @@ We do not sell your personal data and we do not show ads.
 You can:
 
 - **Edit your profile and posts** at any time in the app.
-- **Delete your account** in Profile → Account & safety → Delete account. This permanently removes your profile, posts, swipes, matches, messages, push tokens, and uploaded media.
-- **Export your data** by emailing us at privacy@melange.app.
+- **Delete your account** in Profile → Settings → Delete account. This permanently removes your profile, posts, swipes, matches, messages, push tokens, and uploaded media.
+- **Export your data** through the support form at https://melange-psi.vercel.app/support (choose "Privacy or a data request").
 
 ## Children
 
@@ -48,4 +48,4 @@ Melange is not intended for use by anyone under 18. If you believe a minor has c
 
 ## Contact
 
-privacy@melange.app
+Use the support form at https://melange-psi.vercel.app/support. A person reads every message.

@@ -20,7 +20,13 @@ export const APP_STORE_URL = "https://apps.apple.com/app/id6774481477";
 
 export const WEB_APP_PATH = "/app";
 
-export const SUPPORT_EMAIL = "support@melange.app";
+/**
+ * Support is a form, not an address. It used to be support@melange.app, but
+ * melange.app is a parked domain someone else owns, with a null MX record, so
+ * nothing sent there was ever delivered. The form writes to support_requests
+ * (21_trust_and_support.sql), which pushes to the admins.
+ */
+export const SUPPORT_PATH = "/support";
 
 export const SITE = {
   name: "Melange",

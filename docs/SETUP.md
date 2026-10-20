@@ -52,5 +52,5 @@ Use the same URL and anon key as `.env.local` (not the service secret).
 
 ## Demo logins
 
-- `review@melange.app` / `ReviewMelange2026!`
-- `demo2@melange.app` / `DemoMelange2026!`
+- `review@melange.app` and `demo2@melange.app`. Passwords are in `.env.local`
+  as `REVIEW_PASSWORD` and `DEMO2_PASSWORD`, never in this repo: it is public.

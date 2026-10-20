@@ -44,9 +44,9 @@ const SLIDES: Slide[] = [
   {
     key: "match",
     icon: <Heart size={72} color={colors.accentInk} />,
-    title: "Both say yes, then you talk",
+    title: "Hands up, then you talk",
     body:
-      "A chat opens only when you both say yes. No cold DMs, in either direction.",
+      "See who liked your project or hearted your work, and write back. Cold messages need a real profile and are capped at five a day.",
   },
   {
     key: "ready",

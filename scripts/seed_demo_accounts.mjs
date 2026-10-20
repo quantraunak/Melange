@@ -32,12 +32,18 @@ if (!url || !anon) {
   process.exit(1);
 }
 
+if (!process.env.REVIEW_PASSWORD || !process.env.DEMO2_PASSWORD) {
+  // Kept out of the repo because it is public. Set both in .env.local.
+  console.error("Missing REVIEW_PASSWORD or DEMO2_PASSWORD in .env.local");
+  process.exit(1);
+}
+
 const supabase = createClient(url, anon);
 
 const ACCOUNTS = [
   {
     email: "review@melange.app",
-    password: "ReviewMelange2026!",
+    password: process.env.REVIEW_PASSWORD,
     profile: {
       name: "App Review",
       role: "Photographer",
@@ -54,7 +60,7 @@ const ACCOUNTS = [
   },
   {
     email: "demo2@melange.app",
-    password: "DemoMelange2026!",
+    password: process.env.DEMO2_PASSWORD,
     profile: {
       name: "Jordan Demo",
       role: "Model",
@@ -138,5 +144,5 @@ console.log("Seeding demo accounts...\n");
 for (const acc of ACCOUNTS) {
   await ensureUser(acc);
 }
-console.log("\nDone. Reviewer: review@melange.app / ReviewMelange2026!");
+console.log("\nDone. Reviewer: review@melange.app (password from REVIEW_PASSWORD)");
 console.log("Match demo: sign in as review, swipe right on demo2's post (or vice versa).");

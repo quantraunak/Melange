@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import SupportForm from "../components/SupportForm";
+
 export const metadata: Metadata = {
   title: "Support · Melange",
   description: "Contact Melange support for help with your account.",
@@ -32,13 +34,10 @@ export default function SupportPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-gray-900">Contact us</h2>
             <p>
-              For account help, reports, moderation concerns, or App Store review questions:
+              For account help, safety concerns, privacy or data requests, or App Store review questions.
+              You don&apos;t need to be signed in. A person reads every message.
             </p>
-            <p>
-              <a href="mailto:support@melange.app" className="text-blue-700 font-semibold hover:underline">
-                support@melange.app
-              </a>
-            </p>
+            <SupportForm />
           </section>
 
           <section className="space-y-3">
@@ -46,7 +45,7 @@ export default function SupportPage() {
             <ul className="list-disc pl-6 space-y-1">
               <li>Report a user or post from the flag icon on posts or in chat.</li>
               <li>Block someone from the conversation menu in Messages.</li>
-              <li>Delete your account under Profile → Account &amp; safety.</li>
+              <li>Delete your account under Profile → Settings → Delete account.</li>
             </ul>
           </section>
 

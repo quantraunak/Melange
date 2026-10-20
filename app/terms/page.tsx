@@ -22,7 +22,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-sm text-gray-500 mb-8">Last updated: May 2026</p>
+        <p className="text-sm text-gray-500 mb-8">Last updated: October 2026</p>
 
         <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed space-y-6">
           <p>Welcome to Melange. By creating an account or using the app, you agree to these Terms.</p>
@@ -82,7 +82,7 @@ export default function TermsPage() {
 
           <Section title="Termination">
             <p>
-              You can delete your account at any time in Profile → Account &amp; safety → Delete account.
+              You can delete your account at any time in Profile → Settings → Delete account.
               We may suspend or terminate your account if you violate these Terms.
             </p>
           </Section>
@@ -95,7 +95,7 @@ export default function TermsPage() {
 
           <Section title="Contact">
             <p>
-              <a href="mailto:support@melange.app" className="text-blue-700 underline">support@melange.app</a>
+              Use the <a href="/support" className="text-blue-700 underline">support form</a>. A person reads every message.
             </p>
           </Section>
         </div>

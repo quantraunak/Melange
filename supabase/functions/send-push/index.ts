@@ -6,6 +6,8 @@
 //   - matches  INSERT         -> POST { type: "match",   record }
 //   - messages INSERT         -> POST { type: "message", record }
 //   - hearts   INSERT         -> POST { type: "heart",   record }
+//   - reports  INSERT         -> POST { type: "report",  record }  (to admins)
+//   - support_requests INSERT -> POST { type: "support", record }  (to admins)
 // They were Dashboard webhooks originally, which is why push silently never
 // worked: the only record of the step was this comment telling a human to go
 // click through a settings page, and nobody did. Set the caller's
@@ -59,6 +61,14 @@ type Payload =
   | {
       type: "heart";
       record: { id: string; from_user: string; to_user: string; kind: string; target_id: string };
+    }
+  | {
+      type: "report";
+      record: { id: string; target_kind: string; reason: string };
+    }
+  | {
+      type: "support";
+      record: { id: string; topic: string; contact: string; message: string };
     };
 
 async function tokensFor(userId: string): Promise<string[]> {
@@ -66,6 +76,15 @@ async function tokensFor(userId: string): Promise<string[]> {
     .from("push_tokens")
     .select("token")
     .eq("user_id", userId);
+  return (data ?? []).map((r: { token: string }) => r.token);
+}
+
+/** Everyone in app_admins (21_trust_and_support.sql). */
+async function adminTokens(): Promise<string[]> {
+  const { data: admins } = await admin.from("app_admins").select("user_id");
+  const ids = (admins ?? []).map((a: { user_id: string }) => a.user_id);
+  if (ids.length === 0) return [];
+  const { data } = await admin.from("push_tokens").select("token").in("user_id", ids);
   return (data ?? []).map((r: { token: string }) => r.token);
 }
 
@@ -211,6 +230,21 @@ Deno.serve(async (req: Request) => {
       sound: "default",
       body: "Say hi. You can message them from Messages.",
       data: { kind: "heart", userId: from_user },
+    })));
+  } else if (payload.type === "report" || payload.type === "support") {
+    // Reports and support requests used to land in a table nobody watched.
+    // Three real reports sat for up to 49 days (17_audit_fixes.sql).
+    const tokens = await adminTokens();
+    const r = payload.record;
+    const [title, body] = payload.type === "report"
+      ? [`New report: ${payload.record.target_kind}`, payload.record.reason]
+      : [`Support (${payload.record.topic}) from ${payload.record.contact.slice(0, 60)}`, payload.record.message];
+    await sendExpo(tokens.map((to) => ({
+      to,
+      title,
+      sound: "default",
+      body: body.slice(0, 140),
+      data: { kind: payload.type, id: r.id },
     })));
   }
 
