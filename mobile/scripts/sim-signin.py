@@ -19,7 +19,7 @@ import subprocess
 import urllib.request
 
 ENV = pathlib.Path("/Users/raunaksood/Projects/melange/.env.local")
-EMAIL = "review@melange.app"
+EMAIL = os.environ.get("SIM_EMAIL", "review@melange.app")
 PASSWORD = os.environ["REVIEW_PASSWORD"]
 BUNDLE = "com.melange.app"
 

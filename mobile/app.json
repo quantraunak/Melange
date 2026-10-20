@@ -2,7 +2,7 @@
   "expo": {
     "name": "Melange",
     "slug": "melange",
-    "version": "1.6",
+    "version": "1.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "melange",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.melange.app",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Melange needs access to your photo library so you can pick photos for your profile and posts."

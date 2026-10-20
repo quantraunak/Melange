@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Camera,
@@ -8,7 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  Users,
+  Heart,
 } from "lucide-react";
 
 import Logo from "./components/Logo";
@@ -91,26 +92,36 @@ const STEPS = [
   },
   {
     n: "03",
-    title: "Swipe through real projects",
-    body: "Not headshots — actual briefs from photographers, models, MUAs, stylists and filmmakers near you.",
+    title: "Discover projects and people",
+    body: "Swipe through real briefs from photographers, models, MUAs, stylists and filmmakers. Heart a profile or a piece of work you love.",
   },
   {
     n: "04",
-    title: "Match when it's mutual",
-    body: "When someone likes your project or hearts your work, you see who it was and can write back. Cold messages need a real profile and are capped at five a day.",
+    title: "See who's interested",
+    body: "Everyone who liked your project or hearted your work shows up in Messages, by name. Write back with one tap.",
   },
   {
     n: "05",
-    title: "Message and plan the shoot",
-    body: "Realtime chat with push notifications, so the conversation doesn't die in a request folder.",
+    title: "Plan the shoot, then show it off",
+    body: "Realtime chat with push notifications. When it's done, post it to the Showcase with credits for everyone who made it.",
   },
 ];
 
 const FEATURES = [
   {
+    icon: Heart,
+    title: "Hearts, not cold DMs",
+    body: "Heart someone's profile or work and they find out it was you. When someone raises their hand first, writing back is free. Cold messages need a real profile and are capped at five a day.",
+  },
+  {
     icon: Images,
     title: "Portfolio, not just a profile",
-    body: "A nine-image gallery with a fullscreen lightbox, plus a “more from this creator” strip on every post. You're swiping on a body of work, not one photo.",
+    body: "A nine-image gallery with a fullscreen lightbox, plus a “more from this creator” strip on every post. You're judged on a body of work, not one photo.",
+  },
+  {
+    icon: Star,
+    title: "A Showcase of real shoots",
+    body: "Post the shoot after it happens and credit everyone who made it, on Melange or not. The Explore tab is collaborations that actually went well.",
   },
   {
     icon: CalendarDays,
@@ -123,32 +134,51 @@ const FEATURES = [
     body: "Vibe tags — moody, editorial, street, golden hour, black-and-white film — shape your feed. A perfect role match with no shared taste is not a match.",
   },
   {
-    icon: Star,
-    title: "Reviews after the collab",
-    body: "Both people review each other once the shoot is done, and both reviews appear together. A real track record beats a follower count.",
-  },
-  {
     icon: MessageCircle,
     title: "Chat that keeps up",
-    body: "Realtime messages, unread counts that stay in sync across your phone and your laptop, and push notifications for matches and replies.",
-  },
-  {
-    icon: Users,
-    title: "One account, both screens",
-    body: "Sign up on your phone, sign in on the web. Same profile, same matches, same conversations.",
+    body: "Realtime messages, read receipts, and push notifications for likes, hearts, matches and replies, so the conversation doesn't die in a request folder.",
   },
 ];
 
 const ROLES = [
   "Photographers",
   "Models",
-  "Makeup artists",
   "Stylists",
-  "Filmmakers",
-  "Art directors",
-  "Set designers",
-  "Retouchers",
+  "Makeup artists",
+  "Hair",
+  "Videographers",
+  "Directors",
+  "DPs",
+  "Editors",
+  "Actors",
+  "Musicians",
+  "Dancers",
+  "Designers",
+  "Illustrators",
 ];
+
+// Captured from the iOS app (1.7) on a demo account, so every face and name
+// in them is seeded demo content, not a real user.
+const SCREENS = [
+  { src: "/screenshots/discover.png", label: "Discover projects and heart the ones you want in on" },
+  { src: "/screenshots/explore.png", label: "Explore what people made together" },
+  { src: "/screenshots/showcase.png", label: "Every shoot credits the people who made it" },
+];
+
+function PhoneShot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
+  return (
+    <div className="overflow-hidden rounded-[2.2rem] border-[6px] border-slate-900 bg-slate-900 shadow-2xl shadow-indigo-900/20">
+      <Image
+        src={src}
+        alt={alt}
+        width={603}
+        height={1311}
+        priority={priority}
+        className="h-auto w-full rounded-[1.7rem]"
+      />
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 
@@ -187,27 +217,26 @@ export default function MarketingHome() {
 
       {/* ---------------- Hero ---------------- */}
       <section className="melange-bg relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-6 py-24 sm:py-32">
-          <div className="mx-auto max-w-3xl text-center">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 py-20 sm:py-28 lg:grid-cols-[1.15fr_1fr]">
+          <div className="text-center lg:text-left">
             <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/70 bg-white/70 px-4 py-1.5 text-sm font-medium text-indigo-800 backdrop-blur">
               <Camera className="h-3.5 w-3.5" />
               For photographers, models, MUAs, stylists &amp; filmmakers
             </p>
 
-            <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-              Where creative people
-              <br />
-              find their next{" "}
+            <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
+              Where creative people find their next{" "}
               <span className="melange-wordmark">collaboration</span>
             </h1>
 
-            <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl lg:max-w-none">
               A photographer needs a model. A model needs a stylist. A filmmaker
-              needs a whole crew. Right now that happens through Instagram DMs
-              and group chats. Melange is a place built for it.
+              needs a whole crew. Post what you&apos;re making, see who&apos;s
+              interested, and plan the shoot in one place instead of a hundred
+              DMs.
             </p>
 
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <PrimaryCta />
               <SecondaryCta />
             </div>
@@ -215,6 +244,11 @@ export default function MarketingHome() {
             <p className="mt-6 text-sm text-slate-500">
               Free to use. No ads, no in-app purchases.
             </p>
+          </div>
+
+          <div className="relative mx-auto w-full max-w-[300px]">
+            <div className="absolute -inset-8 -z-10 rounded-full bg-indigo-200/40 blur-3xl" />
+            <PhoneShot src={SCREENS[0].src} alt="Melange Discover screen" priority />
           </div>
         </div>
       </section>
@@ -282,6 +316,30 @@ export default function MarketingHome() {
               </li>
             ))}
           </ol>
+        </div>
+      </section>
+
+      {/* ---------------- Screens ---------------- */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="mb-14 text-center">
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">
+              The app, as it is today
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
+              Real screens from Melange on iPhone.
+            </p>
+          </div>
+          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-8">
+            {SCREENS.map((sc) => (
+              <figure key={sc.src} className="mx-auto w-full max-w-[260px] text-center">
+                <PhoneShot src={sc.src} alt={sc.label} />
+                <figcaption className="mt-4 text-sm font-medium text-slate-700">
+                  {sc.label}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </section>
 
