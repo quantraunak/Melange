@@ -32,7 +32,7 @@ const SLIDES: Slide[] = [
     icon: <Logo size={96} />,
     title: "Find your next collaboration",
     body:
-      "Photographers, models, musicians, filmmakers and dancers, matched only when you both say yes.",
+      "Photographers, models, musicians, filmmakers and dancers, finding each other through the work.",
   },
   {
     key: "swipe",
@@ -51,9 +51,9 @@ const SLIDES: Slide[] = [
   {
     key: "ready",
     icon: <MessageCircle size={72} color={colors.iconFaint} />,
-    title: "Credits that follow you",
+    title: "Show what you made",
     body:
-      "Every collab you do through Melange becomes a credit on your profile. Sign up takes a minute.",
+      "Post the finished shoot to the Showcase and credit everyone who made it. Sign up takes a minute.",
   },
 ];
 
