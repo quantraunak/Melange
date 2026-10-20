@@ -400,6 +400,10 @@ CREATE TRIGGER trg_push_on_support
 -- these before sign-in: the auth screens only write the new user's own
 -- profile, after signUp has returned a session.
 -- ------------------------------------------------------------
+-- profiles_public_read exists in production and in no file in this repo:
+-- someone added it in the dashboard. Found by testing this migration against
+-- prod inside a rolled-back transaction, where signed-out reads still worked.
+DROP POLICY IF EXISTS "profiles_public_read" ON public.profiles;
 DROP POLICY IF EXISTS "Users can view all profiles" ON public.profiles;
 CREATE POLICY "Users can view all profiles"
   ON public.profiles FOR SELECT
