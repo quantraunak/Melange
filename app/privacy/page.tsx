@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-        <p className="text-sm text-gray-500 mb-8">Last updated: May 2026</p>
+        <p className="text-sm text-gray-500 mb-8">Last updated: October 2026</p>
 
         <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed space-y-6">
           <p>
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
               <li>Your <strong>email address and password</strong> (handled by Supabase Auth — your password is hashed and never visible to us)</li>
               <li>Your <strong>profile</strong>: name, role, skills, bio, current project, and an optional avatar photo</li>
               <li><strong>Posts</strong> you publish: title, description, what you&rsquo;re looking for, location, compensation, and any images you upload</li>
-              <li><strong>Swipes</strong>: which posts you liked or passed on</li>
+              <li><strong>Swipes and hearts</strong>: which posts you liked or passed on, and which profiles or work you hearted</li>
               <li><strong>Matches</strong>: which other users mutually liked your posts</li>
               <li><strong>Messages</strong> you send through the app</li>
               <li>A <strong>device push token</strong> (only if you opt in to notifications on iOS), used to send you a notification when you match with someone or receive a new message</li>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 space-y-1">
               <li>To run the app: show you other creatives, deliver messages, send push notifications</li>
               <li>To keep the community safe: handle reports and blocks</li>
-              <li>To improve the product: anonymous aggregate usage analytics</li>
+              <li>To improve the product: usage analytics (which screens and actions are used), linked to your account so we can measure what works. We do not sell it or use it for ads.</li>
             </ul>
             <p>We do not sell your personal data and we do not show ads.</p>
           </Section>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 space-y-1">
               <li>Your <strong>profile</strong>, <strong>posts</strong>, and <strong>avatar</strong> are visible to other signed-in Melange users.</li>
               <li><strong>Messages</strong> are private between you and the other person in a match.</li>
-              <li><strong>Swipes</strong> are private to you (the post owner cannot see whether you liked or passed).</li>
+              <li><strong>Likes and hearts are not private.</strong> When you like someone&rsquo;s project or heart their profile or work, they are told it was you, and they can message you. <strong>Passes are private</strong>: nobody is ever told you passed on them.</li>
               <li><strong>Reports</strong> and <strong>blocks</strong> are only visible to you and to our moderation team.</li>
             </ul>
           </Section>
@@ -71,12 +71,12 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Edit your profile and posts</strong> at any time in the app.</li>
               <li>
-                <strong>Delete your account</strong> in Profile → Account &amp; safety → Delete account.
+                <strong>Delete your account</strong> in Profile → Settings → Delete account.
                 This permanently removes your profile, posts, swipes, matches, messages, push tokens, and uploaded media.
               </li>
               <li>
-                <strong>Export your data</strong> by emailing us at{" "}
-                <a href="mailto:privacy@melange.app" className="text-blue-700 underline">privacy@melange.app</a>.
+                <strong>Export your data</strong> by sending a request through our{" "}
+                <a href="/support" className="text-blue-700 underline">support form</a> (choose &ldquo;Privacy or a data request&rdquo;).
               </li>
             </ul>
           </Section>
@@ -90,7 +90,8 @@ export default function PrivacyPage() {
 
           <Section title="Contact">
             <p>
-              <a href="mailto:privacy@melange.app" className="text-blue-700 underline">privacy@melange.app</a>
+              Use the <a href="/support" className="text-blue-700 underline">support form</a> and choose
+              &ldquo;Privacy or a data request&rdquo;. A person reads every message.
             </p>
           </Section>
         </div>

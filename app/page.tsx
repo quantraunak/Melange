@@ -16,7 +16,7 @@ import {
   APP_STORE_URL,
   IOS_LIVE,
   SITE,
-  SUPPORT_EMAIL,
+  SUPPORT_PATH,
   WEB_APP_PATH,
 } from "./lib/site";
 
@@ -97,7 +97,7 @@ const STEPS = [
   {
     n: "04",
     title: "Match when it's mutual",
-    body: "Both of you liked the work. No cold DMs, no wondering whether you're bothering someone.",
+    body: "When someone likes your project or hearts your work, you see who it was and can write back. Cold messages need a real profile and are capped at five a day.",
   },
   {
     n: "05",
@@ -329,12 +329,13 @@ export default function MarketingHome() {
             </p>
             <p className="mt-5 leading-relaxed text-slate-600">
               Questions or concerns:{" "}
-              <a
+              <Link
                 className="font-medium text-indigo-700 underline underline-offset-4"
-                href={`mailto:${SUPPORT_EMAIL}`}
+                href={SUPPORT_PATH}
               >
-                {SUPPORT_EMAIL}
-              </a>
+                contact us
+              </Link>
+              . A person reads every message.
             </p>
           </div>
         </div>
@@ -400,12 +401,6 @@ export default function MarketingHome() {
               <Link className="transition hover:text-indigo-700" href="/terms">
                 Terms
               </Link>
-              <a
-                className="transition hover:text-indigo-700"
-                href={`mailto:${SUPPORT_EMAIL}`}
-              >
-                Contact
-              </a>
             </nav>
           </div>
 

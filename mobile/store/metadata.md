@@ -78,7 +78,7 @@ We collect no advertising data, no location data, no contacts, no purchases.
 Demo account:
 
 - Email: review@melange.app
-- Password: ReviewMelange2026!
+- Password: in App Store Connect → App Review Information, and in `.env.local` as `REVIEW_PASSWORD` (not here: this repo is public)
 
 (Verified working in Supabase as of 2026-07-12: account exists and signs in successfully.)
 

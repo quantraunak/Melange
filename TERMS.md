@@ -1,6 +1,6 @@
 # Terms of Service
 
-_Last updated: May 2026_
+_Last updated: October 2026_
 
 Welcome to Melange. By creating an account or using the app, you agree to these Terms.
 
@@ -40,7 +40,7 @@ The app is provided "as is". We do our best to keep it running and secure but we
 
 ## Termination
 
-You can delete your account at any time in Profile → Account & safety → Delete account. We may suspend or terminate your account if you violate these Terms.
+You can delete your account at any time in Profile → Settings → Delete account. We may suspend or terminate your account if you violate these Terms.
 
 ## Changes
 
@@ -48,4 +48,4 @@ We may update these Terms; if we do, we'll post the new version here and update 
 
 ## Contact
 
-support@melange.app
+Use the support form at https://melange-psi.vercel.app/support. A person reads every message.

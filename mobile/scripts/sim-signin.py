@@ -11,6 +11,7 @@ Usage: python3 scripts/sim-signin.py
 
 import hashlib
 import json
+import os
 import pathlib
 import re
 import ssl
@@ -19,7 +20,7 @@ import urllib.request
 
 ENV = pathlib.Path("/Users/raunaksood/Projects/melange/.env.local")
 EMAIL = "review@melange.app"
-PASSWORD = "ReviewMelange2026!"
+PASSWORD = os.environ["REVIEW_PASSWORD"]
 BUNDLE = "com.melange.app"
 
 
