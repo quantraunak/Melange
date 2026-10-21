@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Calendar, CalendarX, Check, Clock, MapPin, MessageCircle, Plus, Star, Users, X } from "lucide-react-native";
+import { CalendarX, Check, MapPin, MessageCircle, Plus, Star, Users, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, radii, shadows, typography, inputText } from "@/lib/theme";
+import { colors, fonts, radii, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { formatEventTime } from "@/lib/format";
 import {
@@ -274,10 +274,11 @@ export function EventsFeed({
 
           {events.length === 0 && !error ? (
             <View style={styles.empty}>
-              <Calendar size={40} color={colors.surfaceSunken} />
-              <Text style={styles.emptyTitle}>No upcoming events</Text>
+              <Text style={styles.emptyTitle}>Nothing on the calendar yet</Text>
               <Text style={styles.emptyBody}>
-                Be the first to post a photo walk, open call, or meetup in your city.
+                {cityFilter
+                  ? "Nothing matches that place. Clear the filter, or post the first one there."
+                  : "Going to a gallery opening or a golden-hour walk anyway? Tap Post an event and say when and where."}
               </Text>
             </View>
           ) : (
@@ -372,31 +373,30 @@ function EventCard({
   const full = isEventFull(event);
 
   return (
-    <View style={[styles.card, shadows.card]}>
-      <Pressable
-        style={styles.cover}
-        onPress={onOpen}
-        accessibilityRole="button"
-        accessibilityLabel={`${event.title}, details and who's going`}
-      >
-        {event.cover_url ? (
+    <View style={styles.card}>
+      {/* A real cover or none. Without one the serif title carries the card. */}
+      {event.cover_url ? (
+        <Pressable
+          style={styles.cover}
+          onPress={onOpen}
+          accessibilityRole="button"
+          accessibilityLabel={`${event.title}, details and who's going`}
+        >
           <Image source={{ uri: event.cover_url }} style={styles.coverImg} />
-        ) : (
-          <View style={styles.coverPlaceholder}>
-            <Text style={styles.coverEmoji}>{cat.emoji}</Text>
-          </View>
-        )}
-        <View style={styles.timePill}>
-          <Clock size={12} color={colors.white} />
-          <Text style={styles.timePillText}>{past ? day : time}</Text>
-        </View>
-      </Pressable>
+        </Pressable>
+      ) : null}
 
       <View style={styles.cardBody}>
         <Text style={styles.catText}>
-          {cat.emoji} {cat.label}
+          {past ? day : time} · {cat.label}
         </Text>
-        <Text style={styles.cardTitle}>{event.title}</Text>
+        <Pressable
+          onPress={onOpen}
+          accessibilityRole="button"
+          accessibilityLabel={`${event.title}, details and who's going`}
+        >
+          <Text style={event.cover_url ? styles.cardTitle : styles.cardTitleBig}>{event.title}</Text>
+        </Pressable>
         {event.description ? (
           <Text style={styles.metaText} numberOfLines={past ? 3 : 2}>
             {event.description}
@@ -536,14 +536,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.brand,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
   },
   hostBtnText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.white },
   searchWrap: { position: "relative" },
-  search: { ...inputText, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, color: colors.text, paddingRight: 36 },
+  search: { ...inputText, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.md, paddingHorizontal: 16, paddingVertical: 10, color: colors.text, paddingRight: 36 },
   clearBtn: {
     position: "absolute",
     right: 12,
@@ -552,42 +552,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   empty: {
-    alignItems: "center",
     paddingVertical: 32,
-    gap: 10,
+    gap: 8,
   },
-  emptyTitle: { ...typography.headline, color: colors.text },
-  emptyBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center", maxWidth: 280 },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary, maxWidth: 320 },
   pressedOpacity: { opacity: 0.75 },
   dayGroup: { gap: 10, marginTop: 4 },
   dayLabel: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary, textTransform: "uppercase" },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     overflow: "hidden",
   },
   cover: { height: 140, backgroundColor: colors.surfaceSunken },
   coverImg: { width: "100%", height: "100%" },
-  coverPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  coverEmoji: { ...typography.display1 },
-  timePill: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: colors.brand,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-  },
-  timePillText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.white },
   cardBody: { padding: 12, gap: 6 },
-  catText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary },
-  cardTitle: { ...typography.headline, color: colors.text },
+  catText: { ...typography.eyebrow, color: colors.text },
+  cardTitle: { ...typography.display2 },
+  cardTitleBig: { ...typography.display1 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
   hostRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
@@ -596,8 +581,8 @@ const styles = StyleSheet.create({
   goingCountText: { ...typography.micro, color: colors.textSecondary },
   rsvpRow: {
     flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: colors.lineStrong,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
   },
   rsvpBtn: {
     flex: 1,
@@ -609,7 +594,7 @@ const styles = StyleSheet.create({
   },
   rsvpInterested: { backgroundColor: colors.accentSoft },
   rsvpGoing: { backgroundColor: colors.accent },
-  rsvpDivider: { width: 1, backgroundColor: colors.lineStrong },
+  rsvpDivider: { width: StyleSheet.hairlineWidth, backgroundColor: colors.line },
   rsvpLabel: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   rsvpLabelActive: { color: colors.brandText },
   rsvpDisabled: { backgroundColor: colors.surfaceSunken },

@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     backgroundColor: colors.accentSoft,
     maxWidth: 200,
   },

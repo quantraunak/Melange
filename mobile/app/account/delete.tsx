@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowLeft, AlertTriangle } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -64,7 +64,6 @@ export default function DeleteAccount() {
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.warnBlock}>
-          <AlertTriangle size={32} color={colors.dangerText} />
           <Text style={styles.warnTitle}>This cannot be undone.</Text>
           <Text style={styles.warnBody}>
             Deleting your account removes your profile, posts, swipes, matches, messages,
@@ -113,20 +112,14 @@ const styles = StyleSheet.create({
   warnBlock: {
     backgroundColor: colors.dangerSoft,
     borderRadius: radii.md,
-    padding: 20,
-    alignItems: "center",
+    padding: 16,
     gap: 8,
     borderColor: colors.dangerLine,
     borderWidth: 1,
   },
-  warnTitle: { ...typography.headline, color: colors.dangerText, marginTop: 4 },
-  warnBody: { ...typography.caption, color: colors.dangerText, textAlign: "center" },
+  warnTitle: { ...typography.headline, color: colors.dangerText },
+  warnBody: { ...typography.body, color: colors.dangerText },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: 16,
     gap: 12,
-    borderColor: colors.lineStrong,
-    borderWidth: 1,
   },
 });

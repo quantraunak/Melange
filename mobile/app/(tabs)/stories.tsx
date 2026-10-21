@@ -3,7 +3,7 @@ import { Dimensions, Pressable, RefreshControl, ScrollView, StyleSheet, Text, Vi
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ImageIcon, Plus } from "lucide-react-native";
+import { Plus } from "lucide-react-native";
 
 import { FOUNDING_MARK } from "@/components/IdentityLine";
 import { SceneChips } from "@/components/SceneChips";
@@ -205,6 +205,9 @@ export default function ExploreScreen() {
                   ? `Nothing from ${label} yet`
                   : "Nothing here yet"}
             </Text>
+            <Text style={styles.emptyBody}>
+              Post a photo from your last shoot or night out, and tag who made it with you.
+            </Text>
             <Button title="Post the first" variant="primary" onPress={() => post(themeOnly)} />
           </View>
         ) : (
@@ -291,17 +294,22 @@ function Tile({ story, onPress }: { story: StoryWithAuthor; onPress: () => void 
             transition={160}
           />
         ) : (
-          <ImageIcon size={24} color={colors.iconFaint} strokeWidth={1.4} />
+          // No photo: the title, in the serif, on paper.
+          <Text style={styles.typeOnly} numberOfLines={5}>
+            {story.title}
+          </Text>
         )}
         {story.featured_at ? (
           <View style={styles.featured}>
-            <Text style={styles.featuredText}>{FOUNDING_MARK} Featured</Text>
+            <Text style={styles.featuredText}>Featured</Text>
           </View>
         ) : null}
       </View>
-      <Text style={styles.tileTitle} numberOfLines={1}>
-        {story.title}
-      </Text>
+      {cover ? (
+        <Text style={styles.tileTitle} numberOfLines={1}>
+          {story.title}
+        </Text>
+      ) : null}
       <Text style={styles.tileBy} numberOfLines={1}>
         {story.author.name}
         {story.author.founding ? ` ${FOUNDING_MARK}` : ""}
@@ -318,12 +326,12 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.9 },
   cover: {
     width: "100%",
-    borderRadius: radii.md,
+    borderRadius: radii.photo,
     overflow: "hidden",
     backgroundColor: colors.surfaceSunken,
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-end",
   },
+  typeOnly: { ...typography.display2, padding: spacing.md },
   // White label on the photo, not a scrim over it.
   featured: {
     position: "absolute",
@@ -331,19 +339,20 @@ const styles = StyleSheet.create({
     left: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     backgroundColor: colors.surface,
   },
-  featuredText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.accentInk },
+  featuredText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.text },
   tileTitle: { ...typography.bodyStrong, marginTop: spacing.sm },
   tileBy: { ...typography.caption },
-  empty: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.xxxl },
-  emptyTitle: { ...typography.headline, textAlign: "center" },
+  empty: { alignItems: "flex-start", gap: spacing.md, paddingVertical: spacing.xxl },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary },
 
   plus: {
     width: 36,
     height: 36,
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     backgroundColor: colors.brand,
     alignItems: "center",
     justifyContent: "center",
@@ -355,8 +364,8 @@ const styles = StyleSheet.create({
   themeWho: { flexShrink: 1 },
   themeText: { ...typography.caption, color: colors.textSecondary },
   themeName: { fontFamily: fonts.semibold, color: colors.text },
-  // Selected is violet, the one job the accent has.
-  themeNameActive: { color: colors.accentInk },
+  // Selected reads as underlined ink, not a second colour.
+  themeNameActive: { color: colors.text, textDecorationLine: "underline" },
   themeDot: { ...typography.caption, color: colors.textSecondary },
   themeToggle: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });

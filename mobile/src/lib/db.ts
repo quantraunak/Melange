@@ -103,7 +103,7 @@ export type CreatorInfo = {
   avg_rating?: number;
   review_count?: number;
   verification_status?: "none" | "pending" | "verified";
-  /** Founding members carry the ✦ wherever their name appears. */
+  /** Founding members carry the founding mark wherever their name appears. */
   founding?: boolean;
 };
 

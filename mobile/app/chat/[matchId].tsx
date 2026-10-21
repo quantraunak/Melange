@@ -288,8 +288,10 @@ export default function ChatScreen() {
             contentContainerStyle={styles.messageList}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
-                <Text style={styles.emptyChatTitle}>You matched</Text>
-                <Text style={styles.emptyChatText}>Say hi.</Text>
+                <Text style={styles.emptyChatTitle}>You matched. Nobody&apos;s written yet.</Text>
+                <Text style={styles.emptyChatText}>
+                  Go first: say when you&apos;re free this week and what you&apos;d bring.
+                </Text>
               </View>
             }
             renderItem={({ item, index }) => (
@@ -327,18 +329,17 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: radii.sm,
-    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    backgroundColor: colors.brand,
   },
-  notFoundBtnText: { ...typography.bodyStrong, color: colors.white },
+  notFoundBtnText: { ...typography.bodyStrong, color: colors.onBrand },
   messageList: { paddingHorizontal: 14, paddingVertical: 12, flexGrow: 1 },
   emptyChat: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: 24,
     gap: 6,
   },
-  emptyChatTitle: { ...typography.headline, color: colors.text },
-  emptyChatText: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+  emptyChatTitle: { ...typography.display2 },
+  emptyChatText: { ...typography.body, color: colors.textSecondary },
 });

@@ -3,7 +3,7 @@ import { Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import { ImageIcon, ImagePlus } from "lucide-react-native";
+import { ImagePlus } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -196,9 +196,7 @@ export function NightRoll({
           contentFit="cover"
           transition={120}
         />
-      ) : (
-        <ImageIcon size={20} color={colors.iconFaint} strokeWidth={1.4} />
-      )}
+      ) : null}
     </Pressable>
   );
 

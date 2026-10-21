@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   vibeChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.lineStrong,
   },

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { Check, ImageIcon, Tag, Trash2, UserRoundX, X } from "lucide-react-native";
+import { Check, Tag, Trash2, UserRoundX, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -124,9 +124,7 @@ export function NightPhotoViewer({
                     transition={120}
                     accessibilityLabel={`Photo from ${firstName(item.uploader_name)}`}
                   />
-                ) : (
-                  <ImageIcon size={32} color={colors.iconFaint} strokeWidth={1.4} />
-                )}
+                ) : null}
               </View>
             )}
             style={{ flex: 1 }}

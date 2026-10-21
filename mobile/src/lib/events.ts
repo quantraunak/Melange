@@ -49,18 +49,18 @@ export type EventWithDetails = MelangeEvent & {
   my_rsvp: "going" | "interested" | null;
 };
 
-export const EVENT_CATEGORIES: { id: EventCategory; label: string; emoji: string }[] = [
-  { id: "photo_walk", label: "Photo walk", emoji: "📸" },
-  { id: "open_call", label: "Open call", emoji: "🎭" },
-  { id: "gallery", label: "Gallery opening", emoji: "🖼️" },
-  { id: "meetup", label: "Meetup", emoji: "👋" },
-  { id: "workshop", label: "Workshop", emoji: "🎓" },
-  { id: "exhibition", label: "Exhibition", emoji: "✨" },
-  { id: "other", label: "Other", emoji: "📍" },
+export const EVENT_CATEGORIES: { id: EventCategory; label: string }[] = [
+  { id: "photo_walk", label: "Photo walk" },
+  { id: "open_call", label: "Open call" },
+  { id: "gallery", label: "Gallery opening" },
+  { id: "meetup", label: "Meetup" },
+  { id: "workshop", label: "Workshop" },
+  { id: "exhibition", label: "Exhibition" },
+  { id: "other", label: "Other" },
 ];
 
-export function categoryDisplay(c: EventCategory): { label: string; emoji: string } {
-  return EVENT_CATEGORIES.find((x) => x.id === c) ?? { label: c, emoji: "📍" };
+export function categoryDisplay(c: EventCategory): { label: string } {
+  return EVENT_CATEGORIES.find((x) => x.id === c) ?? { label: c };
 }
 
 // ============================================================

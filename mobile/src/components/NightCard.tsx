@@ -9,7 +9,7 @@ import { formatEventTime } from "@/lib/format";
 import { sized } from "@/lib/imageUrl";
 import type { Face, NightWithFaces } from "@/lib/nights";
 import { sceneLabel } from "@/lib/scenes";
-import { colors, fonts, radii, shadows, spacing, typography } from "@/lib/theme";
+import { colors, fonts, radii, spacing, typography } from "@/lib/theme";
 
 /** Overlapping faces. Who's going is the reason to go, so it leads the card's footer. */
 export function FaceStack({ faces, total }: { faces: Face[]; total?: number }) {
@@ -54,27 +54,27 @@ export function NightCard({
       accessibilityLabel={`${night.title}, ${day} at ${time}`}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <View style={styles.cover}>
-        {night.cover_url ? (
+      {night.cover_url ? (
+        <View style={styles.cover}>
           <Image
             source={{ uri: sized(night.cover_url, 400, 170) }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             transition={160}
           />
-        ) : (
-          <Text style={styles.coverEmoji}>{cat.emoji}</Text>
-        )}
-      </View>
+        </View>
+      ) : null}
 
       <View style={styles.body}>
         <Text style={styles.when}>
           {day} · {time}
           {night.my_rsvp === "going" ? "  ·  You're going" : ""}
         </Text>
-        <Text style={styles.title} numberOfLines={2}>
+        {/* No cover: the title, set large in the serif, is the cover. */}
+        <Text style={night.cover_url ? styles.title : styles.titleBig} numberOfLines={night.cover_url ? 2 : 3}>
           {night.title}
         </Text>
+        <Text style={styles.cat}>{cat.label}</Text>
         {night.location_name || night.city ? (
           <View style={styles.placeRow}>
             <MapPin size={13} color={colors.iconFaint} />
@@ -99,20 +99,17 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     overflow: "hidden",
-    ...shadows.card,
   },
   pressed: { opacity: 0.94, transform: [{ scale: 0.995 }] },
-  cover: {
-    height: 150,
-    backgroundColor: colors.surfaceSunken,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverEmoji: { ...typography.display1 },
+  cover: { height: 150, backgroundColor: colors.surfaceSunken },
   body: { padding: spacing.lg, gap: spacing.xs },
-  when: { ...typography.eyebrow, color: colors.accentInk },
-  title: { ...typography.title },
+  when: { ...typography.eyebrow, color: colors.text },
+  title: { ...typography.display2 },
+  titleBig: { ...typography.display1, marginVertical: spacing.sm },
+  cat: { ...typography.caption },
   placeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   place: { ...typography.caption, flex: 1 },
   footer: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.sm },

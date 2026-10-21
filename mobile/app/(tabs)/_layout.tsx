@@ -116,7 +116,8 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             const { options } = descriptors[route.key];
             const label = (options.tabBarLabel as string) ?? options.title ?? route.name;
             const badge = route.name === "messages" ? unreadCount : 0;
-            const color = focused ? colors.brand : colors.textSecondary;
+            // Selection is ink, not indigo: indigo is for links and the one primary action.
+            const color = focused ? colors.text : colors.textTertiary;
 
             const onPress = () => {
               const event = navigation.emit({
@@ -206,8 +207,8 @@ const styles = StyleSheet.create({
     gap: 3,
     position: "relative",
   },
-  tabLabel: { ...typography.micro, color: colors.textSecondary },
-  tabLabelOn: { fontFamily: "Inter_600SemiBold", color: colors.brand },
+  tabLabel: { ...typography.micro, color: colors.textTertiary },
+  tabLabelOn: { fontFamily: "Inter_600SemiBold", color: colors.text },
   badge: {
     position: "absolute",
     top: 2,
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
     height: 18,
     paddingHorizontal: 4,
     borderRadius: radii.pill,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.text,
     alignItems: "center",
     justifyContent: "center",
   },

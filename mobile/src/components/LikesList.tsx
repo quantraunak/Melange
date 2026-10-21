@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   note: { ...typography.caption, color: colors.textSecondary, paddingVertical: spacing.xs },
   row: { gap: spacing.lg, paddingVertical: spacing.xs, paddingRight: spacing.sm },
   item: { alignItems: "center", width: 64, gap: spacing.xs },
-  // Violet: a heart is "like", and like is the accent's one job.
+  // Ink: the "yes" colour. The badge is the only mark; the face does the rest.
   badge: {
     position: "absolute",
     right: -2,

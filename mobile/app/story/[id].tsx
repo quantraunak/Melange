@@ -12,17 +12,16 @@ import {
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, CalendarRange, ExternalLink, MessageCircle, Trash2, Users } from "lucide-react-native";
+import { ArrowLeft, CalendarRange, ExternalLink, MessageCircle, Trash2 } from "lucide-react-native";
 
 import { HeartButton } from "@/components/HeartButton";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
-import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, radii, shadows, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { sized } from "@/lib/imageUrl";
 import {
@@ -33,7 +32,6 @@ import {
   type StoryWithAuthor,
 } from "@/lib/stories";
 import { isAdmin } from "@/lib/scenes";
-import { FOUNDING_MARK } from "@/components/IdentityLine";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -170,12 +168,17 @@ export default function StoryDetailScreen() {
                   ) : null}
                 </>
               ) : (
-                <View style={[styles.galleryImage, styles.galleryEmpty]} />
+                // No photos: the title, set large on paper, is the cover.
+                <View style={[styles.galleryImage, styles.galleryEmpty]}>
+                  <Text style={styles.typeOnly} numberOfLines={5}>
+                    {story.title}
+                  </Text>
+                </View>
               )}
             </View>
 
             <View style={styles.body}>
-              <Text style={styles.title}>{story.title}</Text>
+              {story.media_urls.length ? <Text style={styles.title}>{story.title}</Text> : null}
 
               <View style={styles.byRow}>
                 <Pressable
@@ -221,9 +224,8 @@ export default function StoryDetailScreen() {
               <ErrorBanner message={error} />
 
               {story.credits.length ? (
-                <Glass style={styles.creditsCard}>
+                <View style={styles.creditsCard}>
                   <View style={styles.creditsHead}>
-                    <Users size={15} color={colors.iconFaint} />
                     <Text style={styles.creditsTitle}>Made with</Text>
                   </View>
                   <View style={styles.creditsList}>
@@ -258,7 +260,7 @@ export default function StoryDetailScreen() {
                       </Pressable>
                     ))}
                   </View>
-                </Glass>
+                </View>
               ) : null}
 
               {story.story ? (
@@ -294,7 +296,7 @@ export default function StoryDetailScreen() {
 
               {admin ? (
                 <Button
-                  title={story.featured_at ? `Unfeature` : `${FOUNDING_MARK} Feature on Explore`}
+                  title={story.featured_at ? "Unfeature" : "Feature on Explore"}
                   variant="outline"
                   loading={featuring}
                   onPress={toggleFeatured}
@@ -327,13 +329,11 @@ const styles = StyleSheet.create({
 
   gallery: { position: "relative" },
   galleryImage: { width: SCREEN_W, height: 400, backgroundColor: colors.bg },
-  galleryEmpty: { backgroundColor: colors.bg },
+  galleryEmpty: { backgroundColor: colors.bg, justifyContent: "flex-end", paddingHorizontal: 20 },
+  typeOnly: { ...typography.display1 },
   dots: {
     position: "absolute",
-    // The body card below overlaps the gallery by 24 (body.marginTop: -24),
-    // so dots sitting at the gallery's own bottom edge are covered by it.
-    // Clear the overlap first, then the usual inset.
-    bottom: 24 + 14,
+    bottom: 14,
     left: 0,
     right: 0,
     flexDirection: "row",
@@ -348,22 +348,26 @@ const styles = StyleSheet.create({
   },
   dotOn: { backgroundColor: colors.white, width: 18 },
 
+  // The page starts where the photo ends: no rounded sheet lapping over it.
   body: {
     padding: 20,
     gap: 16,
-    marginTop: -24,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     backgroundColor: colors.bg,
   },
-  title: typography.display2,
+  title: typography.display1,
   byRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   byName: { ...typography.headline },
   byRole: { ...typography.caption },
   when: { flexDirection: "row", alignItems: "center", gap: 4 },
   whenText: { ...typography.micro },
 
-  creditsCard: { padding: 14, gap: 10 },
+  creditsCard: {
+    paddingVertical: 14,
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+  },
   creditsHead: { flexDirection: "row", alignItems: "center", gap: 7 },
   creditsTitle: { ...typography.eyebrow, color: colors.textSecondary },
   creditsList: { gap: 9 },
@@ -389,7 +393,7 @@ const styles = StyleSheet.create({
   },
   deleteText: { ...typography.bodyStrong, color: colors.dangerText },
 
-  backWrap: { position: "absolute", left: 12, ...shadows.card },
+  backWrap: { position: "absolute", left: 12 },
   missing: { alignItems: "center", gap: 6, paddingHorizontal: 24 },
   missingTitle: { ...typography.headline },
   missingBody: { ...typography.caption },

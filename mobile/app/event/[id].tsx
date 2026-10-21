@@ -33,7 +33,6 @@ import { NightRoll } from "@/components/NightRoll";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { FOUNDING_MARK } from "@/components/IdentityLine";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
@@ -338,7 +337,7 @@ export default function EventScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Message ${p.name}`}
         >
-          <MessageCircle size={15} color={colors.onAccent} />
+          <MessageCircle size={15} color={colors.text} />
           <Text style={styles.msgText}>Message</Text>
         </Pressable>
       ) : null}
@@ -354,9 +353,9 @@ export default function EventScreen() {
         copy={
           celebration
             ? {
-                kicker: `It's mutual ${FOUNDING_MARK}`,
-                title: `${celebration.them.name.split(" ")[0]} hearted you too`,
-                body: "You both want to see each other again. Say hi while the night's still warm.",
+                kicker: "It's mutual",
+                title: `${celebration.them.name.split(" ")[0]} hearted you too.`,
+                body: "You both want to see each other again. Write while you both still remember the night.",
                 dismiss: "Later",
               }
             : undefined
@@ -383,19 +382,14 @@ export default function EventScreen() {
           />
         }
       >
-        {event.cover_url ? (
-          <Image source={{ uri: event.cover_url }} style={styles.cover} />
-        ) : (
-          <View style={[styles.cover, styles.coverEmpty]}>
-            <Text style={styles.coverEmoji}>{cat.emoji}</Text>
-          </View>
-        )}
+        {/* A real cover or none: without one, the title in the serif is the cover. */}
+        {event.cover_url ? <Image source={{ uri: event.cover_url }} style={styles.cover} /> : null}
 
         <Text style={styles.cat}>
-          {cat.emoji} {cat.label}
+          {cat.label}
           {event.is_canceled ? " · Canceled" : ""}
         </Text>
-        <Text style={styles.title}>{event.title}</Text>
+        <Text style={[styles.title, !event.cover_url && styles.titleLarge]}>{event.title}</Text>
 
         <View style={styles.facts}>
           <View style={styles.fact}>
@@ -502,7 +496,7 @@ export default function EventScreen() {
 
             {mutuals.length ? (
               <>
-                <Text style={[styles.eyebrow, { marginTop: spacing.md }]}>Mutual {FOUNDING_MARK}</Text>
+                <Text style={[styles.eyebrow, { marginTop: spacing.md }]}>Mutual</Text>
                 {mutuals.map((m) => (
                   <Pressable
                     key={m.user_id}
@@ -585,11 +579,10 @@ const styles = StyleSheet.create({
   inviteBtn: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: GUTTER },
   scroll: { paddingHorizontal: GUTTER, paddingBottom: spacing.xxxl, gap: spacing.sm },
-  cover: { width: "100%", height: 200, borderRadius: radii.md, backgroundColor: colors.surfaceSunken },
-  coverEmpty: { alignItems: "center", justifyContent: "center" },
-  coverEmoji: { ...typography.display1 },
-  cat: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary, marginTop: spacing.md },
+  cover: { width: "100%", height: 200, borderRadius: radii.photo, backgroundColor: colors.surfaceSunken },
+  cat: { ...typography.eyebrow, marginTop: spacing.md },
   title: { ...typography.display2, color: colors.text },
+  titleLarge: { ...typography.display1 },
   facts: { gap: spacing.xs, marginTop: spacing.xs },
   fact: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   factText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
@@ -636,8 +629,10 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
+    borderRadius: radii.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
   },
-  msgText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.onAccent },
+  msgText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
 });

@@ -5,12 +5,12 @@
  * changing anything here: every value below was measured against screenshots,
  * not chosen. The rules it encodes, in one paragraph:
  *
- *   Two hues. Blue is structure (wordmark, nav, primary buttons, links),
- *   violet is affirmative (like, match, selected) and nothing else. Light
- *   palette only — there is no dark theme and glass never means dark chrome.
- *   Content surfaces are opaque white and run edge to edge; chrome floats
- *   inset at GUTTER and is the only thing allowed to be glass. One gutter,
- *   four radii, one spacing scale, nine type tokens, three elevations.
+ *   Paper, ink, one accent. Off-white paper, white surfaces, near-black ink.
+ *   Indigo is for links and the one primary action per screen; "yes" states
+ *   (liked, selected) are ink. Flat colour only, shadows almost never, radii
+ *   6-10 for controls and 0-4 for photos. Light only. Chrome floats inset at
+ *   GUTTER and is the only thing allowed to be glass. The rules live in
+ *   .claude/skills/melange-design/SKILL.md.
  *
  * An ESLint rule bans `fontSize` outside this file. If you need a size that
  * is not here, the answer is almost always that you need a different token.
@@ -20,34 +20,34 @@ import type { TextStyle } from "react-native";
 import { Easing } from "react-native-reanimated";
 
 export const colors = {
-  // Ground and surfaces
-  bg: "#f3f4f6",
+  // Paper and surfaces. Flat: color comes from members' photos, not decoration.
+  bg: "#fafaf7", // paper
   surface: "#ffffff",
-  surfaceSunken: "#f9fafb", // input wells only
-  line: "rgba(17,24,39,0.10)", // every hairline
-  lineStrong: "#e5e7eb", // input wells, disabled outlines
-  scrim: "rgba(17,24,39,0.35)",
+  surfaceSunken: "#f3f3ef", // input wells and empty photo slots only
+  line: "rgba(20,20,20,0.10)", // every hairline
+  lineStrong: "#e4e4de", // input wells, disabled outlines
+  scrim: "rgba(20,20,20,0.35)",
 
-  // Ink. textTertiary is legal on #ffffff only (4.83:1); on bg it is 4.39 and fails.
-  text: "#111827",
-  textSecondary: "#4b5563",
-  textTertiary: "#6b7280",
+  // Ink. textTertiary is legal on #ffffff only.
+  text: "#141414",
+  textSecondary: "#4a4a46",
+  textTertiary: "#6b6b66",
   /** Non-text strokes, dividers, placeholder glyphs. Never a text colour. */
-  iconFaint: "#9ca3af",
+  iconFaint: "#a3a39c",
   white: "#ffffff",
 
-  // Blue is structure.
-  brand: "#1e3a8a",
-  brandText: "#1d4ed8", // text links only
+  // Indigo is the one accent: links and the single primary action per screen.
+  brand: "#3730a3",
+  brandText: "#3730a3", // text links only
   onBrand: "#ffffff",
-  onBrandMuted: "#bfdbfe", // secondary text on a brand-filled ground
+  onBrandMuted: "#c7d2fe", // secondary text on a brand-filled ground
 
-  // Violet is yes.
-  accent: "#7c3aed",
-  accentSoft: "#f5f3ff",
-  accentInk: "#6d28d9",
+  // "Yes" states (liked, matched, selected) are set in ink, not a second hue.
+  accent: "#141414",
+  accentSoft: "#eeeee9",
+  accentInk: "#141414",
   onAccent: "#ffffff",
-  onAccentMuted: "rgba(255,255,255,0.72)", // metadata inside an accent bubble
+  onAccentMuted: "rgba(255,255,255,0.72)", // metadata inside an ink bubble
 
   // Red is destructive confirmation. It is not a UI colour.
   danger: "#dc2626",
@@ -56,15 +56,19 @@ export const colors = {
   dangerLine: "#fecaca", // the hairline on a destructive surface
 
   // Chat
-  bubbleMe: "#7c3aed",
-  bubbleOther: "#f3f4f6",
+  bubbleMe: "#141414",
+  bubbleOther: "#efefea",
 };
 
-/** Four values. Nothing else. sm chips/inputs/thumbs · md inner cards · lg plates/sheets/bar · pill capsules */
+/**
+ * Controls sit at 6-10; photos at 0-4. sm chips/inputs · md buttons/inner
+ * blocks · lg sheets/tappable cards/the bar · photo images · pill circles only.
+ */
 export const radii = {
-  sm: 12,
-  md: 16,
-  lg: 24,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  photo: 2,
   pill: 999,
 };
 
@@ -108,9 +112,9 @@ export const typography: Record<
 > = {
   display1: {
     fontFamily: fonts.display,
-    fontSize: 32,
-    lineHeight: 36,
-    letterSpacing: -0.8,
+    fontSize: 36,
+    lineHeight: 40,
+    letterSpacing: -0.9,
     color: colors.text,
   },
   display2: {
@@ -176,31 +180,27 @@ export const typography: Record<
 };
 
 /**
- * Three levels. `float` is the only shadow allowed over a photograph — anything
- * softer is below the perceptual floor on an image. A surface has an edge or a
- * shadow, never both.
+ * Shadows almost never. Content is flat on paper and separated by space and
+ * hairlines, so `card` and `plate` are zero (kept as names so a surface can
+ * say what it is). `float` is a faint lift for glass controls sitting on a
+ * photograph, where an edge alone disappears.
  */
+const NONE = {
+  shadowColor: "#000000",
+  shadowOpacity: 0,
+  shadowRadius: 0,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 0,
+};
 export const shadows = {
-  card: {
-    shadowColor: "#111827",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  plate: {
-    shadowColor: "#111827",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
+  card: NONE,
+  plate: NONE,
   float: {
-    shadowColor: "#0b1220",
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 };
 
