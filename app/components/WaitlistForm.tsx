@@ -10,7 +10,8 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 /**
  * Writes to `waitlist` (23_scenes_invites_nights.sql): insert-only for
  * anon, unique on lower(email), capped at 200 an hour by a trigger.
- * Shared by the landing page and /join without a code.
+ * Shared by the landing page and /join without a code. Since 1.9 the app
+ * is open to anyone, so this is "the list for the next night", not a gate.
  */
 export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: WaitlistScene | "" }) {
   const [email, setEmail] = useState("");
@@ -66,8 +67,8 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         </p>
         <p className="mt-1.5 text-indigo-900/80">
           {state === "sent"
-            ? "We let people in scene by scene. When yours opens up, or a friend sends you a code, you're in."
-            : "No need to sign up twice. When your scene opens up, or a friend sends you a code, you're in."}
+            ? "We'll tell you when there's a night in your scene. Meanwhile, the app is open: download it and say hi."
+            : "No need to sign up twice. We'll tell you when there's a night in your scene."}
         </p>
       </div>
     );
@@ -153,7 +154,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
           disabled={state === "sending"}
           className="melange-btn-primary w-full rounded-xl px-6 py-3.5 text-base font-semibold text-white disabled:opacity-60 sm:w-auto"
         >
-          {state === "sending" ? "Adding you…" : "Join the waitlist"}
+          {state === "sending" ? "Adding you…" : "Get on the list"}
         </button>
       </div>
     </form>

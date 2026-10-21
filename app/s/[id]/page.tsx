@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { RemoteImg, SiteFooter, SiteHeader } from "../../components/SiteChrome";
+import { GetTheAppCta, RemoteImg, SiteFooter, SiteHeader } from "../../components/SiteChrome";
 import { getSharedStory } from "../../lib/publicData";
 
 /** A shared shoot (collab_stories), readable signed out when it's public. */
@@ -156,20 +155,7 @@ export default async function SharedShootPage({ params }: Props) {
           </section>
         ) : null}
 
-        <section className="melange-bg mt-16 rounded-3xl px-6 py-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Made by a crew on Melange
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-slate-600">
-            Where young creatives find their crew — the people, the nights, the ideas. Invite-only.
-          </p>
-          <Link
-            href="/join"
-            className="melange-btn-primary mt-6 inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white sm:w-auto"
-          >
-            Join the waitlist
-          </Link>
-        </section>
+        <GetTheAppCta heading="Made by a crew on Melange" />
       </article>
 
       <SiteFooter />

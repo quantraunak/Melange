@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import Logo from "./Logo";
-import { WEB_APP_PATH } from "../lib/site";
+import { APP_STORE_URL, IOS_LIVE, WEB_APP_PATH } from "../lib/site";
 
 /** Header and footer shared by the landing page and the public pages. */
 
@@ -82,6 +82,37 @@ export function SiteFooter() {
         </p>
       </div>
     </footer>
+  );
+}
+
+/**
+ * The closing CTA on the public pages: the app is open to anyone (primary),
+ * nights are invite-only (secondary, the list on the landing page).
+ */
+export function GetTheAppCta({ heading }: { heading: string }) {
+  return (
+    <section className="melange-bg mt-16 rounded-3xl px-6 py-10 text-center">
+      <h2 className="text-2xl font-bold tracking-tight text-slate-900">{heading}</h2>
+      <p className="mx-auto mt-3 max-w-md text-slate-600">
+        Where young creatives find their crew. Free on iPhone; the nights are invite-only.
+      </p>
+      <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        {IOS_LIVE ? (
+          <a
+            href={APP_STORE_URL}
+            className="melange-btn-primary inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white sm:w-auto"
+          >
+            Get the app
+          </a>
+        ) : null}
+        <Link
+          href="/#next-night"
+          className="text-sm font-medium text-indigo-700 underline underline-offset-4"
+        >
+          Get on the list for the next night
+        </Link>
+      </div>
+    </section>
   );
 }
 

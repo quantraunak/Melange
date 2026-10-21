@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Compass, Heart, KeyRound, MoonStar, ShieldCheck, Users } from "lucide-react";
+import { Compass, Heart, MoonStar, ShieldCheck, Sparkles, Users } from "lucide-react";
 
 import Logo from "./components/Logo";
 import WaitlistForm from "./components/WaitlistForm";
 import { SiteFooter, SiteHeader } from "./components/SiteChrome";
+import { getCurrentTheme, type WeeklyTheme } from "./lib/publicData";
 import { SCENES } from "./lib/scenes";
 import { APP_STORE_URL, IOS_LIVE, SITE, SUPPORT_PATH } from "./lib/site";
+
+// The weekly theme turns over on Mondays; re-read it every 10 minutes.
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: { absolute: "Melange — Where young creatives find their crew" },
@@ -23,27 +27,41 @@ export const metadata: Metadata = {
 
 /* ------------------------------------------------------------------ */
 
-function WaitlistCta({ className = "" }: { className?: string }) {
+/** Primary CTA: the app is open to anyone. */
+function GetAppCta({ className = "" }: { className?: string }) {
+  const cls = `melange-btn-primary inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white sm:w-auto ${className}`;
+  return IOS_LIVE ? (
+    <a href={APP_STORE_URL} className={cls}>
+      Get the app
+    </a>
+  ) : (
+    <span className={`${cls} opacity-70`}>iPhone app coming soon</span>
+  );
+}
+
+/** Secondary CTA: nights are invite-only, so the list is for the next one. */
+function NextNightCta({ className = "" }: { className?: string }) {
   return (
     <a
-      href="#waitlist"
-      className={`melange-btn-primary inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white ${className}`}
+      href="#next-night"
+      className={`inline-flex w-full items-center justify-center rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-semibold text-indigo-900 backdrop-blur transition hover:bg-white sm:w-auto ${className}`}
     >
-      Join the waitlist
+      Get on the list for the next night
     </a>
   );
 }
 
-function CodeCta({ className = "" }: { className?: string }) {
-  return (
-    <Link
-      href="/join"
-      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-semibold text-indigo-900 backdrop-blur transition hover:bg-white ${className}`}
-    >
-      <KeyRound className="h-4 w-4" />
-      I have a code
-    </Link>
-  );
+/**
+ * This week's theme, from current_theme(). The landing page shouldn't go
+ * down with the database, so a failed read is logged and the section skipped.
+ */
+async function loadTheme(): Promise<WeeklyTheme | null> {
+  try {
+    return await getCurrentTheme();
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -51,23 +69,23 @@ function CodeCta({ className = "" }: { className?: string }) {
 const STEPS = [
   {
     n: "01",
-    title: "Get invited",
-    body: "Every member has five codes. A friend sends you one, and you're in their scene. No code yet? Join the waitlist — we open scenes a few people at a time.",
+    title: "Download",
+    body: "Melange is free on iPhone, and anyone can sign up. No code needed.",
   },
   {
     n: "02",
     title: "Go to a night",
-    body: "Melange Nights and members' events are where the scene meets. Before it, see who's going and talk in the night chat.",
+    body: "Nights are invite-only: a friend sends you the link. Before it, see who's going and talk in the night chat.",
   },
   {
     n: "03",
-    title: "Find your people",
-    body: "After the night, quietly heart anyone you'd like to see again. They'll only know if they hearted you too — then a conversation opens.",
+    title: "Meet your people",
+    body: "After the night, heart anyone you'd like to see again. They'll only know if they hearted you too, and then a conversation opens.",
   },
   {
     n: "04",
-    title: "Explore the scene",
-    body: "Between nights, Explore is the scene's moodboard: shoots and ideas from the people around you, picked by editors.",
+    title: "Explore and post",
+    body: "Between nights, Explore is your scene's moodboard. Post a photo of something you made, and join the weekly theme.",
   },
 ];
 
@@ -80,12 +98,12 @@ const PILLARS = [
   {
     icon: MoonStar,
     title: "The nights",
-    body: "Small nights, hosted by the scene. Show up, meet people in a room instead of a DM, and keep talking in the night chat after.",
+    body: "Small, invite-only nights hosted by the scene. A friend sends you the link, and you meet people in a room instead of a DM.",
   },
   {
     icon: Compass,
     title: "The ideas",
-    body: "A moodboard of what your scene is making right now, with everyone who made it credited. Taste is how you find each other.",
+    body: "A moodboard of what your scene is making, with everyone who made it credited. Post yours, and try the weekly theme.",
   },
 ];
 
@@ -114,7 +132,9 @@ function PhoneShot({ src, alt, priority = false }: { src: string; alt: string; p
 
 /* ------------------------------------------------------------------ */
 
-export default function MarketingHome() {
+export default async function MarketingHome() {
+  const theme = await loadTheme();
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-white">
       <SiteHeader landing />
@@ -124,7 +144,7 @@ export default function MarketingHome() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 py-20 sm:py-28 lg:grid-cols-[1.15fr_1fr]">
           <div className="text-center lg:text-left">
             <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/70 bg-white/70 px-4 py-1.5 text-sm font-medium text-indigo-800 backdrop-blur">
-              ✦ Invite-only · USC · UCSD · LA
+              ✦ Free on iPhone · USC · UCSD · LA
             </p>
 
             <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
@@ -133,14 +153,14 @@ export default function MarketingHome() {
             </h1>
 
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl lg:max-w-none">
-              The people, the nights, the ideas. Melange is where your scene
-              meets: go to a night, find the people you click with, and see
-              what everyone around you is making.
+              Anyone can download Melange. The nights are invite-only: a
+              friend sends you the link, you meet your people, and you post
+              what you&apos;re making.
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <WaitlistCta />
-              <CodeCta />
+              <GetAppCta />
+              <NextNightCta />
             </div>
 
             <p className="mt-6 text-sm text-slate-500">
@@ -223,7 +243,7 @@ export default function MarketingHome() {
               How it works
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
-              From a friend&apos;s code to your crew.
+              From the App Store to your crew.
             </p>
           </div>
 
@@ -242,6 +262,30 @@ export default function MarketingHome() {
           </ol>
         </div>
       </section>
+
+      {/* ---------------- This week's theme ---------------- */}
+      {theme ? (
+        <section id="theme" className="bg-white">
+          <div className="mx-auto max-w-3xl px-4 pt-20 sm:px-6">
+            <div className="melange-card rounded-3xl p-6 sm:p-10">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-700">
+                <Sparkles className="h-4 w-4" aria-hidden />
+                This week&apos;s theme
+              </p>
+              <h2 className="mt-3 break-words text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                {theme.title}
+              </h2>
+              {theme.prompt ? (
+                <p className="mt-3 break-words text-lg leading-relaxed text-slate-600">{theme.prompt}</p>
+              ) : null}
+              <p className="mt-4 text-sm text-slate-500">
+                {theme.posts === 1 ? "1 post so far" : `${theme.posts} posts so far`}. Post yours
+                from Explore in the app.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* ---------------- Screens ---------------- */}
       <section className="bg-white">
@@ -295,9 +339,9 @@ export default function MarketingHome() {
               Meeting new people is a real decision
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-600">
-              We treat it like one. Everyone here was invited by someone. You
-              can block or report any person, post, or message — including in a
-              night chat — and reports go to a human. Every account is 18+. Your
+              We treat it like one. Nights are invite-only, so the room is
+              friends of friends. You can block or report any person, post, or
+              message — including in a night chat — and reports go to a human. Every account is 18+. Your
               data is locked to your account at the database level, and you can
               delete your account, and everything in it, from inside the app.
             </p>
@@ -315,24 +359,17 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      {/* ---------------- Waitlist ---------------- */}
-      <section id="waitlist" className="scroll-mt-20 bg-white">
+      {/* ---------------- Next night (writes to the waitlist table) ---------------- */}
+      <section id="next-night" className="scroll-mt-20 bg-white">
         <div className="mx-auto max-w-2xl px-6 py-24">
           <div className="mb-10 text-center">
             <Logo size="lg" />
             <h2 className="mt-8 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              Melange is invite-only
+              Get on the list for the next night
             </h2>
             <p className="mt-5 text-lg text-slate-600">
-              Get on the list and we&apos;ll let you in when your scene opens
-              up. Got a code from a friend?{" "}
-              <Link
-                href="/join"
-                className="font-medium text-indigo-700 underline underline-offset-4"
-              >
-                Use it here
-              </Link>
-              .
+              Nights are small and invite-only. Leave your details and
+              we&apos;ll tell you when there&apos;s one in your scene.
             </p>
           </div>
           <div className="melange-card rounded-3xl p-6 sm:p-10">
@@ -340,12 +377,12 @@ export default function MarketingHome() {
           </div>
           {IOS_LIVE ? (
             <p className="mt-6 text-center text-sm text-slate-500">
-              Already a member?{" "}
+              The app is open to everyone:{" "}
               <a
                 href={APP_STORE_URL}
                 className="font-medium text-indigo-700 underline underline-offset-4"
               >
-                Get the iPhone app
+                get it on the App Store
               </a>
               .
             </p>

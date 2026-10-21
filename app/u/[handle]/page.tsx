@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { FoundingMark, RemoteImg, SiteFooter, SiteHeader } from "../../components/SiteChrome";
+import { FoundingMark, GetTheAppCta, RemoteImg, SiteFooter, SiteHeader } from "../../components/SiteChrome";
 import { getPublicProfile } from "../../lib/publicData";
 import { sceneLabel } from "../../lib/scenes";
 
@@ -157,28 +157,7 @@ export default async function PublicProfilePage({ params }: Props) {
         </section>
 
         {/* CTA */}
-        <section className="melange-bg mt-16 rounded-3xl px-6 py-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Melange is invite-only — join the waitlist
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-slate-600">
-            Where young creatives find their crew — the people, the nights, the ideas.
-          </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/join"
-              className="melange-btn-primary inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white sm:w-auto"
-            >
-              Join the waitlist
-            </Link>
-            <Link
-              href="/join"
-              className="text-sm font-medium text-indigo-700 underline underline-offset-4"
-            >
-              I have a code
-            </Link>
-          </div>
-        </section>
+        <GetTheAppCta heading={`Find ${name} on Melange`} />
       </div>
 
       <SiteFooter />

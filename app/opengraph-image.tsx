@@ -40,7 +40,7 @@ export default function OpengraphImage() {
             {SITE.tagline}
           </div>
           <div style={{ fontSize: 28, color: "#475569", marginTop: 24 }}>
-            Invite-only · USC · UCSD · LA
+            Free on iPhone · USC · UCSD · LA
           </div>
         </div>
       </div>

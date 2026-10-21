@@ -32,6 +32,7 @@ We do not sell your personal data and we do not show ads.
 - Your **profile**, **posts**, and **avatar** are visible to other signed-in Melange users.
 - **Messages** are private between you and the other person in a match.
 - **Likes and hearts are not private.** When you like someone's project or heart their profile or work, they are told it was you, and they can message you. **Passes are private**: nobody is ever told you passed on them.
+- **Nights you're going to.** Every night has a share page (a link like melange-psi.vercel.app/n/…) that anyone with the link can open, signed in or not. If you RSVP "going", your **first name and profile photo** can be shown on that night's share page, along with the host's first name and photo and how many people are going. Change your RSVP and you're no longer shown.
 - **Reports** and **blocks** are only visible to you and to our moderation team.
 
 ## Your rights

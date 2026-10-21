@@ -62,6 +62,13 @@ export default function PrivacyPage() {
               <li>Your <strong>profile</strong>, <strong>posts</strong>, and <strong>avatar</strong> are visible to other signed-in Melange users.</li>
               <li><strong>Messages</strong> are private between you and the other person in a match.</li>
               <li><strong>Likes and hearts are not private.</strong> When you like someone&rsquo;s project or heart their profile or work, they are told it was you, and they can message you. <strong>Passes are private</strong>: nobody is ever told you passed on them.</li>
+              <li>
+                <strong>Nights you&rsquo;re going to.</strong> Every night has a share page (a link like{" "}
+                melange-psi.vercel.app/n/&hellip;) that anyone with the link can open, signed in or not. If you
+                RSVP &ldquo;going&rdquo;, your <strong>first name and profile photo</strong> can be shown on that
+                night&rsquo;s share page, along with the host&rsquo;s first name and photo and how many people are
+                going. Change your RSVP and you&rsquo;re no longer shown.
+              </li>
               <li><strong>Reports</strong> and <strong>blocks</strong> are only visible to you and to our moderation team.</li>
             </ul>
           </Section>

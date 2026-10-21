@@ -32,6 +32,6 @@ export const SITE = {
   name: "Melange",
   tagline: "Where young creatives find their crew — the people, the nights, the ideas.",
   description:
-    "Melange is an invite-only app for young creatives in USC, UCSD and LA (NYC soon). Go to a night, find your people, and explore what your scene is making.",
+    "Melange is a free app for young creatives in USC, UCSD and LA (NYC soon). Anyone can join; nights are invite-only. Go to one, meet your people, and post what you make.",
   url: "https://melange-psi.vercel.app",
 } as const;
