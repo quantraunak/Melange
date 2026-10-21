@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter, SiteHeader } from "../components/SiteChrome";
 
 import SupportForm from "../components/SupportForm";
 
@@ -10,29 +11,16 @@ export const metadata: Metadata = {
 
 export default function SupportPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-blue-900 text-white py-6 px-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-2xl font-bold italic"
-            style={{ WebkitTextStroke: "1px #A78BFA", paintOrder: "stroke fill" }}
-          >
-            Melange
-          </Link>
-          <Link href="/" className="text-sm text-blue-200 hover:text-white">
-            Back to app
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-paper text-ink">
+      <SiteHeader />
 
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Support</h1>
+      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="mb-3 font-display text-5xl font-semibold leading-[1.05] tracking-tight">Support</h1>
         <p className="text-sm text-gray-500 mb-8">We typically respond within 2 business days.</p>
 
         <div className="text-gray-700 leading-relaxed space-y-6">
           <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-gray-900">Contact us</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">Contact us</h2>
             <p>
               For account help, safety concerns, privacy or data requests, or App Store review questions.
               You don&apos;t need to be signed in. A person reads every message.
@@ -41,7 +29,7 @@ export default function SupportPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-gray-900">In-app help</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">In-app help</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>Report a user or post from the flag icon on posts or in chat.</li>
               <li>Block someone from the conversation menu in Messages.</li>
@@ -50,13 +38,13 @@ export default function SupportPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-gray-900">Legal</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">Legal</h2>
             <p>
-              <Link href="/privacy" className="text-blue-700 hover:underline">
+              <Link href="/privacy" className="text-action underline underline-offset-4">
                 Privacy Policy
               </Link>
               {" · "}
-              <Link href="/terms" className="text-blue-700 hover:underline">
+              <Link href="/terms" className="text-action underline underline-offset-4">
                 Terms of Service
               </Link>
             </p>
@@ -64,14 +52,7 @@ export default function SupportPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-100 py-6 px-4 mt-12">
-        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-gray-500">
-          <span>© {new Date().getFullYear()} Melange</span>
-          <Link href="/" className="hover:text-gray-700">
-            Back to app
-          </Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

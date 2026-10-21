@@ -327,7 +327,7 @@ function EventCard({
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
       <button onClick={onOpen} className="block w-full text-left">
-        <div className="relative h-32 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50">
+        <div className="relative h-32 bg-stone-100">
           {event.cover_url ? (
             <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
           ) : (
@@ -462,7 +462,7 @@ function EventDetailInner({
 
   return (
     <>
-      <div className="relative h-40 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50">
+      <div className="relative h-40 bg-stone-100">
         {event.cover_url ? (
           <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
         ) : (

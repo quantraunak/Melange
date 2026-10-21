@@ -52,44 +52,44 @@ export default async function PublicProfilePage({ params }: Props) {
   const scene = sceneLabel(p.scene);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-white">
+    <main className="min-h-screen overflow-x-hidden bg-paper text-ink">
       <SiteHeader />
 
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         {/* Header */}
-        <section className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:gap-8 sm:text-left">
-          <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border border-indigo-100 bg-indigo-50">
+        <section className="flex flex-col items-start sm:flex-row sm:items-center sm:gap-8">
+          <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border border-rule bg-stone-200">
             {p.avatar_url ? (
               <RemoteImg src={p.avatar_url} alt={name} eager className="h-full w-full object-cover" />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-4xl font-bold text-indigo-300">
+              <span className="flex h-full w-full items-center justify-center font-display text-4xl font-semibold text-muted-ink">
                 {name.replace(/^@/, "").charAt(0).toUpperCase()}
               </span>
             )}
           </div>
           <div className="mt-5 min-w-0 sm:mt-0">
-            <h1 className="break-words text-4xl font-bold tracking-tight text-slate-900">{name}</h1>
-            <p className="mt-1 text-slate-500">@{p.handle}</p>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <h1 className="break-words font-display text-5xl font-semibold leading-[1.05] tracking-tight">{name}</h1>
+            <p className="mt-1 text-muted-ink">@{p.handle}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               {p.founding ? <FoundingMark /> : null}
               {p.role ? (
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                <span className="rounded-md border border-rule px-2 py-0.5 text-xs font-medium text-ink">
                   {p.role}
                 </span>
               ) : null}
               {scene ? (
-                <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
+                <span className="rounded-md border border-rule px-2 py-0.5 text-xs font-medium text-ink">
                   {scene}
                 </span>
               ) : null}
               {p.confirmed_credits > 0 ? (
-                <span className="text-xs font-medium text-slate-600">
+                <span className="text-xs font-medium text-muted-ink">
                   ✓ {p.confirmed_credits} confirmed credit{p.confirmed_credits === 1 ? "" : "s"}
                 </span>
               ) : null}
             </div>
             {p.bio ? (
-              <p className="mt-4 max-w-xl whitespace-pre-line break-words leading-relaxed text-slate-700">
+              <p className="mt-4 max-w-xl whitespace-pre-line break-words leading-relaxed text-ink">
                 {p.bio}
               </p>
             ) : null}
@@ -98,7 +98,7 @@ export default async function PublicProfilePage({ params }: Props) {
                 href={p.instagram_url}
                 rel="noopener noreferrer nofollow"
                 target="_blank"
-                className="mt-3 inline-block text-sm font-medium text-indigo-700 underline underline-offset-4"
+                className="mt-3 inline-block text-sm font-medium text-action underline underline-offset-4"
               >
                 Instagram
               </a>
@@ -109,10 +109,10 @@ export default async function PublicProfilePage({ params }: Props) {
         {/* Photos */}
         {p.portfolio_urls.length > 0 ? (
           <section className="mt-12">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">Photos</h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <h2 className="melange-label mb-4">Photos</h2>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
               {p.portfolio_urls.map((url, i) => (
-                <div key={url + i} className="aspect-[4/5] min-w-0 overflow-hidden rounded-xl bg-slate-100">
+                <div key={url + i} className="aspect-[4/5] min-w-0 overflow-hidden rounded-sm bg-stone-200">
                   <RemoteImg
                     src={url}
                     alt={`${name}, photo ${i + 1}`}
@@ -127,32 +127,32 @@ export default async function PublicProfilePage({ params }: Props) {
 
         {/* Shoots */}
         <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold text-slate-900">Shoots</h2>
+          <h2 className="melange-label mb-4">Shoots</h2>
           {p.shoots.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 sm:grid-cols-3">
               {p.shoots.map((s) => (
                 <Link
                   key={s.id}
                   href={`/s/${s.id}`}
-                  className="melange-card group block min-w-0 overflow-hidden rounded-2xl"
+                  className="group block min-w-0"
                 >
-                  <div className="aspect-[4/5] overflow-hidden bg-slate-100">
+                  <div className="aspect-[4/5] overflow-hidden rounded-sm bg-stone-200">
                     {s.cover_url ? (
                       <RemoteImg
                         src={s.cover_url}
                         alt={s.title || "Shoot"}
-                        className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                        className="h-full w-full object-cover"
                       />
                     ) : null}
                   </div>
-                  <p className="truncate px-4 py-3 font-medium text-slate-900">
+                  <p className="mt-2 truncate font-display text-lg font-semibold text-ink group-hover:underline">
                     {s.title || "Untitled shoot"}
                   </p>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-slate-500">No public shoots yet.</p>
+            <p className="text-muted-ink">No public shoots yet.</p>
           )}
         </section>
 

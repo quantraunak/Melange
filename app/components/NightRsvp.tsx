@@ -25,14 +25,14 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
   const openInApp = `melange://event/${eventId}`;
 
   const secondary =
-    "inline-flex w-full items-center justify-center rounded-xl border border-indigo-200 bg-white px-7 py-3.5 text-base font-semibold text-indigo-900 transition hover:bg-indigo-50 sm:w-auto";
+    "inline-flex w-full items-center justify-center rounded-lg border border-ink bg-white px-6 py-3 text-base font-semibold text-ink transition hover:bg-ink hover:text-paper sm:w-auto";
   const primary =
-    "melange-btn-primary inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white disabled:opacity-60 sm:w-auto";
+    "melange-btn-primary inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-base font-semibold text-white disabled:opacity-60 sm:w-auto";
 
   if (ended) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-slate-700">
-        <p className="font-semibold text-slate-900">This night already happened</p>
+      <div className="border-l-2 border-ink py-1 pl-5 text-muted-ink">
+        <p className="font-display text-2xl font-semibold text-ink">This night already happened</p>
         <p className="mt-1 text-sm">
           If you were there, the photos from it are in Melange.
         </p>
@@ -60,18 +60,18 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-indigo-950 sm:p-6" role="status">
-        <p className="text-lg font-semibold">You&apos;re on the list ✦</p>
+      <div className="border-l-2 border-ink py-1 pl-5 text-ink" role="status">
+        <p className="font-display text-2xl font-semibold">You&apos;re going.</p>
         {done.hasAccount ? (
           <>
-            <p className="mt-1.5 text-indigo-900/80">Open Melange — it&apos;s on your nights already.</p>
+            <p className="mt-2 text-muted-ink">Open Melange; it&apos;s on your nights already.</p>
             <a href={openInApp} className={`${primary} mt-4`}>
               Open Melange
             </a>
           </>
         ) : (
           <>
-            <p className="mt-1.5 text-indigo-900/80">
+            <p className="mt-2 leading-relaxed text-muted-ink">
               Get Melange to see who&apos;s going, chat with the night, and get the photos after. Sign up
               with the same email and this night is already on your list.
             </p>
@@ -100,19 +100,19 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
   }
 
   const field =
-    "mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100";
+    "mt-1 w-full min-w-0 rounded-md border border-rule bg-white px-3 py-2.5 text-ink placeholder:text-stone-400 focus:border-ink focus:outline-none";
 
   return (
     <form
       onSubmit={submit}
       noValidate
-      className="grid grid-cols-1 gap-4 rounded-2xl border border-indigo-100 bg-white p-5 sm:grid-cols-2 sm:p-6"
+      className="grid grid-cols-1 gap-4 border-y border-rule py-6 sm:grid-cols-2"
     >
-      <p className="text-sm text-slate-600 sm:col-span-2">
+      <p className="text-sm text-muted-ink sm:col-span-2">
         No app needed. The guest list shows your first name.
       </p>
       <label className="block">
-        <span className="text-sm font-medium text-slate-900">First name</span>
+        <span className="text-sm font-medium text-ink">First name</span>
         <input
           type="text"
           autoComplete="given-name"
@@ -125,7 +125,7 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
         />
       </label>
       <label className="block">
-        <span className="text-sm font-medium text-slate-900">Last name</span>
+        <span className="text-sm font-medium text-ink">Last name</span>
         <input
           type="text"
           autoComplete="family-name"
@@ -136,7 +136,7 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
         />
       </label>
       <label className="block sm:col-span-2">
-        <span className="text-sm font-medium text-slate-900">Email</span>
+        <span className="text-sm font-medium text-ink">Email</span>
         <input
           type="email"
           inputMode="email"
@@ -164,7 +164,7 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
             setOpen(false);
             setError(null);
           }}
-          className="inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-medium text-slate-600 hover:text-slate-900 sm:w-auto"
+          className="inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-base font-medium text-muted-ink hover:text-ink sm:w-auto"
         >
           Cancel
         </button>

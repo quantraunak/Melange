@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { SiteFooter, SiteHeader } from "../components/SiteChrome";
 
 export const metadata: Metadata = {
   title: "Privacy Policy · Melange",
@@ -8,20 +8,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-blue-900 text-white py-6 px-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic" style={{ WebkitTextStroke: "1px #A78BFA", paintOrder: "stroke fill" }}>
-            Melange
-          </Link>
-          <Link href="/" className="text-sm text-blue-200 hover:text-white">
-            Back to app
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-paper text-ink">
+      <SiteHeader />
 
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
+      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="mb-3 font-display text-5xl font-semibold leading-[1.05] tracking-tight">Privacy Policy</h1>
         <p className="text-sm text-gray-500 mb-8">Last updated: October 2026</p>
 
         <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed space-y-6">
@@ -106,15 +97,7 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-100 py-6 px-4 mt-12">
-        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-gray-500">
-          <span>© 2026 Melange</span>
-          <div className="flex gap-4">
-            <Link href="/terms" className="hover:text-gray-700">Terms</Link>
-            <Link href="/" className="hover:text-gray-700">Back to app</Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
@@ -122,7 +105,7 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+      <h2 className="font-display text-2xl font-semibold text-ink">{title}</h2>
       {children}
     </section>
   );

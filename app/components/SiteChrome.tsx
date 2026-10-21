@@ -5,40 +5,35 @@ import { APP_STORE_URL, IOS_LIVE, WEB_APP_PATH } from "../lib/site";
 
 /** Header and footer shared by the landing page and the public pages. */
 
+const navLink = "text-sm text-muted-ink transition hover:text-ink";
+
 export function SiteHeader({ landing = false }: { landing?: boolean }) {
   return (
     <header className="melange-header sticky top-0 z-50">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+      <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <Logo size="sm" />
-          <span className="melange-wordmark hidden text-2xl font-bold min-[400px]:inline">Melange</span>
+          <span className="melange-wordmark hidden text-[1.6rem] leading-none min-[400px]:inline">
+            Melange
+          </span>
         </Link>
         <div className="flex items-center gap-4 sm:gap-6">
           {landing ? (
             <>
-              <a
-                href="#how"
-                className="hidden text-sm font-medium text-slate-600 transition hover:text-indigo-700 sm:block"
-              >
+              <a href="#how" className={`hidden sm:block ${navLink}`}>
                 How it works
               </a>
-              <a
-                href="#safety"
-                className="hidden text-sm font-medium text-slate-600 transition hover:text-indigo-700 sm:block"
-              >
+              <a href="#safety" className={`hidden sm:block ${navLink}`}>
                 Safety
               </a>
             </>
           ) : null}
-          <Link
-            href="/join"
-            className="text-sm font-medium text-slate-600 transition hover:text-indigo-700"
-          >
+          <Link href="/join" className={navLink}>
             Have a code?
           </Link>
           <Link
             href={WEB_APP_PATH}
-            className="melange-btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-md border border-ink px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-ink hover:text-paper"
           >
             Sign in
           </Link>
@@ -50,36 +45,34 @@ export function SiteHeader({ landing = false }: { landing?: boolean }) {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <Link href="/" className="flex items-center gap-2.5">
+    <footer className="border-t border-rule bg-paper">
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          <Link href="/" className="flex items-center gap-2">
             <Logo size="sm" />
-            <span className="melange-wordmark text-xl font-bold">Melange</span>
+            <span className="melange-wordmark text-xl leading-none">Melange</span>
           </Link>
 
-          <nav className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-slate-600">
-            <Link className="transition hover:text-indigo-700" href="/join">
+          <nav className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Link className={navLink} href="/join">
               Have a code?
             </Link>
-            <Link className="transition hover:text-indigo-700" href={WEB_APP_PATH}>
+            <Link className={navLink} href={WEB_APP_PATH}>
               Open the app
             </Link>
-            <Link className="transition hover:text-indigo-700" href="/support">
+            <Link className={navLink} href="/support">
               Support
             </Link>
-            <Link className="transition hover:text-indigo-700" href="/privacy">
+            <Link className={navLink} href="/privacy">
               Privacy
             </Link>
-            <Link className="transition hover:text-indigo-700" href="/terms">
+            <Link className={navLink} href="/terms">
               Terms
             </Link>
           </nav>
         </div>
 
-        <p className="mt-9 text-center text-sm text-slate-400 sm:text-left">
-          © {new Date().getFullYear()} Melange. Made for people who make things.
-        </p>
+        <p className="mt-8 text-sm text-muted-ink">© {new Date().getFullYear()} Melange</p>
       </div>
     </footer>
   );
@@ -91,36 +84,39 @@ export function SiteFooter() {
  */
 export function GetTheAppCta({ heading }: { heading: string }) {
   return (
-    <section className="melange-bg mt-16 rounded-3xl px-6 py-10 text-center">
-      <h2 className="text-2xl font-bold tracking-tight text-slate-900">{heading}</h2>
-      <p className="mx-auto mt-3 max-w-md text-slate-600">
-        Where young creatives find their crew. Free on iPhone; the nights are invite-only.
+    <section className="mt-16 border-t border-rule pt-10">
+      <h2 className="break-words font-display text-3xl font-semibold leading-tight text-ink">
+        {heading}
+      </h2>
+      <p className="mt-3 max-w-md leading-relaxed text-muted-ink">
+        Melange is free on iPhone and anyone can sign up. Nights are invite-only: a
+        friend sends you the link.
       </p>
-      <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
         {IOS_LIVE ? (
           <a
             href={APP_STORE_URL}
-            className="melange-btn-primary inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white sm:w-auto"
+            className="melange-btn-primary inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-base font-semibold text-white sm:w-auto"
           >
             Get the app
           </a>
         ) : null}
         <Link
           href="/#next-night"
-          className="text-sm font-medium text-indigo-700 underline underline-offset-4"
+          className="text-sm font-medium text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
         >
-          Get on the list for the next night
+          Hear about the next night near you
         </Link>
       </div>
     </section>
   );
 }
 
-/** The ✦ Founding mark. The ✦ is the only ornament. */
+/** The Founding mark. The ✦ means Founding member and is used nowhere else. */
 export function FoundingMark({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-800 ${className}`}
+      className={`inline-flex items-center gap-1 rounded-md border border-violet-200 px-2 py-0.5 text-xs font-semibold text-violet-800 ${className}`}
     >
       ✦ Founding
     </span>

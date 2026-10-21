@@ -275,8 +275,8 @@ function ImageGallery({ urls, height = "h-48" }: { urls: string[]; height?: stri
   const [idx, setIdx] = useState(0);
   if (urls.length === 0) {
     return (
-      <div className={`${height} bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 flex items-center justify-center`}>
-        <div className="text-4xl opacity-20">🎨</div>
+      <div className={`${height} bg-stone-100 flex items-center justify-center`}>
+        <div className="text-sm text-stone-500">No photo yet</div>
       </div>
     );
   }

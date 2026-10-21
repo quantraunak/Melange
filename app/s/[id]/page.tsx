@@ -60,18 +60,18 @@ export default async function SharedShootPage({ params }: Props) {
   const photos = s.media_urls ?? [];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-white">
+    <main className="min-h-screen overflow-x-hidden bg-paper text-ink">
       <SiteHeader />
 
       <article className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <header>
-          <h1 className="break-words text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+          <h1 className="break-words font-display text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             {title}
           </h1>
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-slate-600">
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-ink">
             {s.author?.name ? (
               <span className="inline-flex min-w-0 items-center gap-2">
-                <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-indigo-50">
+                <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-stone-200">
                   {s.author.avatar_url ? (
                     <RemoteImg
                       src={s.author.avatar_url}
@@ -81,11 +81,11 @@ export default async function SharedShootPage({ params }: Props) {
                     />
                   ) : null}
                 </span>
-                <span className="truncate font-medium text-slate-900">{s.author.name}</span>
-                {s.author.role ? <span className="text-slate-500">· {s.author.role}</span> : null}
+                <span className="truncate font-medium text-ink">{s.author.name}</span>
+                {s.author.role ? <span>· {s.author.role}</span> : null}
               </span>
             ) : null}
-            {date ? <span className="text-slate-500">{date}</span> : null}
+            {date ? <span>{date}</span> : null}
           </div>
         </header>
 
@@ -94,7 +94,7 @@ export default async function SharedShootPage({ params }: Props) {
             {photos.map((url, i) => (
               <div
                 key={url + i}
-                className={`min-w-0 overflow-hidden rounded-2xl bg-slate-100 ${
+                className={`min-w-0 overflow-hidden rounded-sm bg-stone-200 ${
                   i === 0 && photos.length % 2 === 1 ? "sm:col-span-2" : ""
                 }`}
               >
@@ -110,21 +110,21 @@ export default async function SharedShootPage({ params }: Props) {
         ) : null}
 
         {s.story ? (
-          <p className="mt-8 max-w-2xl whitespace-pre-line break-words text-lg leading-relaxed text-slate-700">
+          <p className="mt-8 max-w-2xl whitespace-pre-line break-words text-lg leading-relaxed text-ink">
             {s.story}
           </p>
         ) : null}
 
         {s.credits.length > 0 ? (
-          <section className="mt-10">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">Credits</h2>
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <section className="mt-12">
+            <h2 className="melange-label mb-2">Credits</h2>
+            <ul className="grid grid-cols-1 border-t border-rule sm:grid-cols-2 sm:gap-x-8">
               {s.credits.map((c, i) => (
                 <li
                   key={(c.user_id ?? c.name ?? "") + i}
-                  className="melange-card flex min-w-0 items-center gap-3 rounded-xl p-3"
+                  className="flex min-w-0 items-center gap-3 border-b border-rule py-3"
                 >
-                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-indigo-50">
+                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-stone-200">
                     {c.avatar_url ? (
                       <RemoteImg
                         src={c.avatar_url}
@@ -134,11 +134,11 @@ export default async function SharedShootPage({ params }: Props) {
                     ) : null}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-slate-900">
+                    <span className="block truncate font-medium text-ink">
                       {c.name || "Someone"}
                       {c.confirmed ? (
                         <span
-                          className="ml-1.5 text-indigo-700"
+                          className="ml-1.5 text-action"
                           title="Confirmed by them on Melange"
                           aria-label="confirmed"
                         >
@@ -146,12 +146,12 @@ export default async function SharedShootPage({ params }: Props) {
                         </span>
                       ) : null}
                     </span>
-                    {c.role ? <span className="block truncate text-sm text-slate-500">{c.role}</span> : null}
+                    {c.role ? <span className="block truncate text-sm text-muted-ink">{c.role}</span> : null}
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-slate-500">✓ means they confirmed the credit themselves.</p>
+            <p className="mt-3 text-xs text-muted-ink">✓ means they confirmed the credit themselves.</p>
           </section>
         ) : null}
 

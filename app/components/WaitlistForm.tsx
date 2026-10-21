@@ -61,11 +61,11 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
 
   if (state === "sent" || state === "already") {
     return (
-      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6 text-indigo-950">
-        <p className="text-lg font-semibold">
-          {state === "sent" ? "You're on the list ✦" : "You're already on the list ✦"}
+      <div className="border-l-2 border-ink py-1 pl-5 text-ink" role="status">
+        <p className="font-display text-2xl font-semibold">
+          {state === "sent" ? "You're on the list." : "You're already on the list."}
         </p>
-        <p className="mt-1.5 text-indigo-900/80">
+        <p className="mt-2 leading-relaxed text-muted-ink">
           {state === "sent"
             ? "We'll tell you when there's a night in your scene. Meanwhile, the app is open: download it and say hi."
             : "No need to sign up twice. We'll tell you when there's a night in your scene."}
@@ -75,12 +75,12 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
   }
 
   const field =
-    "mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100";
+    "mt-1 w-full min-w-0 rounded-md border border-rule bg-white px-3 py-2.5 text-ink placeholder:text-stone-400 focus:border-ink focus:outline-none";
 
   return (
     <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
       <label className="block sm:col-span-2">
-        <span className="text-sm font-medium text-slate-900">Email</span>
+        <span className="text-sm font-medium text-ink">Email</span>
         <input
           type="email"
           inputMode="email"
@@ -94,7 +94,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         />
       </label>
       <label className="block">
-        <span className="text-sm font-medium text-slate-900">Name</span>
+        <span className="text-sm font-medium text-ink">Name</span>
         <input
           type="text"
           autoComplete="name"
@@ -105,7 +105,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         />
       </label>
       <label className="block">
-        <span className="text-sm font-medium text-slate-900">Scene</span>
+        <span className="text-sm font-medium text-ink">Scene</span>
         <select
           value={scene}
           onChange={(e) => setScene(e.target.value as WaitlistScene | "")}
@@ -124,7 +124,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         </select>
       </label>
       <label className="block">
-        <span className="text-sm font-medium text-slate-900">Instagram</span>
+        <span className="text-sm font-medium text-ink">Instagram</span>
         <input
           type="text"
           autoCapitalize="none"
@@ -137,7 +137,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         />
       </label>
       <label className="block">
-        <span className="text-sm font-medium text-slate-900">What you make</span>
+        <span className="text-sm font-medium text-ink">What you make</span>
         <input
           type="text"
           value={makes}
@@ -152,7 +152,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         <button
           type="submit"
           disabled={state === "sending"}
-          className="melange-btn-primary w-full rounded-xl px-6 py-3.5 text-base font-semibold text-white disabled:opacity-60 sm:w-auto"
+          className="w-full rounded-lg border border-ink bg-white px-6 py-3 text-base font-semibold text-ink transition hover:bg-ink hover:text-paper disabled:opacity-60 sm:w-auto"
         >
           {state === "sending" ? "Adding you…" : "Get on the list"}
         </button>

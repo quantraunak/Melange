@@ -23,8 +23,8 @@ function CardImage({ urls }: { urls: string[] }) {
   const [idx, setIdx] = useState(0);
   if (urls.length === 0) {
     return (
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-200 via-violet-100 to-blue-100 flex items-center justify-center">
-        <span className="text-5xl opacity-30">🎨</span>
+      <div className="absolute inset-0 bg-stone-100 flex items-center justify-center">
+        <span className="text-sm text-stone-500">No photo yet</span>
       </div>
     );
   }
