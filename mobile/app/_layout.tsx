@@ -15,6 +15,7 @@ import {
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { MatchesProvider } from "@/lib/matches";
+import { isFreshSignup } from "@/lib/onboarding";
 import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -38,8 +39,9 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
     }
     // Signing up is the whole way in now (24_open_doors_and_posting.sql makes
     // every account a member), so there is no gate to wait on: a session goes
-    // straight to the app.
-    if (inAuth) router.replace("/(tabs)/connect");
+    // straight to the app — by way of the optional photos step when this
+    // session began with a signup.
+    if (inAuth) router.replace(isFreshSignup() ? "/onboarding/photos" : "/(tabs)/connect");
   }, [loading, fontsReady, session, segments, router]);
 
   return (
@@ -47,6 +49,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding/photos" options={{ gestureEnabled: false, animation: "fade" }} />
         <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="post/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/edit/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
