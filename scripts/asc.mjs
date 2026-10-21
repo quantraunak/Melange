@@ -235,6 +235,16 @@ if (cmd === "versions") {
     data: { type: "reviewSubmissions", id: sub.id, attributes: { submitted: true } },
   });
   console.log(`${rest[0]} submitted for review`);
+} else if (cmd === "rename-version") {
+  // Apple allows one editable version at a time. To replace a version that's
+  // in review with a newer build, withdraw it, then rename it here instead of
+  // creating a new one.
+  const [from, to] = rest;
+  const ver = await version(from);
+  await call("PATCH", `/v1/appStoreVersions/${ver.id}`, {
+    data: { type: "appStoreVersions", id: ver.id, attributes: { versionString: to } },
+  });
+  console.log(`version ${from} is now ${to}`);
 } else if (cmd === "review-login") {
   // The demo account App Review signs in with. The password comes from the
   // environment (REVIEW_PASSWORD in .env.local), never from the command line
