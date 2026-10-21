@@ -4,7 +4,7 @@ import { SITE } from "./lib/site";
 
 // The preview card for links shared in iMessage, Instagram and Slack. There
 // was none, so a shared link showed a bare URL.
-export const alt = "Melange — where creative people find their next collaboration";
+export const alt = "Melange — where young creatives find their crew";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -40,7 +40,7 @@ export default function OpengraphImage() {
             {SITE.tagline}
           </div>
           <div style={{ fontSize: 28, color: "#475569", marginTop: 24 }}>
-            Photographers · Models · MUAs · Stylists · Filmmakers
+            Invite-only · USC · UCSD · LA
           </div>
         </div>
       </div>

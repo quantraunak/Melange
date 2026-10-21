@@ -1,28 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Camera,
-  CalendarDays,
-  Images,
-  MessageCircle,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Heart,
-} from "lucide-react";
+import { Compass, Heart, KeyRound, MoonStar, ShieldCheck, Users } from "lucide-react";
 
 import Logo from "./components/Logo";
-import {
-  APP_STORE_URL,
-  IOS_LIVE,
-  SITE,
-  SUPPORT_PATH,
-  WEB_APP_PATH,
-} from "./lib/site";
+import WaitlistForm from "./components/WaitlistForm";
+import { SiteFooter, SiteHeader } from "./components/SiteChrome";
+import { SCENES } from "./lib/scenes";
+import { APP_STORE_URL, IOS_LIVE, SITE, SUPPORT_PATH } from "./lib/site";
 
 export const metadata: Metadata = {
-  title: "Melange — Where creative people find their next collaboration",
+  title: { absolute: "Melange — Where young creatives find their crew" },
   description: SITE.description,
   openGraph: {
     title: "Melange",
@@ -35,45 +23,26 @@ export const metadata: Metadata = {
 
 /* ------------------------------------------------------------------ */
 
-function PrimaryCta({ className = "" }: { className?: string }) {
-  if (IOS_LIVE) {
-    return (
-      <a
-        href={APP_STORE_URL}
-        className={`melange-btn-primary inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white ${className}`}
-      >
-        Download for iPhone
-      </a>
-    );
-  }
+function WaitlistCta({ className = "" }: { className?: string }) {
   return (
-    <Link
-      href={WEB_APP_PATH}
+    <a
+      href="#waitlist"
       className={`melange-btn-primary inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white ${className}`}
     >
-      Start in your browser
-    </Link>
+      Join the waitlist
+    </a>
   );
 }
 
-function SecondaryCta({ className = "" }: { className?: string }) {
-  if (IOS_LIVE) {
-    return (
-      <Link
-        href={WEB_APP_PATH}
-        className={`inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-semibold text-indigo-900 backdrop-blur transition hover:bg-white ${className}`}
-      >
-        Or use it in your browser
-      </Link>
-    );
-  }
+function CodeCta({ className = "" }: { className?: string }) {
   return (
-    <span
-      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-medium text-indigo-900/80 backdrop-blur ${className}`}
+    <Link
+      href="/join"
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-semibold text-indigo-900 backdrop-blur transition hover:bg-white ${className}`}
     >
-      <Sparkles className="h-4 w-4" />
-      iPhone app on the App Store
-    </span>
+      <KeyRound className="h-4 w-4" />
+      I have a code
+    </Link>
   );
 }
 
@@ -82,86 +51,49 @@ function SecondaryCta({ className = "" }: { className?: string }) {
 const STEPS = [
   {
     n: "01",
-    title: "Build a profile that shows the work",
-    body: "Your role, your skills, and up to nine portfolio images. The grid is the resume — people decide from the work, not the bio.",
+    title: "Get invited",
+    body: "Every member has five codes. A friend sends you one, and you're in their scene. No code yet? Join the waitlist — we open scenes a few people at a time.",
   },
   {
     n: "02",
-    title: "Post what you're working on",
-    body: "A concept, a location, a date, paid or TFP, and who you still need. Up to five reference images so the aesthetic is obvious.",
+    title: "Go to a night",
+    body: "Melange Nights and members' events are where the scene meets. Before it, see who's going and talk in the night chat.",
   },
   {
     n: "03",
-    title: "Discover projects and people",
-    body: "Swipe through real briefs from photographers, models, MUAs, stylists and filmmakers. Heart a profile or a piece of work you love.",
+    title: "Find your people",
+    body: "After the night, quietly heart anyone you'd like to see again. They'll only know if they hearted you too — then a conversation opens.",
   },
   {
     n: "04",
-    title: "See who's interested",
-    body: "Everyone who liked your project or hearted your work shows up in Messages, by name. Write back with one tap.",
-  },
-  {
-    n: "05",
-    title: "Plan the shoot, then show it off",
-    body: "Realtime chat with push notifications. When it's done, post it to the Showcase with credits for everyone who made it.",
+    title: "Explore the scene",
+    body: "Between nights, Explore is the scene's moodboard: shoots and ideas from the people around you, picked by editors.",
   },
 ];
 
-const FEATURES = [
+const PILLARS = [
   {
-    icon: Heart,
-    title: "Hearts, not cold DMs",
-    body: "Heart someone's profile or work and they find out it was you. When someone raises their hand first, writing back is free. Cold messages need a real profile and are capped at five a day.",
+    icon: Users,
+    title: "The people",
+    body: "Photographers, stylists, musicians, designers, the friend who always knows the spot. Find the ones you want to go out with and make things with.",
   },
   {
-    icon: Images,
-    title: "Portfolio, not just a profile",
-    body: "A nine-image gallery with a fullscreen lightbox, plus a “more from this creator” strip on every post. You're judged on a body of work, not one photo.",
+    icon: MoonStar,
+    title: "The nights",
+    body: "Small nights, hosted by the scene. Show up, meet people in a room instead of a DM, and keep talking in the night chat after.",
   },
   {
-    icon: Star,
-    title: "A Showcase of real shoots",
-    body: "Post the shoot after it happens and credit everyone who made it, on Melange or not. The Explore tab is collaborations that actually went well.",
+    icon: Compass,
+    title: "The ideas",
+    body: "A moodboard of what your scene is making right now, with everyone who made it credited. Taste is how you find each other.",
   },
-  {
-    icon: CalendarDays,
-    title: "Events you can show up to",
-    body: "Photo walks, open calls, gallery openings, golden-hour meetups. Browse by city, RSVP, and meet people in a group before committing to a one-on-one shoot.",
-  },
-  {
-    icon: Sparkles,
-    title: "Matched on taste, not just role",
-    body: "Vibe tags — moody, editorial, street, golden hour, black-and-white film — shape your feed. A perfect role match with no shared taste is not a match.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Chat that keeps up",
-    body: "Realtime messages, read receipts, and push notifications for likes, hearts, matches and replies, so the conversation doesn't die in a request folder.",
-  },
-];
-
-const ROLES = [
-  "Photographers",
-  "Models",
-  "Stylists",
-  "Makeup artists",
-  "Hair",
-  "Videographers",
-  "Directors",
-  "DPs",
-  "Editors",
-  "Actors",
-  "Musicians",
-  "Dancers",
-  "Designers",
-  "Illustrators",
 ];
 
 // Captured from the iOS app (1.7) on a demo account, so every face and name
 // in them is seeded demo content, not a real user.
 const SCREENS = [
-  { src: "/screenshots/discover.png", label: "Discover projects and heart the ones you want in on" },
-  { src: "/screenshots/explore.png", label: "Explore what people made together" },
+  { src: "/screenshots/discover.png", label: "Discover people from your scene" },
+  { src: "/screenshots/explore.png", label: "Explore the scene's moodboard" },
   { src: "/screenshots/showcase.png", label: "Every shoot credits the people who made it" },
 ];
 
@@ -184,103 +116,102 @@ function PhoneShot({ src, alt, priority = false }: { src: string; alt: string; p
 
 export default function MarketingHome() {
   return (
-    <main className="min-h-screen bg-white">
-      {/* ---------------- Nav ---------------- */}
-      <header className="melange-header sticky top-0 z-50">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Logo size="sm" />
-            <span className="melange-wordmark text-2xl font-bold">Melange</span>
-          </Link>
-          <div className="flex items-center gap-6">
-            <a
-              href="#how"
-              className="hidden text-sm font-medium text-slate-600 transition hover:text-indigo-700 sm:block"
-            >
-              How it works
-            </a>
-            <a
-              href="#safety"
-              className="hidden text-sm font-medium text-slate-600 transition hover:text-indigo-700 sm:block"
-            >
-              Safety
-            </a>
-            <Link
-              href={WEB_APP_PATH}
-              className="melange-btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white"
-            >
-              Sign in
-            </Link>
-          </div>
-        </nav>
-      </header>
+    <main className="min-h-screen overflow-x-hidden bg-white">
+      <SiteHeader landing />
 
       {/* ---------------- Hero ---------------- */}
       <section className="melange-bg relative overflow-hidden">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 py-20 sm:py-28 lg:grid-cols-[1.15fr_1fr]">
           <div className="text-center lg:text-left">
             <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/70 bg-white/70 px-4 py-1.5 text-sm font-medium text-indigo-800 backdrop-blur">
-              <Camera className="h-3.5 w-3.5" />
-              For photographers, models, MUAs, stylists &amp; filmmakers
+              ✦ Invite-only · USC · UCSD · LA
             </p>
 
             <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
-              Where creative people find their next{" "}
-              <span className="melange-wordmark">collaboration</span>
+              Where young creatives find their{" "}
+              <span className="melange-wordmark">crew</span>
             </h1>
 
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl lg:max-w-none">
-              A photographer needs a model. A model needs a stylist. A filmmaker
-              needs a whole crew. Post what you&apos;re making, see who&apos;s
-              interested, and plan the shoot in one place instead of a hundred
-              DMs.
+              The people, the nights, the ideas. Melange is where your scene
+              meets: go to a night, find the people you click with, and see
+              what everyone around you is making.
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <PrimaryCta />
-              <SecondaryCta />
+              <WaitlistCta />
+              <CodeCta />
             </div>
 
             <p className="mt-6 text-sm text-slate-500">
-              Free to use. No ads, no in-app purchases.
+              Free. No ads. Not a dating app, not a networking app.
             </p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[300px]">
             <div className="absolute -inset-8 -z-10 rounded-full bg-indigo-200/40 blur-3xl" />
-            <PhoneShot src={SCREENS[0].src} alt="Melange Discover screen" priority />
+            <PhoneShot src={SCREENS[0].src} alt="Melange on iPhone" priority />
           </div>
         </div>
       </section>
 
-      {/* ---------------- The problem ---------------- */}
+      {/* ---------------- The people, the nights, the ideas ---------------- */}
       <section className="border-y border-indigo-100/70 bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-20">
-          <div className="grid gap-10 md:grid-cols-2 md:gap-16">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-                Instagram was never built for this
-              </h2>
-              <p className="mt-5 text-lg leading-relaxed text-slate-600">
-                Search is useless for finding a stylist in your city this
-                weekend. There is no way to say “I want to shoot you” without it
-                landing in a request folder next to a hundred strangers. And
-                nothing tells you whether someone is actually good to work
-                with.
-              </p>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-                Job boards feel like Craigslist
-              </h2>
-              <p className="mt-5 text-lg leading-relaxed text-slate-600">
-                They treat “photographer” as a job title, as if any one of them
-                is interchangeable with any other. But taste is the whole thing.
-                A moody portrait shooter and a bright commercial shooter are not
-                the same hire, and everybody in the room knows it.
-              </p>
-            </div>
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {PILLARS.map((p) => (
+              <div key={p.title} className="melange-card rounded-2xl p-7">
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
+                  <p.icon className="h-5 w-5" />
+                </div>
+                <h2 className="text-xl font-semibold text-slate-900">{p.title}</h2>
+                <p className="mt-2 leading-relaxed text-slate-600">{p.body}</p>
+              </div>
+            ))}
           </div>
+        </div>
+      </section>
+
+      {/* ---------------- Scenes ---------------- */}
+      <section id="scenes" className="bg-white">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">
+              It starts in scenes
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
+              A few places at a time, so the people you meet are actually near
+              you.
+            </p>
+          </div>
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {SCENES.map((s) => (
+              <li
+                key={s.id}
+                className={`rounded-2xl border p-6 ${
+                  s.live
+                    ? "melange-card"
+                    : "border-dashed border-slate-300 bg-slate-50/70"
+                }`}
+              >
+                <p
+                  className={`text-3xl font-bold tracking-tight ${
+                    s.live ? "melange-wordmark" : "text-slate-400"
+                  }`}
+                >
+                  {s.label}
+                </p>
+                <p className="mt-1 text-slate-600">{s.place}</p>
+                <p
+                  className={`mt-4 text-sm font-semibold ${
+                    s.live ? "text-indigo-700" : "text-slate-500"
+                  }`}
+                >
+                  {s.live ? "Live now" : "Soon"}
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -292,26 +223,19 @@ export default function MarketingHome() {
               How it works
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
-              Five steps from signing up to standing on set.
+              From a friend&apos;s code to your crew.
             </p>
           </div>
 
           <ol className="space-y-4">
             {STEPS.map((s) => (
-              <li
-                key={s.n}
-                className="melange-card flex gap-6 rounded-2xl p-7 sm:gap-8"
-              >
+              <li key={s.n} className="melange-card flex gap-6 rounded-2xl p-7 sm:gap-8">
                 <span className="melange-wordmark shrink-0 text-3xl font-bold tabular-nums">
                   {s.n}
                 </span>
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    {s.title}
-                  </h3>
-                  <p className="mt-2 leading-relaxed text-slate-600">
-                    {s.body}
-                  </p>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-semibold text-slate-900">{s.title}</h3>
+                  <p className="mt-2 leading-relaxed text-slate-600">{s.body}</p>
                 </div>
               </li>
             ))}
@@ -343,47 +267,39 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      {/* ---------------- Features ---------------- */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="mb-16 text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-              What&apos;s inside
-            </h2>
+      {/* ---------------- Afterglow ---------------- */}
+      <section className="border-y border-indigo-100/70 bg-white">
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <div className="mx-auto mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
+            <Heart className="h-6 w-6" />
           </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="melange-card rounded-2xl p-7">
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {f.title}
-                </h3>
-                <p className="mt-2 leading-relaxed text-slate-600">{f.body}</p>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            After the night
+          </h2>
+          <p className="mt-5 text-lg leading-relaxed text-slate-600">
+            Heart anyone you&apos;d like to see again. They&apos;ll only know if
+            they hearted you too. No cold DMs, no one keeping score — just a
+            quiet way to say &ldquo;let&apos;s do this again.&rdquo;
+          </p>
         </div>
       </section>
 
       {/* ---------------- Safety ---------------- */}
       <section id="safety" className="melange-bg">
         <div className="mx-auto max-w-4xl px-6 py-24">
-          <div className="melange-card rounded-3xl p-10 sm:p-14">
+          <div className="melange-card rounded-3xl p-8 sm:p-14">
             <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
               <ShieldCheck className="h-6 w-6" />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Meeting a stranger for a shoot is a real decision
+              Meeting new people is a real decision
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-600">
-              We treat it like one. You can block or report any person, post, or
-              message, and reports go to a human. Every account is 18+. Your
+              We treat it like one. Everyone here was invited by someone. You
+              can block or report any person, post, or message — including in a
+              night chat — and reports go to a human. Every account is 18+. Your
               data is locked to your account at the database level, and you can
-              delete your account — and everything in it — from inside the app,
-              without emailing anyone.
+              delete your account, and everything in it, from inside the app.
             </p>
             <p className="mt-5 leading-relaxed text-slate-600">
               Questions or concerns:{" "}
@@ -399,75 +315,45 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      {/* ---------------- Roles ---------------- */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-            Built for the people who make the picture
-          </h2>
-          <div className="mt-9 flex flex-wrap justify-center gap-2.5">
-            {ROLES.map((r) => (
-              <span
-                key={r}
-                className="rounded-full border border-indigo-100 bg-indigo-50/60 px-4 py-2 text-sm font-medium text-indigo-900"
+      {/* ---------------- Waitlist ---------------- */}
+      <section id="waitlist" className="scroll-mt-20 bg-white">
+        <div className="mx-auto max-w-2xl px-6 py-24">
+          <div className="mb-10 text-center">
+            <Logo size="lg" />
+            <h2 className="mt-8 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              Melange is invite-only
+            </h2>
+            <p className="mt-5 text-lg text-slate-600">
+              Get on the list and we&apos;ll let you in when your scene opens
+              up. Got a code from a friend?{" "}
+              <Link
+                href="/join"
+                className="font-medium text-indigo-700 underline underline-offset-4"
               >
-                {r}
-              </span>
-            ))}
+                Use it here
+              </Link>
+              .
+            </p>
           </div>
+          <div className="melange-card rounded-3xl p-6 sm:p-10">
+            <WaitlistForm />
+          </div>
+          {IOS_LIVE ? (
+            <p className="mt-6 text-center text-sm text-slate-500">
+              Already a member?{" "}
+              <a
+                href={APP_STORE_URL}
+                className="font-medium text-indigo-700 underline underline-offset-4"
+              >
+                Get the iPhone app
+              </a>
+              .
+            </p>
+          ) : null}
         </div>
       </section>
 
-      {/* ---------------- Closing CTA ---------------- */}
-      <section className="melange-bg border-t border-indigo-100/70">
-        <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <Logo size="lg" />
-          <h2 className="mt-8 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Your next shoot starts with one swipe
-          </h2>
-          <p className="mt-5 text-lg text-slate-600">
-            Post a project, or just see who&apos;s working near you.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <PrimaryCta />
-            <SecondaryCta />
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Footer ---------------- */}
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Logo size="sm" />
-              <span className="melange-wordmark text-xl font-bold">
-                Melange
-              </span>
-            </Link>
-
-            <nav className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-slate-600">
-              <Link className="transition hover:text-indigo-700" href="/app">
-                Open the app
-              </Link>
-              <Link className="transition hover:text-indigo-700" href="/support">
-                Support
-              </Link>
-              <Link className="transition hover:text-indigo-700" href="/privacy">
-                Privacy
-              </Link>
-              <Link className="transition hover:text-indigo-700" href="/terms">
-                Terms
-              </Link>
-            </nav>
-          </div>
-
-          <p className="mt-9 text-center text-sm text-slate-400 sm:text-left">
-            © {new Date().getFullYear()} Melange. Made for people who make
-            things.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
