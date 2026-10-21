@@ -37,6 +37,8 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { normalizeSocialUrl } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
+import { isScene, setHandle, setScene, type Scene } from "@/lib/scenes";
+import { SceneChips } from "@/components/SceneChips";
 
 /** Three columns inside the form's 16pt padding. */
 const TILE = (Dimensions.get("window").width - GUTTER * 2 - spacing.sm * 2) / 3;
@@ -68,7 +70,11 @@ export default function EditProfileScreen() {
     instagram: "",
     linkedin: "",
     reel: "",
+    handle: "",
   });
+  /** What the server had when we opened, so Save only calls what changed. */
+  const [saved, setSaved] = useState<{ handle: string; scene: Scene | null }>({ handle: "", scene: null });
+  const [scene, setSceneChoice] = useState<Scene | null>(null);
   const [vibes, setVibes] = useState<string[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [photosBusy, setPhotosBusy] = useState(false);
@@ -89,7 +95,11 @@ export default function EditProfileScreen() {
         instagram: data.instagram_url || "",
         linkedin: data.linkedin_url || "",
         reel: data.reel_url || "",
+        handle: data.handle || "",
       });
+      const sc = isScene(data.scene) ? data.scene : null;
+      setSceneChoice(sc);
+      setSaved({ handle: data.handle || "", scene: sc });
       setVibes(data.vibes ?? []);
       setPhotos(data.portfolio_urls ?? []);
     } else if (err) {
@@ -172,6 +182,29 @@ export default function EditProfileScreen() {
     if (!userId) return;
     setSaving(true);
     setError(null);
+
+    // Handle first: it's the field most likely to be refused ("That handle is
+    // taken."), and stopping here leaves nothing half-saved.
+    const handle = form.handle.trim().replace(/^@/, "").toLowerCase();
+    if (handle !== saved.handle) {
+      const { error: hErr, handle: stored } = await setHandle(handle);
+      if (hErr) {
+        setSaving(false);
+        setError(hErr);
+        return;
+      }
+      setSaved((s) => ({ ...s, handle: stored ?? "" }));
+    }
+    if (scene !== saved.scene) {
+      const { error: sErr } = await setScene(scene);
+      if (sErr) {
+        setSaving(false);
+        setError(sErr);
+        return;
+      }
+      setSaved((s) => ({ ...s, scene }));
+    }
+
     const skillsArr = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
     const { error: err } = await updateProfile(userId, {
       name: form.name.trim(),
@@ -223,6 +256,25 @@ export default function EditProfileScreen() {
 
             <Field label="Name">
               <Input value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
+            </Field>
+
+            <Field label="Handle" hint="Your public page: melange-psi.vercel.app/@handle. Letters, numbers, dots and underscores.">
+              <Input
+                value={form.handle}
+                onChangeText={(t) => setForm({ ...form, handle: t })}
+                placeholder="yourname"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={31}
+                leading={<Text style={styles.at}>@</Text>}
+              />
+            </Field>
+
+            <Field label="Scene" hint="Nights and people from your scene come first.">
+              <SceneChips<Scene | null>
+                value={scene}
+                onChange={(s) => setSceneChoice(s === scene ? null : s)}
+              />
             </Field>
 
             <Field label="What you do" hint="Pick one, or type your own.">
@@ -409,6 +461,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  at: { ...typography.body, color: colors.textSecondary },
   vibeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   vibeChip: {
     paddingHorizontal: 10,

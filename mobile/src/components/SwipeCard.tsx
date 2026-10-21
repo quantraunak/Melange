@@ -17,7 +17,9 @@ import { colors, GUTTER, motion, radii, shadows, typography } from "@/lib/theme"
 import { payLabel, projectDates, projectRoles, type PostWithCreator } from "@/lib/db";
 import { sized } from "@/lib/imageUrl";
 import { usePressScale } from "@/lib/usePressScale";
+import { sceneLabel, type ScenePerson } from "@/lib/scenes";
 import { Avatar } from "./Avatar";
+import { FOUNDING_MARK } from "./IdentityLine";
 import { Chip, ChipRow } from "./ui/Chip";
 import { Scrim } from "./ui/Scrim";
 
@@ -28,6 +30,37 @@ const ROTATION_MAX = 5; // degrees
 const PIVOT = SCREEN_H * 1.15;
 
 export type SwipeDir = "left" | "right";
+
+/**
+ * A card in the deck. Projects come first; when they run out the deck goes
+ * on with people from your scene, drawn on the same plate so Discover never
+ * stops at "all caught up" while there's someone left to meet.
+ */
+export type DeckCard = PostWithCreator & { isPerson?: boolean };
+
+/** A person, shaped as a card: their photos above, name and what they do on the plate. */
+export function personCard(p: ScenePerson): DeckCard {
+  return {
+    id: `person:${p.user_id}`,
+    owner_id: p.user_id,
+    title: p.name,
+    description: p.bio,
+    looking_for: p.role && p.role !== "other" ? [p.role] : null,
+    location: sceneLabel(p.scene),
+    compensation: null,
+    media_urls: p.portfolio_urls,
+    is_active: true,
+    created_at: "",
+    creator: {
+      user_id: p.user_id,
+      name: p.name,
+      role: p.role,
+      avatar_url: p.avatar_url,
+      founding: p.founding,
+    },
+    isPerson: true,
+  };
+}
 
 /**
  * The project card: one photograph, full bleed, with the plate below it.
@@ -45,7 +78,7 @@ function Poster({
   imageIndex,
   height,
 }: {
-  post: PostWithCreator;
+  post: DeckCard;
   imageIndex: number;
   /** Frame height in points, so we can request the pixels we will actually draw. */
   height: number;
@@ -104,7 +137,7 @@ function Plate({
   canUndo,
   busy,
 }: {
-  post: PostWithCreator;
+  post: DeckCard;
   onPress: () => void;
   onPressCreator?: () => void;
   bottom: number;
@@ -133,7 +166,9 @@ function Plate({
               onPressOut={interactive ? press.onPressOut : undefined}
               disabled={busy}
               accessibilityRole="button"
-              accessibilityLabel={`${post.title}. Open project details.`}
+              accessibilityLabel={
+                post.isPerson ? `${post.title}. Open their profile.` : `${post.title}. Open project details.`
+              }
               style={styles.caption}
             >
               {roles.length ? (
@@ -147,6 +182,7 @@ function Plate({
 
               <Text style={styles.title} numberOfLines={2}>
                 {post.title}
+                {post.isPerson && post.creator.founding ? ` ${FOUNDING_MARK}` : ""}
               </Text>
 
               {post.description ? (
@@ -176,22 +212,26 @@ function Plate({
               </View>
 
               {/* Nested inside the plate's own press target on purpose: the
-                  caption opens the project, the byline opens the person. */}
-              <Pressable
-                onPress={onPressCreator}
-                disabled={!onPressCreator}
-                hitSlop={8}
-                accessibilityRole={onPressCreator ? "button" : undefined}
-                accessibilityLabel={onPressCreator ? `${post.creator.name}'s profile` : undefined}
-                style={({ pressed }) => [styles.byRow, pressed && onPressCreator && { opacity: 0.6 }]}
-              >
-                <Avatar creator={post.creator} size="sm" />
-                <Text style={styles.byText} numberOfLines={1}>
-                  <Text style={styles.byName}>{post.creator.name}</Text>
-                  {post.creator.verification_status === "verified" ? " ✓" : ""}
-                  {post.creator.role ? `  ·  ${post.creator.role}` : ""}
-                </Text>
-              </Pressable>
+                  caption opens the project, the byline opens the person. A
+                  person's card is the person, so it has no byline. */}
+              {post.isPerson ? null : (
+                <Pressable
+                  onPress={onPressCreator}
+                  disabled={!onPressCreator}
+                  hitSlop={8}
+                  accessibilityRole={onPressCreator ? "button" : undefined}
+                  accessibilityLabel={onPressCreator ? `${post.creator.name}'s profile` : undefined}
+                  style={({ pressed }) => [styles.byRow, pressed && onPressCreator && { opacity: 0.6 }]}
+                >
+                  <Avatar creator={post.creator} size="sm" />
+                  <Text style={styles.byText} numberOfLines={1}>
+                    <Text style={styles.byName}>{post.creator.name}</Text>
+                    {post.creator.founding ? ` ${FOUNDING_MARK}` : ""}
+                    {post.creator.verification_status === "verified" ? " ✓" : ""}
+                    {post.creator.role ? `  ·  ${post.creator.role}` : ""}
+                  </Text>
+                </Pressable>
+              )}
             </Pressable>
           </Animated.View>
 
@@ -284,7 +324,7 @@ export function SwipeCardBehind({
   tx,
   barTop,
 }: {
-  post: PostWithCreator;
+  post: DeckCard;
   tx: SharedValue<number>;
   /** Distance from the bottom of the screen to the top of the tab bar. */
   barTop: number;
@@ -306,7 +346,7 @@ export function SwipeCardBehind({
 }
 
 type Props = {
-  post: PostWithCreator;
+  post: DeckCard;
   onSwipe: (dir: SwipeDir) => void;
   onOpenDetails: () => void;
   /** The byline opens the person behind the project. */

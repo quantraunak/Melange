@@ -6,6 +6,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -13,15 +14,18 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   ImageIcon,
   Camera,
   Pencil,
   Settings as SettingsIcon,
+  Share as ShareIcon,
 } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { IdentityLine } from "@/components/IdentityLine";
+import { ScreenTitle } from "@/components/ScreenTitle";
 import {
   ProfileAbout,
   ProfileTrustSections,
@@ -49,6 +53,7 @@ import {
 } from "@/lib/db";
 import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
 import { formatRecordDate } from "@/lib/format";
+import { getMyInviteCodes, inviteShareMessage, type InviteCode } from "@/lib/scenes";
 
 
 export default function ProfileScreen() {
@@ -62,6 +67,8 @@ export default function ProfileScreen() {
   const [credits, setCredits] = useState<Credit[]>([]);
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [trust, setTrust] = useState<ProfileTrust | null>(null);
+  const [invites, setInvites] = useState<InviteCode[]>([]);
+  const [invitesError, setInvitesError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,12 +84,14 @@ export default function ProfileScreen() {
       { data: creditData },
       storyRes,
       trustRes,
+      inviteRes,
     ] = await Promise.all([
       getProfile(userId),
       getMyPosts(userId),
       getCredits(userId),
       getStoriesForUser(userId),
       getProfileTrust(userId),
+      getMyInviteCodes(),
     ]);
     if (profileData) {
       setProfile(profileData);
@@ -93,8 +102,26 @@ export default function ProfileScreen() {
     setCredits(creditData || []);
     setStories(storyRes.data);
     setTrust(trustRes.data);
+    setInvites(inviteRes.data);
+    setInvitesError(inviteRes.error);
     setLoading(false);
   }, [userId]);
+
+  // Back from Edit profile with a new handle or scene, the header should say so.
+  useFocusEffect(
+    useCallback(() => {
+      if (!loading) load();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [load])
+  );
+
+  const shareInvite = async (code: string) => {
+    try {
+      await Share.share({ message: inviteShareMessage(code) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't open sharing.");
+    }
+  };
 
   useEffect(() => {
     load();
@@ -210,17 +237,19 @@ export default function ProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Settings lives here now that Discover is full bleed and has no header. */}
-        <View style={styles.topBar}>
-          <Text style={styles.topBarTitle}>You</Text>
-          <Pressable
-            hitSlop={12}
-            onPress={() => router.push("/account/settings")}
-            accessibilityLabel="Settings"
-            style={styles.settingsBtn}
-          >
-            <SettingsIcon size={18} color={colors.brandText} />
-          </Pressable>
-        </View>
+        <ScreenTitle
+          title="You"
+          right={
+            <Pressable
+              hitSlop={12}
+              onPress={() => router.push("/account/settings")}
+              accessibilityLabel="Settings"
+              style={styles.settingsBtn}
+            >
+              <SettingsIcon size={18} color={colors.brandText} />
+            </Pressable>
+          }
+        />
 
         {error ? (
           <View style={{ marginTop: spacing.md }}>
@@ -248,6 +277,7 @@ export default function ProfileScreen() {
             {profile.role && profile.role !== "other" ? (
               <Text style={styles.profileRole} numberOfLines={1}>{profile.role}</Text>
             ) : null}
+            <IdentityLine founding={profile.founding} scene={profile.scene} handle={profile.handle} />
             <RatingLine trust={trust} />
             <Pressable
               onPress={() => router.push("/account/edit-profile")}
@@ -257,6 +287,32 @@ export default function ProfileScreen() {
               <Text style={styles.sectionAction}>Edit profile</Text>
             </Pressable>
           </View>
+        </View>
+
+        {/* Being invited is the status, and these are how you pass it on. */}
+        <View style={[styles.block, styles.blockFirst]}>
+          <Text style={styles.sectionTitle}>Your invites</Text>
+          <Text style={styles.sectionHint}>Five codes. Each one lets one friend in.</Text>
+          {invitesError ? <ErrorBanner message={invitesError} /> : null}
+          {invites.map((inv) => (
+            <View key={inv.code} style={styles.listRow}>
+              <Text style={[styles.code, inv.used && styles.codeUsed]}>{inv.code}</Text>
+              {inv.used ? (
+                <Text style={styles.rowWhen}>Used</Text>
+              ) : (
+                <Pressable
+                  onPress={() => shareInvite(inv.code)}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share invite code ${inv.code}`}
+                  style={styles.shareBtn}
+                >
+                  <ShareIcon size={14} color={colors.brandText} />
+                  <Text style={styles.sectionAction}>Share</Text>
+                </Pressable>
+              )}
+            </View>
+          ))}
         </View>
 
         {/* Profile: about you. Everyone sees exactly this on your page. */}
@@ -379,8 +435,6 @@ const styles = StyleSheet.create({
      by nesting a white card inside a grey one. */
   scroll: { paddingHorizontal: GUTTER, gap: 0 },
 
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  topBarTitle: typography.display1,
   settingsBtn: {
     width: 38,
     height: 38,
@@ -425,7 +479,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     gap: spacing.md,
   },
+  blockFirst: { marginTop: 0 },
   blockHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  code: { ...typography.bodyStrong, flex: 1, letterSpacing: 1.2, fontVariant: ["tabular-nums"] },
+  codeUsed: { color: colors.textTertiary, textDecorationLine: "line-through" },
+  shareBtn: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   sectionTitle: { ...typography.eyebrow, color: colors.textSecondary },
   sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   sectionCount: { ...typography.caption, color: colors.textTertiary },

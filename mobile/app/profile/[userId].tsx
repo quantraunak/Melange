@@ -14,6 +14,7 @@ import { ArrowLeft, Flag, MapPin, MessageCircle } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { HeartButton } from "@/components/HeartButton";
+import { IdentityLine } from "@/components/IdentityLine";
 import {
   ProfileAbout,
   ProfileTrustSections,
@@ -160,6 +161,7 @@ export default function PublicProfileScreen() {
                 </Text>
               </View>
             ) : null}
+            <IdentityLine founding={profile.founding} scene={profile.scene} handle={profile.handle} />
             <RatingLine trust={trust} />
           </View>
         </View>
