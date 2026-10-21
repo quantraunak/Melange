@@ -32,7 +32,7 @@ built and run by one engineer (Raunak Sood), with Jolea on community.
 | | |
 |---|---|
 | App Store releases | 9 shipped: 1.0 in May 2026, then 1.2 → 1.8 between Oct 9 and Oct 20 |
-| Database migrations | 26, every one idempotent; the recent ones tested against production inside a rolled-back transaction before applying |
+| Database migrations | 27, every one idempotent; the recent ones tested against production inside a rolled-back transaction before applying |
 | Code | ~35k lines of TypeScript and SQL across an Expo app, a Next.js site and Postgres |
 | Production bugs found by querying the live database | ~40, most of them the "reports success, does nothing" kind |
 | Users | early: about a dozen accounts. This is a working product, not a traction story yet. |
@@ -71,7 +71,11 @@ scored *worse* than random (0.67 vs 0.74 taste similarity). Tables now shrink
 until each arm has at least two. Across three runs after the fix, composed
 tables scored 0.77–0.85 against 0.64–0.69 for random ones. That shows the
 optimizer works; whether it leads to more real collaborations is what real
-events will measure. Adding the taste score to Discover's ranking is next.
+events will measure.
+- **Discover uses taste too.** The deck is re-ordered by how close each
+  person's work is to yours ([`27_taste_in_discover.sql`](supabase/schema/27_taste_in_discover.sql),
+  [`taste.ts`](mobile/src/lib/taste.ts)): it nudges the server's ranking of
+  projects and leads the ordering of people.
 
 ## Engineering worth looking at
 

@@ -4,12 +4,9 @@ import Link from "next/link";
 
 import WaitlistForm from "./components/WaitlistForm";
 import { SiteFooter, SiteHeader } from "./components/SiteChrome";
-import { getCurrentTheme, type WeeklyTheme } from "./lib/publicData";
 import { SCENES } from "./lib/scenes";
 import { APP_STORE_URL, IOS_LIVE, SITE, SUPPORT_PATH } from "./lib/site";
 
-// The weekly theme turns over on Mondays; re-read it every 10 minutes.
-export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: { absolute: "Melange: where creative people find their next collaboration" },
@@ -36,19 +33,6 @@ function GetAppCta() {
   ) : (
     <span className={`${cls} opacity-70`}>iPhone app coming soon</span>
   );
-}
-
-/**
- * This week's theme, from current_theme(). The landing page shouldn't go
- * down with the database, so a failed read is logged and the section skipped.
- */
-async function loadTheme(): Promise<WeeklyTheme | null> {
-  try {
-    return await getCurrentTheme();
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -116,8 +100,6 @@ function Section({
 /* ------------------------------------------------------------------ */
 
 export default async function MarketingHome() {
-  const theme = await loadTheme();
-
   return (
     <main className="min-h-screen overflow-x-hidden bg-paper text-ink">
       <SiteHeader landing />
@@ -220,27 +202,6 @@ export default async function MarketingHome() {
           ))}
         </ul>
       </Section>
-
-      {/* ---------------- This week's theme ---------------- */}
-      {theme ? (
-        <Section id="theme" label="This week's theme">
-          <h2 className="break-words font-display text-4xl font-semibold leading-tight sm:text-5xl">
-            {theme.title}
-          </h2>
-          {theme.prompt ? (
-            <p className="mt-4 max-w-2xl break-words text-lg leading-relaxed text-muted-ink">
-              {theme.prompt}
-            </p>
-          ) : null}
-          <p className="mt-5 text-sm text-muted-ink">
-            {/* A zero reads as an empty room; only count once there's something to count. */}
-            {theme.posts > 0
-              ? `${theme.posts === 1 ? "1 post" : `${theme.posts} posts`} so far. `
-              : ""}
-            Post yours from Explore in the app.
-          </p>
-        </Section>
-      ) : null}
 
       {/* ---------------- Screens ---------------- */}
       <Section label="The app">

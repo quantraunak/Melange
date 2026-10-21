@@ -42,6 +42,7 @@ import {
 import { likeProject } from "@/lib/likeProject";
 import { toggleHeart } from "@/lib/hearts";
 import { getDiscoverPeople, type ScenePerson } from "@/lib/scenes";
+import { orderByTaste } from "@/lib/taste";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -122,7 +123,8 @@ export default function DiscoverScreen() {
     const [{ data, error: err }, prof] = await Promise.all([getFeedPosts(userId), getProfile(userId)]);
     if (err) setError(err);
     else if (data) {
-      setPosts(data);
+      // Taste nudges the server's ranking; it doesn't replace it.
+      setPosts(await orderByTaste(data, (p) => p.owner_id, 0.4));
       setIndex(0);
     }
     setLoading(false);
@@ -130,7 +132,8 @@ export default function DiscoverScreen() {
     // After the projects are on screen: people only matter once those run out.
     const crowd = await getDiscoverPeople(userId, prof.data?.scene ?? null);
     if (crowd.error) console.warn("discover people failed", crowd.error);
-    setPeople(crowd.data);
+    // People arrive in join order, so taste leads here.
+    setPeople(await orderByTaste(crowd.data, (p) => p.user_id, 0.8));
     setPeopleReady(true);
   }, [userId]);
 
