@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import { Compass, LayoutGrid, MessageCircle, MoonStar, UserRound } from "lucide-react-native";
+import { CalendarDays, Compass, LayoutGrid, MessageCircle, UserRound } from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { Glass } from "@/components/ui/Glass";
@@ -71,7 +71,7 @@ function PushBootstrap() {
 const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
   connect: (p) => <Compass {...p} />,
   stories: (p) => <LayoutGrid {...p} />,
-  nights: (p) => <MoonStar {...p} />,
+  nights: (p) => <CalendarDays {...p} />,
   messages: (p) => <MessageCircle {...p} />,
   profile: (p) => <UserRound {...p} />,
 };
