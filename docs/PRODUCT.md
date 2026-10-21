@@ -2,109 +2,97 @@
 
 ## The story (say it the same way everywhere)
 
-> **Tell us the shoot, we'll find your crew. Every credit confirmed.**
+> **Where young creatives find their crew — the people, the nights, the ideas.**
 
-Melange is for people who make things: photographers, models, makeup
-artists, stylists, hair, videographers, directors, designers, musicians.
-Three verbs, in order:
+Melange is invite-only. It starts in scenes: **USC**, **UCSD**, **LA**
+(Silver Lake / Echo Park), then **NYC**. It is not a dating app and not a
+networking app: it's for finding your people — friends, crews, who you go
+out with and make things with.
 
-1. **Find** — Discover people and projects. Swipe. Heart.
-2. **Shoot** — describe a shoot; Melange suggests a crew for each role;
-   invite them in one tap; plan it in Messages.
-3. **Credit** — post the finished shoot and credit everyone. A credit only
-   counts once the person confirms it. People not on Melange get a link to
-   claim theirs — that link is how Melange grows.
+Why someone joins on day one, in order:
+1. **A friend sends a code.** Being invited is the status.
+2. **A night.** Melange Nights (and members' events) are where the scene
+   meets. Before the night you see who's going and talk in the night chat.
+3. **After the night.** You can quietly heart people you met; only a
+   mutual heart is revealed, and it opens a conversation.
+4. **Between nights.** Explore is the scene's moodboard: shoots and ideas,
+   featured by editors. Discover is how you find more people.
 
-**The rule:** a feature that does not help someone find people, plan a
-shoot, or get credit does not go in the UI. Events and reviews stay in the
-code but leave the navigation.
+**The rule:** a feature that doesn't help someone meet their people, go to
+a night, or explore the scene's taste doesn't go in the UI.
 
-## Navigation (iOS) — four tabs, in this order
+## Navigation (iOS) — five tabs, in this order
 
 | Tab | Purpose |
 |---|---|
-| **Discover** (first) | Today's swipe deck, unchanged in behaviour. Cards show the owner's confirmed-credit count. |
-| **Shoot** | Plan a shoot → suggested crew → invite. Lists shoots you're planning and shoots you're invited to. |
-| **Messages** | Unchanged (likes list + conversations). Shoot invites arrive here as messages. |
-| **You** | Profile, credits first: confirmed-credit count, then shoots you're credited on, then portfolio. |
-
-The **Explore** tab is removed. Shoots (stories) are reached from profiles,
-from Discover, and from their share links. Events leave the tab bar.
+| **Discover** (first) | Today's swipe deck. When projects run out, it continues with **people from your scene** (members with at least one photo) — heart = existing profile heart. It never says "all caught up" while there are people left. |
+| **Explore** | The scene's moodboard: a two-column Pinterest-style grid of shoots (collab_stories), featured first (`featured_at`), then newest. Scene filter chips. |
+| **Nights** | Upcoming events in your scene (toggle: All). Each night: RSVP, who's going, the night chat, and Afterglow after it starts. |
+| **Messages** | Unchanged: likes list + one-on-one conversations. |
+| **You** | Profile: ✦ Founding mark, scene, @handle, photos, shoots; **Your invites** (5 codes, share each). Settings. |
 
 ## Screens
 
-### Shoot tab (`mobile/app/(tabs)/shoot.tsx`, new)
-- Header: large title "Shoot", one line under it: "Tell us the shoot. We'll find your crew."
-- Primary button: **Plan a shoot** → the composer.
-- "Planning" list: each shoot with cover, title, date, and crew avatars with
-  status (invited / yes / no). Tap → shoot detail.
-- "Invited" list: shoots someone invited you to, with **Yes** / **No**.
+### Invite gate (new — shown after sign-in when `is_member()` is false)
+- Title "Melange is invite-only". Code field → `redeem_invite(code)` (case
+  insensitive). On success: if the profile has no scene, a one-tap scene
+  picker (USC · UCSD · LA · NYC) → `set_scene`. Then into the app.
+- Secondary: **Join the waitlist** → insert into `waitlist` (email from the
+  account, scene, instagram, what you make). Then a calm "You're on the
+  list" state with "Have a code?" to come back.
+- Existing members never see this (they were grandfathered).
+- App Review signs in with review@ which is a member.
 
-### Composer (`mobile/app/shoot/new.tsx`, new — reuse ProjectForm pieces, do not fork it)
-Fields, one screen, in this order: **What's the shoot?** (title, one line),
-**Who do you need?** (role chips, multi-select), **Vibe** (vibe chips),
-**When** (date), **Where** (text), **Pay** (TFP / paid + amount),
-optional reference photos. Saving creates a `collab_posts` row (roles,
-looking_for, vibes, project_start, location, pay_type, compensation,
-media_urls) exactly as ProjectForm does today, then goes to Crew.
+### Nights tab (new) and night detail (extend `mobile/app/event/[id].tsx`)
+- List: `events` where scene = my scene (or all), upcoming first; card with
+  cover, title, date, place, avatars of who's going.
+- Detail: RSVP (existing), **Who's going** (`event_people(p_event)`), **Night
+  chat** (table `event_messages`, realtime, members only — host or RSVP
+  'going'; show "RSVP to join the chat" otherwise), long-press a message to
+  report (`reports.target_kind = 'event_message'`).
+- **Afterglow** section, visible from the night's start until 3 days after
+  it ends: grid of people from the night with a heart toggle
+  (`toggle_event_heart(p_event, p_user)` → `{hearted, mutual, match_id}`).
+  Copy: "Heart anyone you'd like to see again. They'll only know if they
+  hearted you too." On mutual: the existing MatchCelebration, then chat.
+  Below: "Mutual" list from `my_event_mutuals(p_event)`.
+- Hosts pick the night's scene when creating an event (default: their scene).
 
-### Crew (`mobile/app/shoot/[id].tsx`, new)
-- One section per needed role: up to 3 suggestion cards from
-  `suggest_crew(p_post, 3)` — avatar or portfolio cover, name, their role,
-  the `reason` line, **Invite** button → `invite_to_shoot(p_post, p_user, p_role)`.
-- Already-invited crew at the top with status.
-- When the shoot date has passed: **Post it and credit everyone** → StoryForm
-  prefilled with title, and credits = owner + every accepted crew member
-  (name, role, user_id).
+### Explore (rework `mobile/app/(tabs)/stories.tsx`)
+- Two-column masonry of shoot covers; tap → existing story detail.
+- Order: featured (`featured_at` desc), then newest public. Scene chips
+  filter by the author's scene. Remove the Events sub-tab (Nights owns it).
+- Admins (`is_admin()`) see "Feature" / "Unfeature" on story detail →
+  `set_featured(p_story, on)`.
 
-### Shoot (story) detail (existing `mobile/app/story/[id].tsx`)
-- Credits list shows a ✓ for confirmed credits.
-- If I'm credited (user_id = me) and not confirmed: **Confirm my credit** /
-  **That's not me** → `confirm_credit` / `decline_credit`.
-- If I'm the author: each credit without a user_id has **Invite to claim** →
-  `create_credit_invite(p_story, index)` → native share sheet with
-  `https://melange-psi.vercel.app/c/<token>` and the text
-  "I credited you as <role> on "<title>" — claim it on Melange".
-- **Share** → `https://melange-psi.vercel.app/s/<story_id>`.
+### You (profile tab)
+- Header: avatar, name, ✦ Founding (if `founding`), scene chip, @handle.
+- **Your invites**: `my_invite_codes()` → 5 rows, each with Share →
+  `Share.share({ message: "Come join me on Melange — invite code MEL-XXXXX https://melange-psi.vercel.app/join?code=MEL-XXXXX" })`. Used codes greyed.
+- Edit profile gains **Handle** (`set_handle`) and **Scene** (`set_scene`).
 
-### Discover cards (existing SwipeCard)
-- Small line under the owner's name: "✓ 4 confirmed credits" from
-  `confirmed_credit_counts(user_ids[])` (fetch once per deck page). Hide when 0.
-
-### You (existing profile tab + ProfileSections)
-Order: header (avatar, name, role, ✓ N confirmed credits) → **Credits**
-(shoots I'm credited on, grid of covers) → **Portfolio** → About → settings.
-Remove anything that doesn't fit that order.
+### Discover
+- Cards show ✦ for founding members.
+- After the project deck is exhausted, continue with people from my scene
+  I haven't hearted, have ≥1 photo, not blocked; heart via the existing
+  `toggle_heart('profile', user_id)`.
 
 ## Web (no login needed)
-- `/s/[id]` — a shoot: photos, title, date, author, credits with ✓ for
-  confirmed and "on Melange" for linked accounts. CTA: Get Melange. Data:
-  `get_shared_story(p_story)` (anon). `generateMetadata` uses the first
-  photo as og:image and "Credits: A, B, C" as the description.
-- `/s/[id]/card` — 1080×1920 Instagram Story image (next/og): cover photo,
-  title, credits list "Shot by …", Melange mark.
-- `/c/[token]` — claim page: "<author> credited you as <role> on <title>",
-  cover photo. Signed in → **Claim my credit** (`claim_credit`). Signed out
-  → compact sign-up (name, email, password, role) with "I have an account"
-  toggle, then claim. Success: "It's on your profile" + App Store button.
-  Data: `get_credit_invite(p_token)` (anon).
-- Landing page hero and steps tell the story above (Find, Shoot, Credit).
+- `/` landing — the story above; invite-only; scenes (USC, UCSD, LA live; NYC soon); Nights; Explore; a waitlist form (insert into `waitlist`). Keep the existing screenshots section, safety, footer, light theme.
+- `/join?code=…` — "You're invited to Melange", the code big and copyable, App Store button, three steps (download → sign up → enter code). No code → waitlist form.
+- `/@handle` — public profile (rewrite `/@:handle` → `/u/:handle`): photos, name, role, scene, ✦ Founding, confirmed credits, shoots grid; CTA "Melange is invite-only — join the waitlist". Data: `get_public_profile(p_handle)` (anon). OG image = avatar or first photo.
+- `/s/[id]` — public shoot page via `get_shared_story(p_story)` (anon), as before.
 
-## Database contract (all in supabase/schema/22_crew_and_credits.sql, live)
-- `suggest_crew(p_post uuid, p_per_role int)` → rows (role, user_id, name, avatar_url, their_role, portfolio_cover, confirmed_credits, shared_vibes, worked_with_yours, reason, score). Owner only.
-- `invite_to_shoot(p_post uuid, p_user uuid, p_role text)` → match_id. Sends the opening message.
-- `respond_to_shoot_invite(p_post uuid, p_accept bool)` → 'accepted' | 'declined'.
-- `my_shoots()` → `{ planning: [{post_id,title,start,location,roles,cover_url,is_active,crew:[{user_id,name,avatar_url,role,status,match_id}]}], invited: [{post_id,title,start,location,cover_url,role,status,match_id,owner:{user_id,name,avatar_url}}] }`.
-- `confirm_credit(p_story uuid)`, `decline_credit(p_story uuid)`.
-- `confirmed_credit_counts(p_users uuid[])` → (user_id, credits).
-- `create_credit_invite(p_story uuid, p_index int)` → token (author only).
-- `get_shared_story(p_story uuid)` → jsonb, anon OK, public stories only.
-- `get_credit_invite(p_token text)` → jsonb, anon OK.
-- `claim_credit(p_token text)` → story_id.
+## Database contract (live in production)
+From `23_scenes_invites_nights.sql`:
+- `is_member(p_user default me) → bool`, `redeem_invite(p_code) → {ok, scene, founding, already_member?}`, `my_invite_codes() → (code, used)`, `set_scene(p_scene)`, `set_handle(p_handle) → handle`.
+- Table `waitlist(email, name, scene, instagram, what_you_make)` — insert-only for anon/authenticated.
+- `events.scene`; `is_event_member(p_event)`; table `event_messages(id, event_id, sender_id, content, created_at)` (RLS: members read/write, sender deletes; in realtime publication); `event_people(p_event) → (user_id, name, avatar_url, role, handle, is_host, i_hearted)`.
+- `toggle_event_heart(p_event, p_user) → {hearted, mutual, match_id?}`; `my_event_mutuals(p_event) → (user_id, name, avatar_url, match_id)`. Mutual creates a `matches` row with origin 'event'; push says "It's mutual ✦".
+- `get_public_profile(p_handle) → jsonb` (anon).
+- `collab_stories.featured_at`; `set_featured(p_story, p_on)` (admins); `is_admin()`.
+- `profiles.scene, handle, founding, invited_by, member_since` (founding/invited_by/member_since are server-set only).
+From `22_crew_and_credits.sql` (available, not in the main UI yet): `get_shared_story`, `confirmed_credit_counts`, credit claims.
 
 ## Design rules
-Light only (white / off-white, indigo brand, purple accent used rarely) —
-see docs/DESIGN.md. "Cleaner" means: one large left-aligned title per tab
-in the same style; consistent 16/24 spacing; one primary button per
-screen; no stacked banners; empty states that say what to do next.
-Never a dark-first surface.
+Light only — white/off-white, indigo brand, purple accent used rarely (docs/DESIGN.md). Editorial, a little zine-like in copy; never corporate. One large left-aligned title per tab, same style everywhere; 16/24 spacing; one primary action per screen; empty states that say what to do next ("No nights in UCSD yet — host one"). The ✦ is the only ornament. Never dark-first surfaces.

@@ -52,7 +52,7 @@ type Payload =
     }
   | {
       type: "match";
-      record: { id: string; user1_id: string; user2_id: string; origin?: string | null };
+      record: { id: string; user1_id: string; user2_id: string; origin?: string | null; origin_id?: string | null };
     }
   | {
       type: "like";
@@ -153,6 +153,31 @@ Deno.serve(async (req: Request) => {
     // A conversation someone started by reaching out (13_reach_out.sql) is not
     // a mutual match. Its first message arrives in the same transaction and
     // sends its own push, so a "match" push here would be wrong and doubled.
+    // A night's mutual heart (23_scenes_invites_nights.sql) is announced
+    // here: neither person was told about the one-way heart, so this push is
+    // the first either of them hears of it.
+    if (origin === "event") {
+      const { data: ev } = await admin
+        .from("events")
+        .select("title")
+        .eq("id", payload.record.origin_id ?? "")
+        .maybeSingle();
+      const night = (ev?.title ?? "").trim();
+      for (const recipient of [user1_id, user2_id]) {
+        const other = recipient === user1_id ? user2_id : user1_id;
+        const [tokens, name] = await Promise.all([tokensFor(recipient), nameFor(other)]);
+        await sendExpo(tokens.map((to) => ({
+          to,
+          sound: "default",
+          title: "It's mutual ✦",
+          body: night
+            ? `You and ${name} both hearted each other from ${night.slice(0, 50)}.`
+            : `You and ${name} both hearted each other.`,
+          data: { kind: "match", matchId: id },
+        })));
+      }
+      return new Response("ok");
+    }
     if (origin && origin !== "swipe") return new Response("ok");
 
     for (const recipient of [user1_id, user2_id]) {
