@@ -3,7 +3,7 @@ import { Dimensions, Pressable, RefreshControl, ScrollView, StyleSheet, Text, Vi
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ImageIcon } from "lucide-react-native";
+import { ImageIcon, Plus } from "lucide-react-native";
 
 import { FOUNDING_MARK } from "@/components/IdentityLine";
 import { SceneChips } from "@/components/SceneChips";
@@ -14,7 +14,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth";
 import { sized } from "@/lib/imageUrl";
 import { sceneLabel, type Scene } from "@/lib/scenes";
-import { getExploreStories, type StoryWithAuthor } from "@/lib/stories";
+import {
+  getCurrentTheme,
+  getExploreStories,
+  type StoryWithAuthor,
+  type WeeklyTheme,
+} from "@/lib/stories";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
 import { useBarTop } from "./_layout";
 
@@ -56,9 +61,10 @@ function columns(stories: StoryWithAuthor[]): [StoryWithAuthor[], StoryWithAutho
 }
 
 /**
- * Explore: the scene's moodboard. Shoots people made, featured ones first,
- * then the newest. Nights used to share this tab as a sub-tab; they have
- * their own now.
+ * Explore: the scene's moodboard. This week's theme on top, because a
+ * prompt answers "what do I even post?"; then what editors featured; then
+ * everything, newest first. Nights used to share this tab as a sub-tab; they
+ * have their own now.
  */
 export default function ExploreScreen() {
   const router = useRouter();
@@ -67,6 +73,9 @@ export default function ExploreScreen() {
   const { userId } = useAuth();
 
   const [scene, setScene] = useState<Scene | null>(null);
+  const [theme, setTheme] = useState<WeeklyTheme | null>(null);
+  /** Showing only this week's theme posts. */
+  const [themeOnly, setThemeOnly] = useState(false);
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,16 +83,21 @@ export default function ExploreScreen() {
   const [unavailable, setUnavailable] = useState(false);
   const runRef = useRef(0);
 
+  const themeId = themeOnly ? theme?.id ?? null : null;
   const load = useCallback(async () => {
     const run = ++runRef.current;
-    const res = await getExploreStories(scene);
+    const [res, th] = await Promise.all([getExploreStories(scene, 60, themeId), getCurrentTheme()]);
     if (run !== runRef.current) return;
     setStories(res.data);
+    // The board's error is the one worth a banner. A theme that failed to
+    // load just isn't shown; the posts underneath are what people came for.
     setError(res.error);
+    if (th.error) console.warn("current_theme failed", th.error);
+    else setTheme(th.data);
     setUnavailable(res.unavailable);
     setLoading(false);
     setRefreshing(false);
-  }, [scene]);
+  }, [scene, themeId]);
 
   useEffect(() => {
     load();
@@ -96,9 +110,31 @@ export default function ExploreScreen() {
     }, [load])
   );
 
-  const [left, right] = useMemo(() => columns(stories), [stories]);
+  // Featured, then everything else. The query already sorts featured first;
+  // splitting here gives each its own board so a short featured run doesn't
+  // interleave with the newest posts in the masonry.
+  const { featured, rest } = useMemo(() => {
+    const f = themeOnly ? [] : stories.filter((s) => s.featured_at);
+    const r = themeOnly ? stories : stories.filter((s) => !s.featured_at);
+    return { featured: columns(f), rest: columns(r) };
+  }, [stories, themeOnly]);
+  const hasFeatured = featured[0].length + featured[1].length > 0;
   const open = (id: string) => router.push({ pathname: "/story/[id]", params: { id } });
+  const post = (forTheme: boolean) =>
+    router.push({ pathname: "/story/quick", params: forTheme ? { theme: "1" } : {} });
   const label = sceneLabel(scene);
+
+  const board = ([left, right]: [StoryWithAuthor[], StoryWithAuthor[]]) => (
+    <View style={styles.board}>
+      {[left, right].map((col, ci) => (
+        <View key={ci} style={styles.col}>
+          {col.map((s) => (
+            <Tile key={s.id} story={s} onPress={() => open(s.id)} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <View style={styles.root}>
@@ -117,12 +153,29 @@ export default function ExploreScreen() {
       >
         <ScreenTitle
           title="Explore"
-          action={
-            userId && !unavailable
-              ? { label: "Add", onPress: () => router.push("/story/new"), accessibilityLabel: "Add a shoot" }
-              : undefined
+          right={
+            userId && !unavailable ? (
+              <Pressable
+                onPress={() => post(false)}
+                hitSlop={10}
+                style={({ pressed }) => [styles.plus, pressed && { opacity: 0.8 }]}
+                accessibilityRole="button"
+                accessibilityLabel="New post"
+              >
+                <Plus size={20} color={colors.onBrand} strokeWidth={2.2} />
+              </Pressable>
+            ) : undefined
           }
         />
+
+        {theme && !unavailable ? (
+          <ThemeCard
+            theme={theme}
+            active={themeOnly}
+            onToggle={() => setThemeOnly((v) => !v)}
+            onPost={() => post(true)}
+          />
+        ) : null}
 
         <SceneChips<Scene | null> value={scene} onChange={setScene} allLabel="All" />
 
@@ -146,24 +199,71 @@ export default function ExploreScreen() {
         ) : stories.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>
-              {label ? `Nothing from ${label} yet` : "Nothing here yet"}
+              {themeOnly && theme
+                ? `No ${theme.title} posts${label ? ` from ${label}` : ""} yet`
+                : label
+                  ? `Nothing from ${label} yet`
+                  : "Nothing here yet"}
             </Text>
-            <Text style={styles.emptyBody}>Post a shoot you made and credit who made it with you.</Text>
-            <Button title="Add a shoot" variant="primary" onPress={() => router.push("/story/new")} />
+            <Button title="Post the first" variant="primary" onPress={() => post(themeOnly)} />
           </View>
         ) : (
-          <View style={styles.board}>
-            {[left, right].map((col, ci) => (
-              <View key={ci} style={styles.col}>
-                {col.map((s) => (
-                  <Tile key={s.id} story={s} onPress={() => open(s.id)} />
-                ))}
+          <>
+            {/* Headers only when there are two boards to tell apart. */}
+            {hasFeatured ? (
+              <View style={styles.section}>
+                <Text style={styles.eyebrow}>Featured</Text>
+                {board(featured)}
               </View>
-            ))}
-          </View>
+            ) : null}
+            {rest[0].length ? (
+              <View style={styles.section}>
+                {hasFeatured ? <Text style={styles.eyebrow}>Latest</Text> : null}
+                {board(rest)}
+              </View>
+            ) : null}
+          </>
         )}
       </ScrollView>
     </View>
+  );
+}
+
+/**
+ * This week's theme. Tap the card to see only its posts (tap again for
+ * everything); "Post yours" opens a quick post with the theme already on.
+ * Opaque white on the grey ground, with the theme's name in the display face
+ * so it reads as this week's headline rather than another tile.
+ */
+function ThemeCard({
+  theme,
+  active,
+  onToggle,
+  onPost,
+}: {
+  theme: WeeklyTheme;
+  active: boolean;
+  onToggle: () => void;
+  onPost: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={({ pressed }) => [styles.theme, active && styles.themeActive, pressed && { opacity: 0.92 }]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={`This week: ${theme.title}. ${active ? "Showing its posts. Tap to show everything." : "Tap to see its posts."}`}
+    >
+      <Text style={styles.themeEyebrow}>
+        This week{theme.posts ? ` · ${theme.posts} ${theme.posts === 1 ? "post" : "posts"}` : ""}
+      </Text>
+      <Text style={styles.themeTitle}>{theme.title}</Text>
+      {theme.prompt ? <Text style={styles.themePrompt}>{theme.prompt}</Text> : null}
+      <View style={styles.themeFoot}>
+        <Button title="Post yours" variant="primary" size="sm" onPress={onPost} />
+        <Text style={styles.themeToggle}>{active ? "Show everything" : "See posts"}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -234,5 +334,31 @@ const styles = StyleSheet.create({
   tileBy: { ...typography.caption },
   empty: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.xxxl },
   emptyTitle: { ...typography.headline, textAlign: "center" },
-  emptyBody: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+
+  plus: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  section: { gap: spacing.md },
+  eyebrow: { ...typography.eyebrow, color: colors.textSecondary },
+
+  theme: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  // Selected is violet, the one job the accent has.
+  themeActive: { borderColor: colors.accent },
+  themeEyebrow: { ...typography.eyebrow, color: colors.accentInk },
+  themeTitle: { ...typography.display2, color: colors.text },
+  themePrompt: { ...typography.body, color: colors.textSecondary },
+  themeFoot: { flexDirection: "row", alignItems: "center", gap: spacing.lg, marginTop: spacing.sm },
+  themeToggle: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });
