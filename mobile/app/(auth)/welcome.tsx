@@ -30,9 +30,9 @@ const SLIDES: Slide[] = [
   {
     key: "intro",
     step: "Melange",
-    title: "Find people to make things with.",
+    title: "Find your next collaborator.",
     body:
-      "Photographers, models, musicians, filmmakers and dancers in your city, finding each other through the work.",
+      "Photographers, models, stylists, musicians and filmmakers in your city, finding each other through the work.",
   },
   {
     key: "swipe",
@@ -44,14 +44,14 @@ const SLIDES: Slide[] = [
   {
     key: "match",
     step: "02 · Hands up",
-    title: "Hands up first, then you talk.",
+    title: "See who's into your work.",
     body:
       "See who liked your project or hearted your work, and write back. Cold messages need a real profile and are capped at five a day.",
   },
   {
     key: "ready",
     step: "03 · Showcase",
-    title: "Show what you made.",
+    title: "Make something together.",
     body:
       "Post the finished shoot and credit everyone who made it. Sign up takes a minute.",
   },

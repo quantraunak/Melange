@@ -175,7 +175,7 @@ export default function NewEventScreen() {
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Host a night</Text>
+        <Text style={styles.headerTitle}>Host an event</Text>
         <Pressable hitSlop={12} onPress={() => router.back()}>
           <X size={22} color={colors.text} />
         </Pressable>
@@ -183,7 +183,7 @@ export default function NewEventScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.hint}>
-          A night out, a photo walk, a screening, a small show. Everyone going shares a chat
+          A shoot, a photo walk, a screening, a small show. Everyone going shares a chat
           before it, and can heart each other for three days after.
         </Text>
 
@@ -214,7 +214,7 @@ export default function NewEventScreen() {
           })}
         </View>
 
-        <Field label="Scene" hint="Nights show first to people in this scene.">
+        <Field label="Scene" hint="Shows first to people in this scene.">
           <SceneChips<Scene | null> value={scene} onChange={(s) => setScene(s === scene ? null : s)} />
         </Field>
 

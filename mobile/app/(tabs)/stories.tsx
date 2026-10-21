@@ -206,7 +206,7 @@ export default function ExploreScreen() {
                   : "Nothing here yet"}
             </Text>
             <Text style={styles.emptyBody}>
-              Post a photo from your last shoot or night out, and tag who made it with you.
+              Post a photo from your last shoot or event, and tag who made it with you.
             </Text>
             <Button title="Post the first" variant="primary" onPress={() => post(themeOnly)} />
           </View>

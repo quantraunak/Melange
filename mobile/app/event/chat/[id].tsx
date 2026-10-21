@@ -181,10 +181,10 @@ export default function NightChatScreen() {
       </Pressable>
       <View style={{ flex: 1 }}>
         <Text style={styles.headerName} numberOfLines={1}>
-          {event?.title ?? "Night chat"}
+          {event?.title ?? "Event chat"}
         </Text>
         <Text style={styles.headerSub} numberOfLines={1}>
-          {people.length ? `Night chat · ${people.length} people` : "Night chat"}
+          {people.length ? `Event chat · ${people.length} people` : "Event chat"}
         </Text>
       </View>
     </View>
@@ -208,8 +208,8 @@ export default function NightChatScreen() {
         <View style={styles.center}>
           <ErrorBanner message={error} />
           <Text style={styles.gateTitle}>RSVP to join the chat</Text>
-          <Text style={styles.gateBody}>The night chat is for the host and everyone going.</Text>
-          <Button title="Back to the night" variant="outline" onPress={() => router.back()} />
+          <Text style={styles.gateBody}>The event chat is for the host and everyone going.</Text>
+          <Button title="Back to the event" variant="outline" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
