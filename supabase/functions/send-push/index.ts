@@ -67,6 +67,10 @@ type Payload =
       record: { id: string; target_kind: string; reason: string };
     }
   | {
+      type: "night_tag";
+      record: { event_id: string; photo_id: string; user_id: string; tagged_by: string };
+    }
+  | {
       type: "tagged";
       record: { story_id: string; user_id: string; author_id: string; title: string };
     }
@@ -259,6 +263,20 @@ Deno.serve(async (req: Request) => {
       sound: "default",
       body: "Say hi. You can message them from Messages.",
       data: { kind: "heart", userId: from_user },
+    })));
+  } else if (payload.type === "night_tag") {
+    // Tagged in a photo from a night (25_web_rsvp_and_night_photos.sql).
+    // The photo is private to the night, so the push only names it.
+    const { event_id, user_id, tagged_by } = payload.record;
+    const { data: ev } = await admin.from("events").select("title").eq("id", event_id).maybeSingle();
+    const [tokens, name] = await Promise.all([tokensFor(user_id), nameFor(tagged_by)]);
+    const night = (ev?.title ?? "").trim();
+    await sendExpo(tokens.map((to) => ({
+      to,
+      sound: "default",
+      title: `${name} tagged you in a photo`,
+      body: night ? `from ${night.slice(0, 60)}` : "from a night you were at",
+      data: { kind: "event", eventId: event_id },
     })));
   } else if (payload.type === "tagged") {
     // Someone credited you on a post (24_open_doors_and_posting.sql). The
