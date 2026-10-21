@@ -96,3 +96,42 @@ From `22_crew_and_credits.sql` (available, not in the main UI yet): `get_shared_
 
 ## Design rules
 Light only — white/off-white, indigo brand, purple accent used rarely (docs/DESIGN.md). Editorial, a little zine-like in copy; never corporate. One large left-aligned title per tab, same style everywhere; 16/24 spacing; one primary action per screen; empty states that say what to do next ("No nights in UCSD yet — host one"). The ✦ is the only ornament. Never dark-first surfaces.
+
+---
+
+# Changes for 1.9 (supersede the sections above where they conflict)
+
+**Open app, invite-only nights.** Anyone can sign up (every new account is a
+member — `24_open_doors_and_posting.sql`). Remove the invite gate from the
+app. Founding codes become optional: a small "Have a founding code?" row on
+You → `redeem_invite(code)` grants ✦ (one code per person). Remove the
+"Your invites" five-code list from You.
+
+**Night invites.** Every night has **Invite friends** → share
+`https://melange-psi.vercel.app/n/<event_id>`. Web `/n/[id]`: cover, title,
+time, place, host first name, "N going" with up to 12 faces + first names
+(`get_shared_event(p_event)`, anon), and **RSVP in Melange** (App Store +
+open-in-app). The privacy policy must say that people going to a night are
+shown by first name and photo on its share page.
+
+**Messages redesign.** Top: a horizontal row of round avatars for people
+who liked your project or hearted you (heart badge); tap → their profile.
+Below: ONE flat list of conversations, newest first — avatar, name, last
+message, time, unread dot. No grouping by project, no per-row buttons. The
+notifications prompt is one short line, not a banner.
+
+**Posting.**
+- Explore gets a **+** → quick post: one photo, one line, optional tags
+  (search members: `search_people(p_query)`), optional "for this week's
+  theme" toggle. It's a `collab_stories` row: title = the line,
+  media_urls = [photo], credits = tagged people `{name, role:null,
+  user_id}`, theme_id when toggled, is_public = true. Tagged people get a
+  push automatically ("Maya tagged you").
+- Top of Explore: **this week's theme** card (`current_theme()` → title,
+  prompt, posts count) with "Post yours"; tapping shows theme posts.
+  Then **Featured**, then everything.
+- After signup: one optional screen "Add 3 photos you've made or love" →
+  the existing portfolio upload; skip allowed.
+
+**Clean-up pass**, every tab: fewer words, one button per row, nothing that
+repeats its header, no stacked banners.

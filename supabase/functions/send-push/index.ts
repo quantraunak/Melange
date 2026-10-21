@@ -67,6 +67,10 @@ type Payload =
       record: { id: string; target_kind: string; reason: string };
     }
   | {
+      type: "tagged";
+      record: { story_id: string; user_id: string; author_id: string; title: string };
+    }
+  | {
       type: "support";
       record: { id: string; topic: string; contact: string; message: string };
     };
@@ -255,6 +259,19 @@ Deno.serve(async (req: Request) => {
       sound: "default",
       body: "Say hi. You can message them from Messages.",
       data: { kind: "heart", userId: from_user },
+    })));
+  } else if (payload.type === "tagged") {
+    // Someone credited you on a post (24_open_doors_and_posting.sql). The
+    // trigger sends one of these per person, once per post.
+    const { story_id, user_id, author_id, title } = payload.record;
+    const [tokens, name] = await Promise.all([tokensFor(user_id), nameFor(author_id)]);
+    const what = (title ?? "").trim();
+    await sendExpo(tokens.map((to) => ({
+      to,
+      sound: "default",
+      title: `${name} tagged you`,
+      body: what ? `in "${what.slice(0, 60)}"` : "in a post",
+      data: { kind: "story", storyId: story_id },
     })));
   } else if (payload.type === "report" || payload.type === "support") {
     // Reports and support requests used to land in a table nobody watched.
