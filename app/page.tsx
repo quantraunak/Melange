@@ -215,8 +215,11 @@ export default async function MarketingHome() {
             </p>
           ) : null}
           <p className="mt-5 text-sm text-muted-ink">
-            {theme.posts === 1 ? "1 post so far" : `${theme.posts} posts so far`}. Post yours
-            from Explore in the app.
+            {/* A zero reads as an empty room; only count once there's something to count. */}
+            {theme.posts > 0
+              ? `${theme.posts === 1 ? "1 post" : `${theme.posts} posts`} so far. `
+              : ""}
+            Post yours from Explore in the app.
           </p>
         </Section>
       ) : null}
