@@ -7,6 +7,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -14,7 +15,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { ArrowLeft, CalendarDays, Heart, MapPin, MessageCircle, MessagesSquare } from "lucide-react-native";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Heart,
+  MapPin,
+  MessageCircle,
+  MessagesSquare,
+  Share as ShareIcon,
+} from "lucide-react-native";
 
 import { supabase } from "@/lib/supabase";
 
@@ -49,6 +58,9 @@ import {
   type NightPerson,
 } from "@/lib/nights";
 import { sceneLabel } from "@/lib/scenes";
+
+/** The public night page (web /n/[id]); get_shared_event serves it signed out. */
+const NIGHT_URL = "https://melange-psi.vercel.app/n";
 
 type Person = { user_id: string; name: string; role: string | null; avatar_url: string | null };
 
@@ -223,11 +235,35 @@ export default function EventScreen() {
     }
   };
 
+  // Nights are invite-only in the sense that matters: a friend sends you the
+  // link. The web page at /n/<id> shows who's going to anyone, signed in or
+  // not, and that guest list is what gets people to say yes.
+  const invite = async () => {
+    if (!event) return;
+    try {
+      await Share.share({ message: `${event.title} ${NIGHT_URL}/${event.id}` });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't open sharing.");
+    }
+  };
+  const canInvite = !!event && !event.is_canceled && !nightEnded(event);
+
   const header = (
     <View style={styles.header}>
       <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Back">
         <ArrowLeft size={22} color={colors.text} />
       </Pressable>
+      {canInvite ? (
+        <Pressable
+          onPress={invite}
+          hitSlop={8}
+          style={({ pressed }) => [styles.inviteBtn, pressed && { opacity: 0.7 }]}
+          accessibilityRole="button"
+        >
+          <ShareIcon size={15} color={colors.brandText} />
+          <Text style={styles.link}>Invite friends</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 
@@ -513,7 +549,14 @@ export default function EventScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: GUTTER, paddingVertical: spacing.md },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: GUTTER,
+    paddingVertical: spacing.md,
+  },
+  inviteBtn: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: GUTTER },
   scroll: { paddingHorizontal: GUTTER, paddingBottom: spacing.xxxl, gap: spacing.sm },
   cover: { width: "100%", height: 200, borderRadius: radii.md, backgroundColor: colors.surfaceSunken },
