@@ -9,16 +9,17 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, MoreVertical, Send } from "lucide-react-native";
+import { ArrowLeft, MoreVertical } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { ChatBubble } from "@/components/chat/ChatBubble";
+import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, typography, inputText } from "@/lib/theme";
+import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import {
@@ -29,7 +30,6 @@ import {
 } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
-import { formatChatDivider } from "@/lib/format";
 
 export default function ChatScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -292,72 +292,13 @@ export default function ChatScreen() {
                 <Text style={styles.emptyChatText}>Say hi.</Text>
               </View>
             }
-            renderItem={({ item, index }) => {
-              const isMe = item.sender_id === userId;
-              const prev = messages[index - 1];
-              const next = messages[index + 1];
-              // Time used to sit beside the bubble, and only after a pause.
-              // In a conversation that spans a day that reads as a few stale
-              // times, and the stamp pushed the sender's bubbles in from the
-              // edge. Now it's a centered divider whenever the conversation
-              // resumes after a pause, the way Messages does it.
-              const GAP_MS = 15 * 60 * 1000;
-              const gap = (a?: { created_at: string }, b?: { created_at: string }) =>
-                a && b ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : Infinity;
-              const startsSection = gap(prev, item) > GAP_MS;
-              const endsRun = !next || next.sender_id !== item.sender_id || gap(item, next) > GAP_MS;
-              const sameAuthorBefore = !startsSection && prev && prev.sender_id === item.sender_id;
-              return (
-                <View>
-                  {startsSection ? (
-                    <Text style={styles.divider}>{formatChatDivider(item.created_at)}</Text>
-                  ) : null}
-                  <View
-                    style={[
-                      styles.bubbleRow,
-                      isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
-                      sameAuthorBefore ? { marginTop: 2 } : { marginTop: 10 },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.bubble,
-                        isMe ? styles.bubbleMe : styles.bubbleOther,
-                        endsRun && (isMe ? styles.bubbleMeTail : styles.bubbleOtherTail),
-                      ]}
-                    >
-                      <Text style={[styles.bubbleText, isMe && { color: colors.onAccent }]}>
-                        {item.content}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            }}
+            renderItem={({ item, index }) => (
+              <ChatBubble item={item} prev={messages[index - 1]} isMe={item.sender_id === userId} />
+            )}
           />
         )}
 
-        <SafeAreaView edges={["bottom"]} style={styles.inputSafe}>
-          <View style={styles.inputBar}>
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder="Type a message..."
-              placeholderTextColor={colors.textTertiary}
-              style={styles.input}
-              multiline
-              maxLength={2000}
-            />
-            <Pressable
-              onPress={send}
-              disabled={!text.trim() || sending}
-              style={[styles.sendBtn, (!text.trim() || sending) && { opacity: 0.4 }]}
-              accessibilityLabel="Send message"
-            >
-              <Send size={18} color={colors.white} />
-            </Pressable>
-          </View>
-        </SafeAreaView>
+        <ChatComposer value={text} onChangeText={setText} onSend={send} sending={sending} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -400,61 +341,4 @@ const styles = StyleSheet.create({
   },
   emptyChatTitle: { ...typography.headline, color: colors.text },
   emptyChatText: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
-
-  bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  bubbleRowMe: { justifyContent: "flex-end" },
-  bubbleRowOther: { justifyContent: "flex-start" },
-  bubble: {
-    maxWidth: "76%",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: radii.lg,
-  },
-  /* No tail notch: the spec allows four radii and a fifth value for one
-     corner of one component is how scales rot. A run reads as a run from
-     spacing — 2pt inside a block, 10pt between blocks. */
-  bubbleMe: { backgroundColor: colors.bubbleMe },
-  bubbleOther: { backgroundColor: colors.bubbleOther },
-  bubbleMeTail: {},
-  bubbleOtherTail: {},
-  bubbleText: { ...typography.body, color: colors.text },
-  divider: {
-    ...typography.micro,
-    color: colors.textTertiary,
-    textAlign: "center",
-    marginTop: 18,
-    marginBottom: 4,
-  },
-  inputSafe: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.line,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  input: {
-    ...inputText,
-    flex: 1,
-    backgroundColor: colors.surfaceSunken,
-    borderRadius: radii.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: colors.text,
-    maxHeight: 120,
-  },
-  sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });

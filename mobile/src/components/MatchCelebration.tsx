@@ -29,6 +29,7 @@ export function MatchCelebration({
   projectTitle,
   onMessage,
   onKeepSwiping,
+  copy,
 }: {
   visible: boolean;
   me: Pick<CreatorInfo, "name" | "avatar_url">;
@@ -36,6 +37,11 @@ export function MatchCelebration({
   projectTitle?: string;
   onMessage: () => void;
   onKeepSwiping: () => void;
+  /**
+   * Words for a match that didn't come from a project, such as a mutual
+   * heart after a night. The moment is the same; only what led to it differs.
+   */
+  copy?: { kicker: string; title: string; body: string; dismiss: string };
 }) {
   const scale = useSharedValue(0.86);
   const badge = useSharedValue(0);
@@ -77,9 +83,9 @@ export function MatchCelebration({
         </Pressable>
 
         <Animated.View style={[styles.card, cardStyle]}>
-          <Text style={styles.kicker}>You&apos;re on the list</Text>
+          <Text style={styles.kicker}>{copy ? copy.kicker : "You're on the list"}</Text>
           <Text style={styles.title}>
-            {firstName} picked you{projectTitle ? ` for ${projectTitle}` : " too"}
+            {copy ? copy.title : `${firstName} picked you${projectTitle ? ` for ${projectTitle}` : " too"}`}
           </Text>
 
           <View style={styles.avatars}>
@@ -95,15 +101,16 @@ export function MatchCelebration({
           </View>
 
           <Text style={styles.body}>
-            Say when you&apos;re free and what you&apos;d bring. Collabs that happen are the ones where
-            someone writes first, today.
+            {copy
+              ? copy.body
+              : "Say when you're free and what you'd bring. Collabs that happen are the ones where someone writes first, today."}
           </Text>
 
           <Pressable style={styles.primary} onPress={onMessage} accessibilityRole="button">
             <Text style={styles.primaryText}>Say hi</Text>
           </Pressable>
           <Pressable style={styles.secondary} onPress={onKeepSwiping} accessibilityRole="button">
-            <Text style={styles.secondaryText}>Keep looking</Text>
+            <Text style={styles.secondaryText}>{copy ? copy.dismiss : "Keep looking"}</Text>
           </Pressable>
         </Animated.View>
       </View>

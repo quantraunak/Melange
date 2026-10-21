@@ -19,7 +19,16 @@ import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { submitReport, type ReportReason } from "@/lib/db";
+import { submitReport, type ReportKind, type ReportReason } from "@/lib/db";
+
+const KINDS: ReportKind[] = ["user", "post", "message", "event_message"];
+const NOUN: Record<ReportKind, string> = {
+  user: "user",
+  post: "post",
+  message: "message",
+  // A message in a night chat is still just a message to the person reporting it.
+  event_message: "message",
+};
 
 const REASONS: { id: ReportReason; label: string; help: string }[] = [
   { id: "spam", label: "Spam or scam", help: "Repetitive, off-topic, or trying to sell something unrelated." },
@@ -39,8 +48,7 @@ export default function ReportScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const validKind: "user" | "post" | "message" =
-    kind === "user" || kind === "post" || kind === "message" ? kind : "user";
+  const validKind: ReportKind = KINDS.includes(kind as ReportKind) ? (kind as ReportKind) : "user";
 
   const submit = async () => {
     if (!userId || !id) return;
@@ -65,7 +73,7 @@ export default function ReportScreen() {
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>
-          Report {validKind === "user" ? "user" : validKind}
+          Report {NOUN[validKind]}
         </Text>
         <Pressable hitSlop={12} onPress={() => router.back()}>
           <X size={22} color={colors.text} />
