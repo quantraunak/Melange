@@ -15,7 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ImageIcon, Camera, Pencil, Settings as SettingsIcon } from "lucide-react-native";
+import { ImageIcon, Camera, Settings as SettingsIcon } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { IdentityLine } from "@/components/IdentityLine";
@@ -273,7 +273,7 @@ export default function ProfileScreen() {
         {/* Profile: about you. Everyone sees exactly this on your page. */}
         <ProfileAbout
           profile={profile}
-          emptyHint="Add what you do, what you're looking for, a bio, your Instagram and photos in Edit profile."
+          emptyHint="Add a bio and photos in Edit profile."
         />
 
         {/* One section. A credit, a story and an uploaded image were three
@@ -287,11 +287,8 @@ export default function ProfileScreen() {
               <Text style={styles.sectionAction}>Add</Text>
             </Pressable>
           </View>
-          <Text style={styles.sectionHint}>
-            Past work you made with people. It shows on Explore too, so others get ideas and find you.
-          </Text>
 
-          {work.length === 0 ? <Text style={styles.muted}>Nothing here yet.</Text> : null}
+          {work.length === 0 ? <Text style={styles.muted}>Nothing yet. It shows on Explore too.</Text> : null}
 
           {work.map((w) => (
             <Pressable
@@ -337,7 +334,6 @@ export default function ProfileScreen() {
               <Text style={styles.sectionAction}>Post</Text>
             </Pressable>
           </View>
-          <Text style={styles.sectionHint}>What you&apos;re making now and who you&apos;re looking for.</Text>
           {projects.length === 0 ? (
             <Text style={styles.muted}>Nothing open.</Text>
           ) : (
@@ -358,13 +354,8 @@ export default function ProfileScreen() {
                     {p.is_active ? "" : " · inactive"}
                   </Text>
                 </View>
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: p.id } })}
-                  accessibilityLabel={`Edit ${p.title}`}
-                >
-                  <Pencil size={16} color={colors.iconFaint} />
-                </Pressable>
+                {/* No pencil: the row is the one target, and the project
+                    page it opens has Edit project for its owner. */}
               </Pressable>
             ))
           )}
@@ -502,14 +493,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     gap: spacing.md,
   },
-  blockFirst: { marginTop: 0 },
   blockHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   codeRow: { paddingBottom: spacing.sm },
   codeForm: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   sectionTitle: { ...typography.eyebrow, color: colors.textSecondary },
   sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
-  sectionCount: { ...typography.caption, color: colors.textTertiary },
-  sectionHint: { ...typography.caption, color: colors.textTertiary, marginTop: -4 },
 
   /* Every list row in this screen is the same row. */
   listRow: {
