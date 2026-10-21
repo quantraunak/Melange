@@ -1,8 +1,8 @@
 # Melange
 
 **Small nights for people who make things.** A host, a place and a start
-time; a friend sends you the link; you go, meet the people there, and find
-them again in the app afterwards.
+time; a friend sends you the link; an AI suggests who sits with whom; you go,
+meet the people there, and find them again in the app afterwards.
 
 iOS app on the [App Store](https://apps.apple.com/app/id6774481477) ·
 website at [melange-psi.vercel.app](https://melange-psi.vercel.app) ·
@@ -35,10 +35,44 @@ built and run by one engineer (Raunak Sood), with Jolea on community.
 | | |
 |---|---|
 | App Store releases | 9 shipped: 1.0 in May 2026, then 1.2 → 1.8 between Oct 9 and Oct 20 |
-| Database migrations | 25, every one idempotent; the last five tested against production inside a rolled-back transaction before applying |
+| Database migrations | 26, every one idempotent; the recent ones tested against production inside a rolled-back transaction before applying |
 | Code | ~35k lines of TypeScript and SQL across an Expo app, a Next.js site and Postgres |
 | Production bugs found by querying the live database | ~40, most of them the "reports success, does nothing" kind |
 | Users | early: about a dozen accounts. This is a working product, not a traction story yet. |
+
+## The AI: who should sit together
+
+A night is only as good as who ends up talking to whom, so Melange seats it.
+
+- **Taste** is the average CLIP embedding of the images a member has posted
+  and hearted ([`scripts/taste/embed.py`](scripts/taste/embed.py)). The model
+  is open-source and runs locally on Apple silicon: no photo goes to a third
+  party, and nothing asks it about anyone's face.
+- **A pair score** combines taste similarity, whether two roles make each
+  other's work possible (a photographer and a stylist, not two
+  photographers) and shared interests. The weights start as a prior and are
+  refit from outcomes ([`scripts/taste/learn.py`](scripts/taste/learn.py)),
+  which refuses to fit on too little data rather than memorise a handful of
+  pairs.
+- **The composer** seats whole tables
+  ([`compose.ts`](supabase/functions/compose-tables/compose.ts)): each
+  person's average chemistry with their tablemates through a concave curve,
+  so lifting the person who's worst off beats polishing a good table; local
+  search with random restarts; blocked pairs never together. It runs as an
+  Edge Function under the host's own session, so the database decides who may
+  seat a room.
+- **Every night is a randomised test.** Half the attendees are seated by the
+  composer and half at random, in the same room, with nobody told which half
+  they're in. [`26_room_composer.sql`](supabase/schema/26_room_composer.sql)
+  compares the arms on mutual hearts, conversations still going a week later,
+  and coming back.
+
+The first production run caught a flaw in the design: with thirteen people
+each arm got one table, so the composer had no choice to make and its table
+scored *worse* than random (0.67 vs 0.74 taste similarity). Tables now shrink
+until each arm has at least two. Across three runs after the fix, composed
+tables scored 0.77–0.85 against 0.64–0.69 for random ones. That shows the
+optimizer works; whether it makes nights better is what real nights measure.
 
 ## Engineering worth looking at
 

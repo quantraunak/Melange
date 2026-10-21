@@ -183,6 +183,25 @@ export default async function MarketingHome() {
         </ol>
       </Section>
 
+      {/* ---------------- Tables ---------------- */}
+      <Section id="tables" label="Who you sit with">
+        <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+          Melange suggests the tables. Half the room is seated at random, so we know if it helps.
+        </h2>
+        <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-muted-ink">
+          <p>
+            We read taste from what you make and what you heart: the photos, not your face. People
+            whose work belongs in the same room, and whose roles make each other&apos;s work
+            possible, end up at the same table.
+          </p>
+          <p>
+            Then we check. At every night, half the tables are ours and half are random, and we
+            compare who hearted each other, who was still talking a week later, and who came back.
+            If our tables aren&apos;t better, we&apos;ll change them.
+          </p>
+        </div>
+      </Section>
+
       {/* ---------------- Scenes ---------------- */}
       <Section id="scenes" label="Where">
         <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
