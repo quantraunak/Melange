@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "A friend sent you a founding code for Melange. Enter it in the app to get the Founding mark.",
   openGraph: {
     title: "A founding code for Melange",
-    description: "Small, invite-only nights for people who make things. A friend sent you a founding code.",
+    description: "Where creative people find their next collaboration. A friend sent you a founding code.",
   },
   // Codes are personal; keep the pages they're printed on out of search.
   robots: { index: false, follow: true },
@@ -120,10 +120,10 @@ export default async function JoinPage({
 
             <div className="mt-14 border-t border-rule pt-10">
               <h2 className="font-display text-3xl font-semibold leading-tight">
-                Want to hear when there&apos;s a night near you?
+                Not in USC, UCSD or LA?
               </h2>
               <p className="mt-3 leading-relaxed text-muted-ink">
-                Nights are invite-only. Leave your email and your scene, and we&apos;ll send
+                Leave your email and where you are, and we&apos;ll send
                 you the link when someone hosts one nearby.
               </p>
               <div className="mt-8">

@@ -69,7 +69,7 @@ describe("shared night page data", () => {
     expect(e.going_count).toBe(12);
     const n = normalizeSharedEvent(event({ host: { name: "", avatar_url: null }, title: "" }));
     expect(n.host).toBeNull();
-    expect(n.title).toBe("A night on Melange");
+    expect(n.title).toBe("An event on Melange");
   });
 
   it("returns null for a non-UUID without calling the database", async () => {

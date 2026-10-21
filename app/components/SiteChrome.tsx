@@ -89,8 +89,8 @@ export function GetTheAppCta({ heading }: { heading: string }) {
         {heading}
       </h2>
       <p className="mt-3 max-w-md leading-relaxed text-muted-ink">
-        Melange is free on iPhone and anyone can sign up. Nights are invite-only: a
-        friend sends you the link.
+        Melange is free on iPhone and anyone can sign up. Find people whose work fits
+        yours, and make something together.
       </p>
       <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
         {IOS_LIVE ? (
@@ -102,10 +102,10 @@ export function GetTheAppCta({ heading }: { heading: string }) {
           </a>
         ) : null}
         <Link
-          href="/#next-night"
+          href="/#updates"
           className="text-sm font-medium text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
         >
-          Hear about the next night near you
+          Get updates when we open near you
         </Link>
       </div>
     </section>

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 // The preview card for links shared in iMessage, Instagram and Slack:
 // flat paper, ink type, the logo.
-export const alt = "Melange: small, invite-only nights for people who make things";
+export const alt = "Melange: where creative people find their next collaboration";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -36,7 +36,7 @@ export default function OpengraphImage() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", maxWidth: 980 }}>
           <div style={{ fontSize: 76, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2 }}>
-            Small nights for people who make things.
+            Where creative people find their next collaboration.
           </div>
           <div
             style={{

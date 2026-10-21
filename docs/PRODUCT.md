@@ -1,5 +1,19 @@
 # Melange — what it is, and what every screen is for
 
+> **Where creative people find their next collaboration.**
+> Find people whose work fits yours, see who's into what you make, and make something together.
+
+Discover is the front door. Events, the taste model, credits and photos are
+features inside it — Melange is not "built around nights". In code, events
+are sometimes called nights (`/n/[id]`, `night-photos`, `event/[id]`); in the
+product they're **events**.
+
+The sections below were written while the night framing was being explored.
+Read them as the spec for the features, not the identity.
+
+---
+
+
 ## The story (say it the same way everywhere)
 
 > **Where young creatives find their crew — the people, the nights, the ideas.**

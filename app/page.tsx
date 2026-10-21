@@ -12,7 +12,7 @@ import { APP_STORE_URL, IOS_LIVE, SITE, SUPPORT_PATH } from "./lib/site";
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: { absolute: "Melange: small nights for people who make things" },
+  title: { absolute: "Melange: where creative people find their next collaboration" },
   description: SITE.description,
   openGraph: {
     title: "Melange",
@@ -55,20 +55,20 @@ async function loadTheme(): Promise<WeeklyTheme | null> {
 
 const STEPS = [
   {
-    title: "A friend sends you a link",
-    body: "Nights are invite-only. The link shows the place, the time, the host, and the first names of who's going. Say you're going with your name and email; you don't need the app yet.",
+    title: "Find people whose work fits yours",
+    body: "Discover shows photographers, models, stylists and other creatives near you, and the projects they're putting together. Melange learns your taste from what you make and like.",
   },
   {
-    title: "Before it, you meet the room",
-    body: "In the app you can see everyone who's going and talk in the night chat, so you walk in knowing a few names.",
+    title: "See who's into your work",
+    body: "Heart someone's work and they find out it was you. When someone hearts yours, you can write back right away.",
   },
   {
-    title: "After it, heart who you'd see again",
-    body: "Until three days after the night, its guest list stays open in the app. Heart anyone you'd like to make something with. They only find out if they hearted you too, and then a conversation opens.",
+    title: "Meet, and make something",
+    body: "Plan it in chat, or meet at an event: everyone going shares a chat before it and a private photo roll after it.",
   },
   {
-    title: "Between nights, post what you made",
-    body: "Explore is your scene's wall: shoots, sets, zines, with everyone who worked on them credited. There's a theme each week if you want a prompt.",
+    title: "Get credit for it",
+    body: "Post what you made and credit everyone on it. Explore is the wall of what your scene is making.",
   },
 ];
 
@@ -129,24 +129,23 @@ export default async function MarketingHome() {
             <p className="melange-label">USC · UCSD · LA · NYC soon</p>
 
             <h1 className="mt-5 font-display text-[2.6rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
-              Small nights for people who make things.
+              Where creative people find their next collaboration.
             </h1>
 
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted-ink">
-              A night on Melange is a host, a place and a start time. Think a
-              shoot on a rooftop, a zine table in someone&apos;s living room,
-              records in a backyard. A friend sends you the link. You
-              go, you meet the people there, and afterwards you can find them
-              again in the app.
+              A photographer needs a model. A model needs a stylist. A filmmaker
+              needs a whole crew. On Melange you find people whose work fits
+              yours, see who&apos;s into what you make, and make something
+              together.
             </p>
 
             <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               <GetAppCta />
               <a
-                href="#next-night"
+                href="#updates"
                 className="text-sm font-medium text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
               >
-                Or get told about the next night near you
+                Or get updates when we open near you
               </a>
             </div>
 
@@ -164,7 +163,7 @@ export default async function MarketingHome() {
         </div>
       </section>
 
-      {/* ---------------- How a night works ---------------- */}
+      {/* ---------------- How it works ---------------- */}
       <Section id="how" label="How it works">
         <ol className="divide-y divide-rule border-y border-rule">
           {STEPS.map((s, i) => (
@@ -186,18 +185,18 @@ export default async function MarketingHome() {
       {/* ---------------- Tables ---------------- */}
       <Section id="tables" label="Who you sit with">
         <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
-          Melange suggests the tables. Half the room is seated at random, so we know if it helps.
+          Melange learns your taste, and checks itself against random picks.
         </h2>
         <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-muted-ink">
           <p>
-            We read taste from what you make and what you heart: the photos, not your face. People
-            whose work belongs in the same room, and whose roles make each other&apos;s work
-            possible, end up at the same table.
+            We read taste from what you make and what you heart: the photos, not your face. That
+            tells us whose work belongs together, and whose roles make each other&apos;s work
+            possible, so we can suggest who to meet and seat groups at events.
           </p>
           <p>
-            Then we check. At every night, half the tables are ours and half are random, and we
+            Then we check. At an event, half the tables are ours and half are random, and we
             compare who hearted each other, who was still talking a week later, and who came back.
-            If our tables aren&apos;t better, we&apos;ll change them.
+            If our suggestions aren&apos;t better than chance, we&apos;ll change them.
           </p>
         </div>
       </Section>
@@ -264,9 +263,9 @@ export default async function MarketingHome() {
           You&apos;re meeting strangers. Here&apos;s what we do about it.
         </h2>
         <ul className="mt-6 max-w-2xl space-y-3 leading-relaxed text-muted-ink">
-          <li>Nights are invite-only, so the room is friends of friends.</li>
+          <li>Events are shared by friends, so the room is friends of friends.</li>
           <li>
-            You can block or report any person, post or message, including in a night
+            You can block or report any person, post or message, including in an event
             chat. A person reads every report.
           </li>
           <li>Every account is 18+.</li>
@@ -284,14 +283,14 @@ export default async function MarketingHome() {
         </p>
       </Section>
 
-      {/* ---------------- Next night (writes to the waitlist table) ---------------- */}
-      <Section id="next-night" label="The next night">
+      {/* ---------------- Updates (writes to the waitlist table) ---------------- */}
+      <Section id="updates" label="Updates">
         <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
-          Want to hear when there&apos;s a night near you?
+          Not in USC, UCSD or LA?
         </h2>
         <p className="mt-4 max-w-xl leading-relaxed text-muted-ink">
-          Leave your email and your scene. When someone hosts one nearby, we&apos;ll
-          send you the link.
+          Leave your email and where you are. We&apos;ll tell you when Melange opens near you,
+          and when there&apos;s an event close by.
         </p>
         <div className="mt-8 max-w-2xl">
           <WaitlistForm />

@@ -246,7 +246,7 @@ export default function EventsView({
           </h3>
           <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-snug mb-4">
             {cityFilter
-              ? "Be the first to host something here — photo walks, open calls, gallery nights."
+              ? "Be the first to host something here — photo walks, open calls, gallery openings."
               : "This is where photo walks, open calls, and gallery openings show up. Host one and bring the community together."}
           </p>
           <button

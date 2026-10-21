@@ -30,8 +30,8 @@ export const SUPPORT_PATH = "/support";
 
 export const SITE = {
   name: "Melange",
-  tagline: "Small, invite-only nights for people who make things. USC, UCSD and LA.",
+  tagline: "Where creative people find their next collaboration.",
   description:
-    "Melange is a free iPhone app for people who make things around USC, UCSD and LA (NYC soon). Anyone can join. Nights are invite-only: a friend sends the link, you go, and afterwards you can find the people you met.",
+    "Melange is a free iPhone app where photographers, models, stylists and other creatives find people whose work fits theirs, see who's into what they make, and make something together. Around USC, UCSD and LA.",
   url: "https://melange-psi.vercel.app",
 } as const;

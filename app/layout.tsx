@@ -25,7 +25,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: "Melange: small nights for people who make things",
+    default: "Melange: where creative people find their next collaboration",
     template: "%s · Melange",
   },
   description: SITE.description,

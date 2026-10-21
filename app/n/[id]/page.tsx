@@ -77,7 +77,7 @@ export default async function SharedNightPage({ params }: Props) {
 
         {/* No cover photo: the header is the flyer, type on paper. */}
         <header className={e.cover_url ? "mt-6" : "border-y-2 border-ink py-8 sm:py-10"}>
-          <p className="melange-label">You&apos;re invited to a night</p>
+          <p className="melange-label">You&apos;re invited</p>
           <h1
             className={`mt-3 break-words font-display font-semibold leading-[1.05] tracking-tight ${
               e.cover_url ? "text-4xl sm:text-5xl" : "text-5xl sm:text-7xl"
@@ -144,7 +144,7 @@ export default async function SharedNightPage({ params }: Props) {
 
         {e.description ? (
           <section className="mt-10">
-            <h2 className="font-display text-2xl font-semibold">About the night</h2>
+            <h2 className="font-display text-2xl font-semibold">About it</h2>
             <p className="mt-3 whitespace-pre-line break-words leading-relaxed text-ink">
               {e.description}
             </p>
@@ -152,7 +152,7 @@ export default async function SharedNightPage({ params }: Props) {
         ) : null}
 
         <p className="mt-12 border-t border-rule pt-6 text-sm text-muted-ink">
-          Melange is free on iPhone. Nights are invite-only; a friend sent you this one.
+          Melange is where creative people find their next collaboration. A friend sent you this one.
         </p>
       </article>
 

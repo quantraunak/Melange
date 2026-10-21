@@ -128,7 +128,7 @@ export function normalizeSharedEvent(raw: SharedEvent): SharedEvent {
   const count = Number(raw.going_count ?? 0);
   return {
     ...raw,
-    title: raw.title?.trim() || "A night on Melange",
+    title: raw.title?.trim() || "An event on Melange",
     description: raw.description?.trim() || null,
     location_name: raw.location_name?.trim() || null,
     cover_url: raw.cover_url || null,

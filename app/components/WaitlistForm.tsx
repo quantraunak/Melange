@@ -67,8 +67,8 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         </p>
         <p className="mt-2 leading-relaxed text-muted-ink">
           {state === "sent"
-            ? "We'll tell you when there's a night in your scene. Meanwhile, the app is open: download it and say hi."
-            : "No need to sign up twice. We'll tell you when there's a night in your scene."}
+            ? "We'll tell you when Melange opens near you. Meanwhile, the app is open: download it and say hi."
+            : "No need to sign up twice. We'll tell you when Melange opens near you."}
         </p>
       </div>
     );

@@ -32,7 +32,7 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
   if (ended) {
     return (
       <div className="border-l-2 border-ink py-1 pl-5 text-muted-ink">
-        <p className="font-display text-2xl font-semibold text-ink">This night already happened</p>
+        <p className="font-display text-2xl font-semibold text-ink">This already happened</p>
         <p className="mt-1 text-sm">
           If you were there, the photos from it are in Melange.
         </p>
@@ -64,7 +64,7 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
         <p className="font-display text-2xl font-semibold">You&apos;re going.</p>
         {done.hasAccount ? (
           <>
-            <p className="mt-2 text-muted-ink">Open Melange; it&apos;s on your nights already.</p>
+            <p className="mt-2 text-muted-ink">Open Melange; it&apos;s on your events already.</p>
             <a href={openInApp} className={`${primary} mt-4`}>
               Open Melange
             </a>
@@ -72,8 +72,8 @@ export default function NightRsvp({ eventId, ended }: { eventId: string; ended: 
         ) : (
           <>
             <p className="mt-2 leading-relaxed text-muted-ink">
-              Get Melange to see who&apos;s going, chat with the night, and get the photos after. Sign up
-              with the same email and this night is already on your list.
+              Get Melange to see who&apos;s going, join the event chat, and get the photos after. Sign up
+              with the same email and this event is already on your list.
             </p>
             {IOS_LIVE ? (
               <a href={APP_STORE_URL} className={`${primary} mt-4`}>

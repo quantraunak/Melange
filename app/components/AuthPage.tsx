@@ -194,7 +194,7 @@ export default function AuthPage() {
           <Logo size="lg" />
           <div>
             <CardTitle className="melange-wordmark text-4xl leading-none">Melange</CardTitle>
-            <p className="text-sm text-muted-ink mt-2">Sign in to see your nights and your people.</p>
+            <p className="text-sm text-muted-ink mt-2">Sign in to see your people and what they&apos;re making.</p>
           </div>
         </CardHeader>
 
