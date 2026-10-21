@@ -19,19 +19,21 @@ import { ArrowLeft, ArrowRight, ImagePlus, Plus, UserPlus, X } from "lucide-reac
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Chip, ChipRow } from "@/components/ui/Chip";
-import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, radii, typography } from "@/lib/theme";
-import { ROLES, uploadFile, type CreatorInfo } from "@/lib/db";
+import { ROLES, type CreatorInfo } from "@/lib/db";
 import {
   STORY_MAX_CREDITS,
   STORY_MAX_IMAGES,
   normalizeContactLink,
   searchProfiles,
+  uploadStoryAssets,
+  type StoryAsset,
   type StoryCredit,
+  type StoryUploadProgress,
 } from "@/lib/stories";
 
 const STEPS = ["What", "Who with", "Photos", "Finish"] as const;
@@ -45,9 +47,7 @@ export type StoryFormValues = {
   happenedOn: string | null;
 };
 
-type Asset =
-  | { kind: "remote"; url: string }
-  | { kind: "local"; uri: string; mimeType?: string; width?: number; height?: number };
+type Asset = StoryAsset;
 
 /** "2024-06" from "June 2024", "6/2024", "2024-06". Month precision only. */
 export function normalizeMonth(raw: string): string | null {
@@ -105,12 +105,7 @@ export function StoryForm({
    * next to a spinner that never changed, so a stalled upload and a slow one
    * looked identical and there was nothing to do but force-quit.
    */
-  const [progress, setProgress] = useState<{
-    index: number;
-    total: number;
-    fraction: number;
-    attempt: number;
-  } | null>(null);
+  const [progress, setProgress] = useState<StoryUploadProgress | null>(null);
 
   const addCredit = (c: StoryCredit) => {
     if (credits.length >= STORY_MAX_CREDITS) {
@@ -197,45 +192,15 @@ export function StoryForm({
     setError(null);
     setUploading(true);
 
-    const finalUrls: string[] = [];
-    const toUpload = assets.filter((a) => a.kind === "local").length;
-    let done = 0;
-    for (const a of assets) {
-      if (a.kind === "remote") {
-        finalUrls.push(a.url);
-      } else {
-        setProgress({ index: done + 1, total: toUpload, fraction: 0, attempt: 1 });
-        const { url, error: upErr } = await uploadFile(
-          userId,
-          "posts",
-          a.uri,
-          a.mimeType || "image/jpeg",
-          {
-            width: a.width,
-            height: a.height,
-            onProgress: (p) =>
-              setProgress({
-                index: done + 1,
-                total: toUpload,
-                fraction: p.fraction,
-                attempt: p.attempt,
-              }),
-          }
-        );
-        if (upErr || !url) {
-          // Everything typed so far stays on screen: the form is not reset, so
-          // the only thing lost is the retry.
-          setUploading(false);
-          setProgress(null);
-          setError(upErr || "Photo upload failed.");
-          return;
-        }
-        done += 1;
-        finalUrls.push(url);
-      }
-    }
+    const { urls: finalUrls, error: upErr } = await uploadStoryAssets(userId, assets, setProgress);
     setUploading(false);
     setProgress(null);
+    if (upErr || !finalUrls) {
+      // Everything typed so far stays on screen: the form is not reset, so
+      // the only thing lost is the retry.
+      setError(upErr || "Photo upload failed.");
+      return;
+    }
 
     const { url: link } = normalizeContactLink(linkText);
     const { error: submitErr } = await onSubmit({
@@ -360,14 +325,14 @@ export function StoryForm({
               />
             </Field>
 
-            <Glass variant="flat" style={styles.privacyNote}>
+            <View style={styles.privacyNote}>
               <Text style={styles.privacyText}>
                 People who want to work with you tap{" "}
                 <Text style={styles.privacyStrong}>Work with me</Text>, which goes through the
                 usual like and match. Nobody gets a way to contact you directly unless you both
                 say yes.
               </Text>
-            </Glass>
+            </View>
           </>
         ) : null}
 
@@ -556,9 +521,6 @@ function CreditsStep({
             onPress={addTyped}
             style={({ pressed }) => [styles.resultRow, styles.typedRow, pressed && { opacity: 0.85 }]}
           >
-            <View style={styles.typedIcon}>
-              <UserPlus size={16} color={colors.iconFaint} />
-            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.resultName}>Add “{query.trim()}”</Text>
               <Text style={styles.resultRole}>
@@ -592,7 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.lineStrong,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     paddingVertical: 9,
     paddingHorizontal: 14,
   },
@@ -617,14 +579,7 @@ const styles = StyleSheet.create({
     borderColor: colors.lineStrong,
   },
   typedRow: { borderStyle: "dashed" },
-  typedIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.md,
-    backgroundColor: colors.bg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
   resultName: { ...typography.body, fontFamily: fonts.semibold },
   resultRole: { ...typography.micro },
 
@@ -671,7 +626,8 @@ const styles = StyleSheet.create({
   },
   imageAddText: { ...typography.micro, fontFamily: fonts.semibold },
 
-  privacyNote: { padding: 14 },
+  // A note on the page, set off by a rule; not a box.
+  privacyNote: { paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: colors.lineStrong },
   privacyText: { ...typography.caption, lineHeight: 19 },
   privacyStrong: { color: colors.text, fontFamily: fonts.semibold },
 

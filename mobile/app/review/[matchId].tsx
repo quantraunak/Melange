@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.lineStrong,
   },
-  title: { ...typography.headline, color: colors.brandText, flex: 1 },
+  title: { ...typography.headline, flex: 1 },
   scroll: { padding: 16, gap: 16 },
   hint: { ...typography.caption, color: colors.textSecondary },
   stars: { flexDirection: "row", justifyContent: "center", gap: 8 },
@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
   tag: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.lineStrong,
   },
-  tagOn: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  tagOn: { backgroundColor: colors.surface, borderColor: colors.accent },
   tagText: { ...typography.caption, color: colors.textSecondary },
   tagTextOn: { color: colors.accent, fontFamily: fonts.semibold },
 });

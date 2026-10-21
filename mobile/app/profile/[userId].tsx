@@ -14,6 +14,7 @@ import { ArrowLeft, Flag, MapPin, MessageCircle } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { HeartButton } from "@/components/HeartButton";
+import { IdentityLine } from "@/components/IdentityLine";
 import {
   ProfileAbout,
   ProfileTrustSections,
@@ -160,6 +161,7 @@ export default function PublicProfileScreen() {
                 </Text>
               </View>
             ) : null}
+            <IdentityLine founding={profile.founding} scene={profile.scene} handle={profile.handle} />
             <RatingLine trust={trust} />
           </View>
         </View>
@@ -176,7 +178,7 @@ export default function PublicProfileScreen() {
               }
               accessibilityRole="button"
             >
-              <MessageCircle size={18} color={colors.onAccent} />
+              <MessageCircle size={18} color={colors.onBrand} />
               <Text style={styles.messageText}>Message {profile.name.split(" ")[0]}</Text>
             </Pressable>
             <HeartButton kind="profile" targetId={profile.user_id} ownerId={profile.user_id} label />
@@ -189,7 +191,7 @@ export default function PublicProfileScreen() {
           <Text style={styles.eyebrow}>Showcase</Text>
           <Text style={styles.hint}>Things {profile.name.split(" ")[0]} has made, and who with.</Text>
           {work.length === 0 ? (
-            <Text style={styles.muted}>Nothing yet.</Text>
+            <Text style={styles.muted}>Nothing posted yet.</Text>
           ) : (
             work.map((w) => {
               /* Everyone on it except the person whose page this is. Without
@@ -214,7 +216,9 @@ export default function PublicProfileScreen() {
                       contentFit="cover"
                     />
                   ) : (
-                    <View style={[styles.thumb, styles.thumbEmpty]} />
+                    <View style={[styles.thumb, styles.thumbEmpty]}>
+                      <Text style={styles.thumbLetter}>{w.title.trim().slice(0, 1).toUpperCase()}</Text>
+                    </View>
                   )}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowTitle} numberOfLines={2}>
@@ -252,7 +256,9 @@ export default function PublicProfileScreen() {
                     contentFit="cover"
                   />
                 ) : (
-                  <View style={[styles.thumb, styles.thumbEmpty]} />
+                  <View style={[styles.thumb, styles.thumbEmpty]}>
+                    <Text style={styles.thumbLetter}>{pr.title.trim().slice(0, 1).toUpperCase()}</Text>
+                  </View>
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={2}>
@@ -297,10 +303,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
     height: 48,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    backgroundColor: colors.brand,
   },
-  messageText: { ...typography.bodyStrong, fontFamily: fonts.semibold, color: colors.onAccent },
+  messageText: { ...typography.bodyStrong, fontFamily: fonts.semibold, color: colors.onBrand },
 
 
   block: {
@@ -327,6 +333,13 @@ const styles = StyleSheet.create({
   rowWhenWrap: { alignSelf: "flex-start", paddingTop: 2 },
   rowMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
   rowWhen: { ...typography.micro, color: colors.textTertiary },
-  thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },
-  thumbEmpty: { backgroundColor: colors.surfaceSunken },
+  thumb: { width: 44, height: 44, borderRadius: radii.photo, backgroundColor: colors.bg },
+  // No photo: the title's first letter in the serif, on paper.
+  thumbEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+  },
+  thumbLetter: { ...typography.display2 },
 });

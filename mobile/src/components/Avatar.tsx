@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   initial: {
-    color: colors.brandText,
+    color: colors.text,
     fontFamily: fonts.semibold,
   },
 });

@@ -7,7 +7,13 @@ import * as Haptics from "expo-haptics";
 import { Plus, Search, X } from "lucide-react-native";
 
 import { MatchCelebration } from "@/components/MatchCelebration";
-import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCard";
+import {
+  personCard,
+  SwipeCard,
+  SwipeCardBehind,
+  type DeckCard,
+  type SwipeDir,
+} from "@/components/SwipeCard";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
@@ -34,8 +40,26 @@ import {
   type Profile,
 } from "@/lib/db";
 import { likeProject } from "@/lib/likeProject";
+import { toggleHeart } from "@/lib/hearts";
+import { getDiscoverPeople, type ScenePerson } from "@/lib/scenes";
+import { orderByTaste } from "@/lib/taste";
 
 const { width: SCREEN_W } = Dimensions.get("window");
+
+/**
+ * Put a heart on a person, or take it back, and say so if that isn't what
+ * happened. toggle_heart flips whatever is there, so a heart that turns out
+ * to have been there already (hearted from their profile since the deck
+ * loaded) comes back as removed; flip once more to land where the swipe meant.
+ */
+async function heartPerson(userId: string, want: boolean): Promise<string | null> {
+  const first = await toggleHeart("profile", userId);
+  if (first.error) return first.error;
+  if (first.hearted === want) return null;
+  const second = await toggleHeart("profile", userId);
+  if (second.error) return second.error;
+  return second.hearted === want ? null : "That heart didn't save. Try again.";
+}
 
 export default function DiscoverScreen() {
   const router = useRouter();
@@ -47,6 +71,14 @@ export default function DiscoverScreen() {
   const tx = useSharedValue(0);
 
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
+  /** People from my scene, dealt after the last project. */
+  const [people, setPeople] = useState<ScenePerson[]>([]);
+  /**
+   * Whether the people request has answered at least once. Until it has, an
+   * empty deck is still loading: saying "all caught up" and then dealing
+   * three more cards is the thing this deck must never do.
+   */
+  const [peopleReady, setPeopleReady] = useState(false);
   /**
    * How many active projects exist that this person did not write, regardless
    * of whether they have swiped them.
@@ -77,7 +109,7 @@ export default function DiscoverScreen() {
   const [gateLine, setGateLine] = useState<string | null>(null);
   const profileGap = useProfileGap(userId);
 
-  const [lastSwipe, setLastSwipe] = useState<{ post: PostWithCreator; dir: SwipeDir } | null>(null);
+  const [lastSwipe, setLastSwipe] = useState<{ post: DeckCard; dir: SwipeDir } | null>(null);
   const [rewinding, setRewinding] = useState(false);
 
   const load = useCallback(async () => {
@@ -88,13 +120,21 @@ export default function DiscoverScreen() {
       .then(({ data: all }) => setCatalogueSize(all ? all.length : null))
       .catch(() => {});
 
-    const { data, error: err } = await getFeedPosts(userId);
+    const [{ data, error: err }, prof] = await Promise.all([getFeedPosts(userId), getProfile(userId)]);
     if (err) setError(err);
     else if (data) {
-      setPosts(data);
+      // Taste nudges the server's ranking; it doesn't replace it.
+      setPosts(await orderByTaste(data, (p) => p.owner_id, 0.4));
       setIndex(0);
     }
     setLoading(false);
+
+    // After the projects are on screen: people only matter once those run out.
+    const crowd = await getDiscoverPeople(userId, prof.data?.scene ?? null);
+    if (crowd.error) console.warn("discover people failed", crowd.error);
+    // People arrive in join order, so taste leads here.
+    setPeople(await orderByTaste(crowd.data, (p) => p.user_id, 0.8));
+    setPeopleReady(true);
   }, [userId]);
 
   useEffect(() => {
@@ -121,10 +161,12 @@ export default function DiscoverScreen() {
     setIndex(0);
   }, [search]);
 
+  const deck = useMemo<DeckCard[]>(() => [...posts, ...people.map(personCard)], [posts, people]);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return posts;
+    if (!search.trim()) return deck;
     const q = search.toLowerCase();
-    return posts.filter(
+    return deck.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         (p.description?.toLowerCase().includes(q) ?? false) ||
@@ -134,7 +176,7 @@ export default function DiscoverScreen() {
         p.creator.name.toLowerCase().includes(q) ||
         (p.creator.role?.toLowerCase().includes(q) ?? false)
     );
-  }, [posts, search]);
+  }, [deck, search]);
 
   const current = filtered[index];
 
@@ -167,6 +209,25 @@ export default function DiscoverScreen() {
       setIndex((i) => i + 1);
       setLastSwipe({ post, dir });
       tx.value = 0;
+
+      // A person: passing is just moving on (nothing is recorded), and a
+      // like is the existing profile heart.
+      if (post.isPerson) {
+        if (dir === "right") {
+          const err = await heartPerson(post.owner_id, true);
+          if (err) {
+            setIndex((i) => Math.max(0, i - 1));
+            setLastSwipe(null);
+            setError(err);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+            setSwiping(false);
+            return;
+          }
+          trackEvent("heart_profile", { target: post.owner_id, from: "discover" });
+        }
+        setSwiping(false);
+        return;
+      }
 
       /**
        * Right swipes go through likeProject, which is also what the Browse
@@ -235,7 +296,9 @@ export default function DiscoverScreen() {
     setRewinding(true);
     setError(null);
 
-    const { error: undoErr } = await undoSwipe(lastSwipe.post.id);
+    const { error: undoErr } = lastSwipe.post.isPerson
+      ? { error: lastSwipe.dir === "right" ? await heartPerson(lastSwipe.post.owner_id, false) : null }
+      : await undoSwipe(lastSwipe.post.id);
     if (undoErr) {
       setError(undoErr);
       setLastSwipe(null);
@@ -271,39 +334,40 @@ export default function DiscoverScreen() {
 
       {/* The deck fills the screen; everything else floats on top of it. */}
       <View style={styles.deck}>
-        {loading ? (
+        {loading || (!current && !peopleReady && !search) ? (
           <View style={styles.centered}>
-            <Text style={styles.emptyTitle}>Loading projects…</Text>
+            <Text style={styles.emptyTitle}>Loading…</Text>
           </View>
         ) : !current ? (
           <View style={[styles.centered, { paddingBottom: barTop + GUTTER }]}>
-            <Glass style={styles.empty} elevated>
+            <View style={styles.empty}>
               {search ? (
                 <>
                   <Text style={styles.emptyTitle}>No projects match that.</Text>
-                  <Text style={styles.emptyBody}>Try a role or a city instead.</Text>
                   <Pressable onPress={() => setSearch("")}>
                     <Text style={styles.emptyLink}>Clear filter</Text>
                   </Pressable>
                 </>
               ) : catalogueSize && catalogueSize > 0 ? (
                 <>
-                  <Text style={styles.emptyTitle}>You&apos;re all caught up.</Text>
+                  <Text style={styles.emptyTitle}>You&apos;ve seen every open project.</Text>
                   <Text style={styles.emptyBody}>
-                    You&apos;ve seen every open project for now. New ones show up here.
+                    New ones show up when people post. Until then, the fastest way to meet someone
+                    is to go to an event.
                   </Text>
                   <Pressable
-                    onPress={() => router.push("/stories")}
+                    onPress={() => router.push("/(tabs)/nights")}
                     style={styles.emptyCta}
                   >
-                    <Text style={styles.emptyCtaText}>Browse everything</Text>
+                    <Text style={styles.emptyCtaText}>Find an event</Text>
                   </Pressable>
                 </>
               ) : (
                 <>
-                  <Text style={styles.emptyTitle}>No open collabs right now.</Text>
+                  <Text style={styles.emptyTitle}>No open projects right now.</Text>
                   <Text style={styles.emptyBody}>
-                    Post your own project so people can find you.
+                    Post the first one. Say what you&apos;re making and who you need, like
+                    &ldquo;portrait series, need a model, Saturday morning.&rdquo;
                   </Text>
                   <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
                     <Plus size={14} color={colors.onBrand} />
@@ -311,7 +375,7 @@ export default function DiscoverScreen() {
                   </Pressable>
                 </>
               )}
-            </Glass>
+            </View>
           </View>
         ) : (
           <>
@@ -333,7 +397,7 @@ export default function DiscoverScreen() {
               onButtonSwipeComplete={() => setPendingButtonSwipe(null)}
               onSwipe={handleSwipe}
               onOpenCreator={
-                current.creator.user_id
+                current.creator.user_id && !current.isPerson
                   ? () =>
                       router.push({
                         pathname: "/profile/[userId]",
@@ -342,7 +406,9 @@ export default function DiscoverScreen() {
                   : undefined
               }
               onOpenDetails={() =>
-                router.push({ pathname: "/post/[id]", params: { id: current.id } })
+                current.isPerson
+                  ? router.push({ pathname: "/profile/[userId]", params: { userId: current.owner_id } })
+                  : router.push({ pathname: "/post/[id]", params: { id: current.id } })
               }
             />
           </>
@@ -441,7 +507,9 @@ export default function DiscoverScreen() {
          * ten had never registered a device and could not be notified of
          * anything, including the owner.
          */
-        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
+        // At the top, under search and post: down by the tab bar it sat on
+        // top of the pass and heart buttons.
+        <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
           <PushPrimer userId={userId} />
         </View>
       ) : null}
@@ -463,7 +531,7 @@ const styles = StyleSheet.create({
   gateLine: { ...typography.bodyStrong, flex: 1, color: colors.text },
   gateAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   deck: { ...StyleSheet.absoluteFillObject },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  centered: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
 
   topControls: {
     position: "absolute",
@@ -478,9 +546,9 @@ const styles = StyleSheet.create({
 
   errorSlot: { position: "absolute", left: GUTTER, right: GUTTER },
 
-  empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyTitle: { ...typography.headline, textAlign: "center" },
-  emptyBody: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+  empty: { paddingVertical: 40, alignItems: "flex-start", gap: 10 },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary },
   emptyLink: { ...typography.caption, fontFamily: "Inter_600SemiBold", color: colors.brandText, marginTop: 4 },
   emptyCta: {
     flexDirection: "row",
@@ -489,7 +557,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     paddingHorizontal: GUTTER,
     paddingVertical: 12,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
     marginTop: 8,
   },
   emptyCtaText: { ...typography.bodyStrong, color: colors.onBrand },

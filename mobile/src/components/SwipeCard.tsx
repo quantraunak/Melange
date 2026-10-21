@@ -11,13 +11,15 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { CalendarDays, Heart, Image as ImageIcon, MapPin, X } from "lucide-react-native";
+import { CalendarDays, Heart, MapPin, X } from "lucide-react-native";
 
 import { colors, GUTTER, motion, radii, shadows, typography } from "@/lib/theme";
 import { payLabel, projectDates, projectRoles, type PostWithCreator } from "@/lib/db";
 import { sized } from "@/lib/imageUrl";
 import { usePressScale } from "@/lib/usePressScale";
+import { sceneLabel, type ScenePerson } from "@/lib/scenes";
 import { Avatar } from "./Avatar";
+import { FOUNDING_MARK } from "./IdentityLine";
 import { Chip, ChipRow } from "./ui/Chip";
 import { Scrim } from "./ui/Scrim";
 
@@ -28,6 +30,37 @@ const ROTATION_MAX = 5; // degrees
 const PIVOT = SCREEN_H * 1.15;
 
 export type SwipeDir = "left" | "right";
+
+/**
+ * A card in the deck. Projects come first; when they run out the deck goes
+ * on with people from your scene, drawn on the same plate so Discover never
+ * stops at "all caught up" while there's someone left to meet.
+ */
+export type DeckCard = PostWithCreator & { isPerson?: boolean };
+
+/** A person, shaped as a card: their photos above, name and what they do on the plate. */
+export function personCard(p: ScenePerson): DeckCard {
+  return {
+    id: `person:${p.user_id}`,
+    owner_id: p.user_id,
+    title: p.name,
+    description: p.bio,
+    looking_for: p.role && p.role !== "other" ? [p.role] : null,
+    location: sceneLabel(p.scene),
+    compensation: null,
+    media_urls: p.portfolio_urls,
+    is_active: true,
+    created_at: "",
+    creator: {
+      user_id: p.user_id,
+      name: p.name,
+      role: p.role,
+      avatar_url: p.avatar_url,
+      founding: p.founding,
+    },
+    isPerson: true,
+  };
+}
 
 /**
  * The project card: one photograph, full bleed, with the plate below it.
@@ -45,7 +78,7 @@ function Poster({
   imageIndex,
   height,
 }: {
-  post: PostWithCreator;
+  post: DeckCard;
   imageIndex: number;
   /** Frame height in points, so we can request the pixels we will actually draw. */
   height: number;
@@ -69,9 +102,12 @@ function Poster({
           cachePolicy="memory-disk"
         />
       ) : (
+        // No photo: the title, set large on paper. Never a stand-in graphic.
         <View style={styles.placeholder}>
-          <ImageIcon size={56} color={colors.iconFaint} strokeWidth={1.75} />
-          <Text style={styles.placeholderText}>No photo yet</Text>
+          <Text style={styles.placeholderTitle} numberOfLines={4}>
+            {post.title}
+          </Text>
+          <Text style={styles.placeholderText}>No photos yet</Text>
         </View>
       )}
     </View>
@@ -104,7 +140,7 @@ function Plate({
   canUndo,
   busy,
 }: {
-  post: PostWithCreator;
+  post: DeckCard;
   onPress: () => void;
   onPressCreator?: () => void;
   bottom: number;
@@ -133,7 +169,9 @@ function Plate({
               onPressOut={interactive ? press.onPressOut : undefined}
               disabled={busy}
               accessibilityRole="button"
-              accessibilityLabel={`${post.title}. Open project details.`}
+              accessibilityLabel={
+                post.isPerson ? `${post.title}. Open their profile.` : `${post.title}. Open project details.`
+              }
               style={styles.caption}
             >
               {roles.length ? (
@@ -147,6 +185,7 @@ function Plate({
 
               <Text style={styles.title} numberOfLines={2}>
                 {post.title}
+                {post.isPerson && post.creator.founding ? ` ${FOUNDING_MARK}` : ""}
               </Text>
 
               {post.description ? (
@@ -176,22 +215,26 @@ function Plate({
               </View>
 
               {/* Nested inside the plate's own press target on purpose: the
-                  caption opens the project, the byline opens the person. */}
-              <Pressable
-                onPress={onPressCreator}
-                disabled={!onPressCreator}
-                hitSlop={8}
-                accessibilityRole={onPressCreator ? "button" : undefined}
-                accessibilityLabel={onPressCreator ? `${post.creator.name}'s profile` : undefined}
-                style={({ pressed }) => [styles.byRow, pressed && onPressCreator && { opacity: 0.6 }]}
-              >
-                <Avatar creator={post.creator} size="sm" />
-                <Text style={styles.byText} numberOfLines={1}>
-                  <Text style={styles.byName}>{post.creator.name}</Text>
-                  {post.creator.verification_status === "verified" ? " ✓" : ""}
-                  {post.creator.role ? `  ·  ${post.creator.role}` : ""}
-                </Text>
-              </Pressable>
+                  caption opens the project, the byline opens the person. A
+                  person's card is the person, so it has no byline. */}
+              {post.isPerson ? null : (
+                <Pressable
+                  onPress={onPressCreator}
+                  disabled={!onPressCreator}
+                  hitSlop={8}
+                  accessibilityRole={onPressCreator ? "button" : undefined}
+                  accessibilityLabel={onPressCreator ? `${post.creator.name}'s profile` : undefined}
+                  style={({ pressed }) => [styles.byRow, pressed && onPressCreator && { opacity: 0.6 }]}
+                >
+                  <Avatar creator={post.creator} size="sm" />
+                  <Text style={styles.byText} numberOfLines={1}>
+                    <Text style={styles.byName}>{post.creator.name}</Text>
+                    {post.creator.founding ? ` ${FOUNDING_MARK}` : ""}
+                    {post.creator.verification_status === "verified" ? " ✓" : ""}
+                    {post.creator.role ? `  ·  ${post.creator.role}` : ""}
+                  </Text>
+                </Pressable>
+              )}
             </Pressable>
           </Animated.View>
 
@@ -284,7 +327,7 @@ export function SwipeCardBehind({
   tx,
   barTop,
 }: {
-  post: PostWithCreator;
+  post: DeckCard;
   tx: SharedValue<number>;
   /** Distance from the bottom of the screen to the top of the tab bar. */
   barTop: number;
@@ -306,7 +349,7 @@ export function SwipeCardBehind({
 }
 
 type Props = {
-  post: PostWithCreator;
+  post: DeckCard;
   onSwipe: (dir: SwipeDir) => void;
   onOpenDetails: () => void;
   /** The byline opens the person behind the project. */
@@ -479,8 +522,8 @@ export function SwipeCard({
       <Animated.View style={[styles.card, { bottom: barTop }, animatedStyle]}>
         <Poster post={post} imageIndex={imageIndex} height={SCREEN_H - barTop} />
 
-        {/* The only gradient in the app: keeps the dark status bar legible. */}
-        <Scrim height={topInset + 48} />
+        {/* A flat paper band under the status bar, so its dark glyphs read on any photo. */}
+        <Scrim height={topInset} />
 
         {images > 1 ? (
           <View style={styles.pagingRow} pointerEvents="box-none">
@@ -540,12 +583,14 @@ const styles = StyleSheet.create({
   poster: { ...StyleSheet.absoluteFillObject, margin: -24 },
   placeholder: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
+    // Inside the 24pt overscan, and clear of the status bar and the plate.
+    paddingHorizontal: GUTTER + 24,
+    paddingTop: 140,
     gap: 12,
     backgroundColor: colors.bg,
   },
-  placeholderText: { ...typography.caption, color: colors.textTertiary },
+  placeholderTitle: { ...typography.display1 },
+  placeholderText: { ...typography.caption },
 
   pagingRow: { ...StyleSheet.absoluteFillObject, flexDirection: "row" },
   pageZone: { width: "32%", height: "100%" },
@@ -574,8 +619,8 @@ const styles = StyleSheet.create({
   segmentOn: { backgroundColor: colors.white },
 
   tint: { ...StyleSheet.absoluteFillObject },
-  tintLike: { backgroundColor: "rgba(124,58,237,0.18)" },
-  tintPass: { backgroundColor: "rgba(17,24,39,0.22)" },
+  tintLike: { backgroundColor: "rgba(55,48,163,0.18)" },
+  tintPass: { backgroundColor: "rgba(20,20,20,0.22)" },
   verdict: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   verdictRing: {
     width: 120,
@@ -639,7 +684,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.lineStrong,
   },
-  verbAccent: { backgroundColor: colors.accent, ...shadows.card },
+  // Like is this screen's one primary action, so it is the one indigo fill.
+  verbAccent: { backgroundColor: colors.brand },
   // Absolute, so Pass and Like centre on the screen's spine rather than on
   // the bounding box of all three controls.
   undo: { position: "absolute", left: GUTTER, height: 44, justifyContent: "center" },

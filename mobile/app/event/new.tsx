@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -20,7 +20,9 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, radii, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { trackEvent } from "@/lib/analytics";
-import { uploadFile } from "@/lib/db";
+import { getProfile, uploadFile } from "@/lib/db";
+import { isScene, type Scene } from "@/lib/scenes";
+import { SceneChips } from "@/components/SceneChips";
 import { createEvent, EVENT_CATEGORIES, type EventCategory } from "@/lib/events";
 
 function defaultStartLocal(): string {
@@ -82,8 +84,18 @@ export default function NewEventScreen() {
   const [city, setCity] = useState("");
   const [capacity, setCapacity] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [scene, setScene] = useState<Scene | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A night belongs to a scene; the host's own is the likely one. Only fills
+  // an empty choice, so a slow profile read can't undo a pick.
+  useEffect(() => {
+    if (!userId) return;
+    getProfile(userId).then(({ data }) => {
+      if (isScene(data?.scene)) setScene((s) => s ?? (data.scene as Scene));
+    });
+  }, [userId]);
 
   if (!userId) return null;
 
@@ -143,13 +155,14 @@ export default function NewEventScreen() {
         city: city.trim() || undefined,
         capacity: capacity ? Number(capacity) : undefined,
         cover_url: coverUrl,
+        scene,
       });
 
       if (createErr) {
         setError(createErr);
         return;
       }
-      trackEvent("event_created", { category, city: city.trim() || "" });
+      trackEvent("event_created", { category, city: city.trim() || "", scene: scene ?? "" });
       router.back();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not publish the event.");
@@ -162,7 +175,7 @@ export default function NewEventScreen() {
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Post an event</Text>
+        <Text style={styles.headerTitle}>Host an event</Text>
         <Pressable hitSlop={12} onPress={() => router.back()}>
           <X size={22} color={colors.text} />
         </Pressable>
@@ -170,8 +183,8 @@ export default function NewEventScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.hint}>
-          Photo walks, open calls, meetups, small shows. Coming up or already done: past
-          events stay on Explore as ideas, and people can message you about the next one.
+          A shoot, a photo walk, a screening, a small show. Everyone going shares a chat
+          before it, and can heart each other for three days after.
         </Text>
 
         <Pressable style={styles.coverBox} onPress={pickCover}>
@@ -195,12 +208,15 @@ export default function NewEventScreen() {
                 onPress={() => setCategory(c.id)}
                 style={[styles.catChip, on && styles.catChipOn]}
               >
-                <Text style={styles.catEmoji}>{c.emoji}</Text>
                 <Text style={[styles.catText, on && styles.catTextOn]}>{c.label}</Text>
               </Pressable>
             );
           })}
         </View>
+
+        <Field label="Scene" hint="Shows first to people in this scene.">
+          <SceneChips<Scene | null> value={scene} onChange={(s) => setScene(s === scene ? null : s)} />
+        </Field>
 
         <Field label="Title">
           <TextInput
@@ -216,7 +232,7 @@ export default function NewEventScreen() {
           <TextArea
             value={description}
             onChangeText={setDescription}
-            placeholder="What to bring, meetup spot, vibe..."
+            placeholder="Meet at the fountain at 6. Bring a film camera if you have one."
             numberOfLines={4}
           />
         </Field>
@@ -267,7 +283,7 @@ export default function NewEventScreen() {
         </Field>
 
         <ErrorBanner message={error} />
-        <Button title="Publish event" variant="primary" loading={busy} onPress={onSubmit} />
+        <Button title="Publish" variant="primary" loading={busy} onPress={onSubmit} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -285,7 +301,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.lineStrong,
   },
-  headerTitle: { ...typography.headline, color: colors.brandText },
+  headerTitle: { ...typography.headline },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
   hint: { ...typography.caption, color: colors.textSecondary },
   coverBox: {
@@ -306,16 +322,15 @@ const styles = StyleSheet.create({
   catChip: {
     width: "30%",
     minWidth: 96,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     alignItems: "center",
     backgroundColor: colors.white,
   },
-  catChipOn: { borderColor: colors.brandText, backgroundColor: colors.surfaceSunken },
-  catEmoji: { ...typography.headline },
-  catText: { ...typography.micro, color: colors.textSecondary, textAlign: "center", marginTop: 2 },
-  catTextOn: { color: colors.brandText, fontFamily: fonts.semibold },
+  catChipOn: { borderColor: colors.text, backgroundColor: colors.surface },
+  catText: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+  catTextOn: { color: colors.text, fontFamily: fonts.semibold },
   input: { ...inputText, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, backgroundColor: colors.white },
 });

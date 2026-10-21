@@ -105,7 +105,7 @@ export default function ExploreView({
                         className="w-16 h-16 rounded-lg object-cover flex-shrink-0 border border-gray-100"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-violet-100 flex-shrink-0" />
+                      <div className="w-16 h-16 rounded-lg bg-stone-100 flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-blue-900 line-clamp-1">{post.title}</h3>

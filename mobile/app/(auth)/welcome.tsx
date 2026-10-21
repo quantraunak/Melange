@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Heart, MessageCircle, Sparkles } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
@@ -21,7 +20,8 @@ const { width } = Dimensions.get("window");
 
 type Slide = {
   key: string;
-  icon: React.ReactNode;
+  /** Small-caps step label, set like a flyer. */
+  step: string;
   title: string;
   body: string;
 };
@@ -29,31 +29,31 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "intro",
-    icon: <Logo size={96} />,
-    title: "Find your next collaboration",
+    step: "Melange",
+    title: "Find your next collaborator.",
     body:
-      "Photographers, models, musicians, filmmakers and dancers, finding each other through the work.",
+      "Photographers, models, stylists, musicians and filmmakers in your city, finding each other through the work.",
   },
   {
     key: "swipe",
-    icon: <Sparkles size={72} color={colors.accent} />,
-    title: "Post a project. Swipe to join.",
+    step: "01 · Projects",
+    title: "Post a project. Swipe to join one.",
     body:
-      "Share what you're making and who you'd love on it. Swipe right on the ones you want in on. Nobody's inbox fills up.",
+      "Say what you're making and who you need on it. Swipe right on the ones you want in on. Nobody's inbox fills up.",
   },
   {
     key: "match",
-    icon: <Heart size={72} color={colors.accentInk} />,
-    title: "Hands up, then you talk",
+    step: "02 · Hands up",
+    title: "See who's into your work.",
     body:
       "See who liked your project or hearted your work, and write back. Cold messages need a real profile and are capped at five a day.",
   },
   {
     key: "ready",
-    icon: <MessageCircle size={72} color={colors.iconFaint} />,
-    title: "Show what you made",
+    step: "03 · Showcase",
+    title: "Make something together.",
     body:
-      "Post the finished shoot to the Showcase and credit everyone who made it. Sign up takes a minute.",
+      "Post the finished shoot and credit everyone who made it. Sign up takes a minute.",
   },
 ];
 
@@ -77,7 +77,7 @@ export default function Welcome() {
 
   const renderItem: ListRenderItem<Slide> = ({ item }) => (
     <View style={[styles.slide, { width }]}>
-      <View style={styles.iconWrap}>{item.icon}</View>
+      <Text style={styles.step}>{item.step}</Text>
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.body}>{item.body}</Text>
     </View>
@@ -86,6 +86,7 @@ export default function Welcome() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
+        <Logo size={32} />
         <View style={{ flex: 1 }} />
         <Text style={styles.skip} onPress={() => router.push("/(auth)/login")}>
           Sign in
@@ -136,36 +137,33 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: "row",
-    paddingHorizontal: 20,
+    alignItems: "center",
+    paddingHorizontal: 24,
     paddingTop: 8,
   },
   skip: { ...typography.bodyStrong, color: colors.brandText },
   slide: {
     flex: 1,
-    paddingHorizontal: 32,
-    alignItems: "center",
+    paddingHorizontal: 24,
     justifyContent: "center",
   },
-  iconWrap: {
-    marginBottom: 32,
-  },
-  title: { ...typography.display1, color: colors.brand, textAlign: "center", marginBottom: 14 },
-  body: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+  step: { ...typography.eyebrow, marginBottom: 16 },
+  title: { ...typography.display1, marginBottom: 14 },
+  body: { ...typography.body, color: colors.textSecondary, maxWidth: 340 },
   dots: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
+    paddingHorizontal: 24,
+    gap: 6,
     marginBottom: 24,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 16,
+    height: 2,
     borderRadius: radii.sm,
     backgroundColor: colors.lineStrong,
   },
   dotActive: {
-    width: 24,
-    backgroundColor: colors.brandText,
+    backgroundColor: colors.text,
   },
   actions: {
     paddingHorizontal: 24,

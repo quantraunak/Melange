@@ -246,7 +246,7 @@ export default function EventsView({
           </h3>
           <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-snug mb-4">
             {cityFilter
-              ? "Be the first to host something here — photo walks, open calls, gallery nights."
+              ? "Be the first to host something here — photo walks, open calls, gallery openings."
               : "This is where photo walks, open calls, and gallery openings show up. Host one and bring the community together."}
           </p>
           <button
@@ -327,7 +327,7 @@ function EventCard({
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
       <button onClick={onOpen} className="block w-full text-left">
-        <div className="relative h-32 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50">
+        <div className="relative h-32 bg-stone-100">
           {event.cover_url ? (
             <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
           ) : (
@@ -462,7 +462,7 @@ function EventDetailInner({
 
   return (
     <>
-      <div className="relative h-40 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50">
+      <div className="relative h-40 bg-stone-100">
         {event.cover_url ? (
           <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
         ) : (

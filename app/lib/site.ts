@@ -32,6 +32,6 @@ export const SITE = {
   name: "Melange",
   tagline: "Where creative people find their next collaboration.",
   description:
-    "Photographers, models, makeup artists, stylists and filmmakers post what they're working on, match with each other, and plan the shoot.",
+    "Melange is a free iPhone app where photographers, models, stylists and other creatives find people whose work fits theirs, see who's into what they make, and make something together. Around USC, UCSD and LA.",
   url: "https://melange-psi.vercel.app",
 } as const;

@@ -190,20 +190,11 @@ export default function AuthPage() {
   return (
     <div className="melange-bg min-h-screen flex flex-col items-center justify-center p-4">
       <Card className="melange-frame w-full max-w-[500px] rounded-[28px] overflow-hidden border-0 py-0 gap-0">
-        <CardHeader className="text-white px-6 py-7 flex items-center gap-4 bg-gradient-to-br from-blue-900 via-indigo-800 to-violet-800 [&]:space-y-0">
-          <Logo size="lg" stroke="#C4B5FD" center="#C4B5FD" />
+        <CardHeader className="px-6 py-7 flex items-center gap-4 border-b border-rule [&]:space-y-0">
+          <Logo size="lg" />
           <div>
-            <CardTitle className="text-3xl font-extrabold italic transform -skew-x-6 tracking-tight">
-              <span
-                style={{
-                  WebkitTextStroke: "1.5px rgba(196,181,253,0.9)",
-                  paintOrder: "stroke fill",
-                }}
-              >
-                Melange
-              </span>
-            </CardTitle>
-            <p className="text-sm text-indigo-200 mt-1.5 tracking-wide">Where creative work begins</p>
+            <CardTitle className="melange-wordmark text-4xl leading-none">Melange</CardTitle>
+            <p className="text-sm text-muted-ink mt-2">Sign in to see your people and what they&apos;re making.</p>
           </div>
         </CardHeader>
 

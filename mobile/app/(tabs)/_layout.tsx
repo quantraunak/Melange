@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import { Compass, Layers, MessageCircle, UserRound } from "lucide-react-native";
+import { CalendarDays, Compass, LayoutGrid, MessageCircle, UserRound } from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { Glass } from "@/components/ui/Glass";
@@ -12,6 +12,9 @@ import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
 import { colors, GUTTER, radii, typography } from "@/lib/theme";
+
+/** Notification taps already routed, by identifier, for this app run. */
+const handledPushes = new Set<string>();
 
 function PushBootstrap() {
   const { userId } = useAuth();
@@ -24,17 +27,36 @@ function PushBootstrap() {
     // PushPrimer, where there's room to explain it first.
     registerForPushAsync(userId, { prompt: false }).catch(() => {});
 
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const open = (response: Notifications.NotificationResponse) => {
+      // Once per notification: the cold-start check below and the listener
+      // can both see the same tap, and this layout remounts on sign-in.
+      const key = response.notification.request.identifier;
+      if (handledPushes.has(key)) return;
+      handledPushes.add(key);
       const data = response.notification.request.content.data as
-        | { kind?: string; matchId?: string }
+        | { kind?: string; matchId?: string; eventId?: string; storyId?: string }
         | undefined;
       if (data?.matchId) {
         router.push({ pathname: "/chat/[matchId]", params: { matchId: data.matchId } });
+      } else if (data?.kind === "event" && data.eventId) {
+        // A tag in a night photo, or anything else about one night: open it.
+        router.push({ pathname: "/event/[id]", params: { id: data.eventId } });
+      } else if (data?.kind === "story" && data.storyId) {
+        router.push({ pathname: "/story/[id]", params: { id: data.storyId } });
       } else if (data?.kind === "heart" || data?.kind === "like") {
         // Who hearted what, with Message, is on the Messages tab.
         router.push("/(tabs)/messages");
       }
-    });
+    };
+
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    // A tap that launched the app from closed happened before the listener
+    // existed; it only shows up here.
+    Notifications.getLastNotificationResponseAsync()
+      .then((last) => {
+        if (last) open(last);
+      })
+      .catch(() => {});
     return () => sub.remove();
   }, [userId, router]);
 
@@ -42,13 +64,14 @@ function PushBootstrap() {
 }
 
 /**
- * Compass for Discover (you are looking around) and Layers for Work (things
- * stacked up over time). The previous sparkle and open book said nothing: a
- * sparkle is decoration, and a book is not a record of shoots you have done.
+ * Compass for Discover (you are looking around), a grid for Explore (the
+ * scene's moodboard), a moon for Nights. The previous sparkle and open book
+ * said nothing: a sparkle is decoration, and a book is not a moodboard.
  */
 const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
   connect: (p) => <Compass {...p} />,
-  stories: (p) => <Layers {...p} />,
+  stories: (p) => <LayoutGrid {...p} />,
+  nights: (p) => <CalendarDays {...p} />,
   messages: (p) => <MessageCircle {...p} />,
   profile: (p) => <UserRound {...p} />,
 };
@@ -89,11 +112,16 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       <Glass variant="strong" radius={radii.lg} elevated style={styles.tabBarGlass}>
         <View style={styles.tabBar}>
           {state.routes.map((route, idx) => {
+            // Explore is gone: two tabs that both meant "look at creatives near
+            // me" made people ask which to use. Finished shoots live on
+            // profiles. The route stays so old links still open.
+            if (route.name === "stories") return null;
             const focused = state.index === idx;
             const { options } = descriptors[route.key];
             const label = (options.tabBarLabel as string) ?? options.title ?? route.name;
             const badge = route.name === "messages" ? unreadCount : 0;
-            const color = focused ? colors.brand : colors.textSecondary;
+            // Selection is ink, not indigo: indigo is for links and the one primary action.
+            const color = focused ? colors.text : colors.textTertiary;
 
             const onPress = () => {
               const event = navigation.emit({
@@ -154,8 +182,9 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="connect" options={{ title: "Discover" }} />
         <Tabs.Screen name="stories" options={{ title: "Explore" }} />
+        <Tabs.Screen name="nights" options={{ title: "Events" }} />
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
-        <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+        <Tabs.Screen name="profile" options={{ title: "You" }} />
       </Tabs>
     </View>
   );
@@ -182,8 +211,8 @@ const styles = StyleSheet.create({
     gap: 3,
     position: "relative",
   },
-  tabLabel: { ...typography.micro, color: colors.textSecondary },
-  tabLabelOn: { fontFamily: "Inter_600SemiBold", color: colors.brand },
+  tabLabel: { ...typography.micro, color: colors.textTertiary },
+  tabLabelOn: { fontFamily: "Inter_600SemiBold", color: colors.text },
   badge: {
     position: "absolute",
     top: 2,
@@ -192,7 +221,7 @@ const styles = StyleSheet.create({
     height: 18,
     paddingHorizontal: 4,
     borderRadius: radii.pill,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.text,
     alignItems: "center",
     justifyContent: "center",
   },

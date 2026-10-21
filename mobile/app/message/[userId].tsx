@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
     height: 52,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    backgroundColor: colors.brand,
   },
-  sendText: { ...typography.bodyStrong, fontFamily: fonts.semibold, color: colors.onAccent },
+  sendText: { ...typography.bodyStrong, fontFamily: fonts.semibold, color: colors.onBrand },
 });

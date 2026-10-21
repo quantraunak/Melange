@@ -235,6 +235,72 @@ if (cmd === "versions") {
     data: { type: "reviewSubmissions", id: sub.id, attributes: { submitted: true } },
   });
   console.log(`${rest[0]} submitted for review`);
+} else if (cmd === "rename-version") {
+  // Apple allows one editable version at a time. To replace a version that's
+  // in review with a newer build, withdraw it, then rename it here instead of
+  // creating a new one.
+  const [from, to] = rest;
+  const ver = await version(from);
+  await call("PATCH", `/v1/appStoreVersions/${ver.id}`, {
+    data: { type: "appStoreVersions", id: ver.id, attributes: { versionString: to } },
+  });
+  console.log(`version ${from} is now ${to}`);
+} else if (cmd === "review-login") {
+  // The demo account App Review signs in with. The password comes from the
+  // environment (REVIEW_PASSWORD in .env.local), never from the command line
+  // or this repo, which is public.
+  const [v, email] = rest;
+  const password = process.env.REVIEW_PASSWORD;
+  if (!email || !password) throw new Error("usage: REVIEW_PASSWORD=... review-login <v> <email>");
+  const ver = await version(v);
+  const attributes = { demoAccountName: email, demoAccountPassword: password, demoAccountRequired: true };
+  let detail = null;
+  try {
+    detail = (await call("GET", `/v1/appStoreVersions/${ver.id}/appStoreReviewDetail`)).data;
+  } catch (e) {
+    if (!String(e.message).startsWith("404")) throw e;
+  }
+  if (detail) {
+    await call("PATCH", `/v1/appStoreReviewDetails/${detail.id}`, {
+      data: { type: "appStoreReviewDetails", id: detail.id, attributes },
+    });
+  } else {
+    await call("POST", "/v1/appStoreReviewDetails", {
+      data: {
+        type: "appStoreReviewDetails",
+        attributes,
+        relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: ver.id } } },
+      },
+    });
+  }
+  console.log(`review login for ${v} set to ${email}`);
+} else if (cmd === "listing") {
+  // Store text for a version from a JSON file:
+  //   { "subtitle", "description", "keywords", "promotionalText" }
+  // Subtitle lives on the app's info record (editable while a version is
+  // being prepared); the rest on the version's localization.
+  const [v, file] = rest;
+  const text = JSON.parse(readFileSync(file, "utf8"));
+  const ver = await version(v);
+  const loc = await localization(ver.id);
+  const versionAttrs = {};
+  for (const k of ["description", "keywords", "promotionalText"]) if (text[k]) versionAttrs[k] = text[k];
+  if (Object.keys(versionAttrs).length) {
+    await call("PATCH", `/v1/appStoreVersionLocalizations/${loc.id}`, {
+      data: { type: "appStoreVersionLocalizations", id: loc.id, attributes: versionAttrs },
+    });
+    console.log(`updated ${Object.keys(versionAttrs).join(", ")}`);
+  }
+  if (text.subtitle) {
+    const infos = await call("GET", `/v1/apps/${APP_ID}/appInfos`);
+    const editable = infos.data.find((i) => i.attributes.appStoreState !== "READY_FOR_SALE") ?? infos.data[0];
+    const locs = await call("GET", `/v1/appInfos/${editable.id}/appInfoLocalizations`);
+    const en = locs.data.find((l) => l.attributes.locale === "en-US") ?? locs.data[0];
+    await call("PATCH", `/v1/appInfoLocalizations/${en.id}`, {
+      data: { type: "appInfoLocalizations", id: en.id, attributes: { subtitle: text.subtitle } },
+    });
+    console.log(`subtitle: ${text.subtitle}`);
+  }
 } else {
-  console.log("usage: node scripts/asc.mjs versions | ensure-version <v> | whatsnew <v> <text> | screenshots <v> <dir> | attach-build <v> <num> | submit <v> | withdraw | GET <endpoint>");
+  console.log("usage: node scripts/asc.mjs versions | ensure-version <v> | whatsnew <v> <text> | listing <v> <file.json> | review-login <v> <email> | screenshots <v> <dir> | attach-build <v> <num> | submit <v> | withdraw | GET <endpoint>");
 }

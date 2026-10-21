@@ -103,6 +103,8 @@ export type CreatorInfo = {
   avg_rating?: number;
   review_count?: number;
   verification_status?: "none" | "pending" | "verified";
+  /** Founding members carry the founding mark wherever their name appears. */
+  founding?: boolean;
 };
 
 export type PostWithCreator = CollabPost & {
@@ -188,6 +190,11 @@ export type Profile = {
   verification_status: "none" | "pending" | "verified";
   verified_at: string | null;
   created_at: string;
+  /** 23_scenes_invites_nights.sql. founding and member_since are server-set. */
+  scene?: string | null;
+  handle?: string | null;
+  founding?: boolean;
+  member_since?: string | null;
 };
 
 export const VIBE_PRESETS = [
@@ -259,7 +266,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url, verification_status")
+    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url, verification_status, founding")
     .in("user_id", userIds);
 
   if (error) {
@@ -285,6 +292,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
       avg_rating: r?.avg_rating,
       review_count: r?.review_count,
       verification_status: (p.verification_status as CreatorInfo["verification_status"]) ?? "none",
+      founding: p.founding === true,
     });
   }
   return map;
@@ -397,22 +405,51 @@ export async function uploadFile(
     onProgress?: (p: UploadProgress) => void;
   }
 ): Promise<{ url: string | null; error: string | null }> {
+  const path = `${folder}/${userId}/${Date.now()}.jpg`;
+  const { error } = await uploadImageTo("media", path, fileUri, opts);
+  if (error) return { url: null, error };
+  const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+  return { url: urlData.publicUrl, error: null };
+}
+
+/**
+ * The upload itself, for any bucket and object path: resize, stream, time
+ * out, retry. uploadFile wraps it for the public media bucket; night photos
+ * use it directly, because their bucket is private and their path
+ * (<event>/<uploader>/<file>) is what storage RLS checks, so the caller has to
+ * choose it. The image is always re-encoded to JPEG, so `path` should end in
+ * .jpg; if the resize fails the original bytes go up under that name anyway.
+ */
+export async function uploadImageTo(
+  bucket: string,
+  path: string,
+  fileUri: string,
+  opts?: {
+    width?: number;
+    height?: number;
+    onProgress?: (p: UploadProgress) => void;
+    /**
+     * Overwrite an object already at `path`. Storage treats an upsert as an
+     * update too, so a bucket with no UPDATE policy (night-photos) refuses
+     * it outright; pass false there, with a path that is new every time.
+     */
+    upsert?: boolean;
+  }
+): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
   if (!token) {
-    return { url: null, error: "You are signed out. Sign in again and retry." };
+    return { error: "You are signed out. Sign in again and retry." };
   }
 
   let prepared: { uri: string; contentType: string };
   try {
     prepared = await prepareImage(fileUri, opts);
   } catch (err) {
-    return { url: null, error: errMsg(err) };
+    return { error: errMsg(err) };
   }
 
-  const ext = prepared.contentType.includes("png") ? "png" : "jpg";
-  const path = `${folder}/${userId}/${Date.now()}.${ext}`;
-  const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
 
   let lastError = "Upload failed.";
 
@@ -429,7 +466,7 @@ export async function uploadFile(
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${token}`,
           "Content-Type": prepared.contentType,
-          "x-upsert": "true",
+          "x-upsert": opts?.upsert === false ? "false" : "true",
         },
       },
       (p) => {
@@ -461,18 +498,14 @@ export async function uploadFile(
       if (!res) {
         lastError = "Upload was cancelled.";
       } else if (res.status >= 200 && res.status < 300) {
-        const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
         opts?.onProgress?.({ fraction: 1, attempt });
-        return { url: urlData.publicUrl, error: null };
+        return { error: null };
       } else if (res.status === 401 || res.status === 403) {
         // Permission, not connectivity. Another attempt cannot help.
-        return {
-          url: null,
-          error: "That upload was refused. Sign out and back in, then retry.",
-        };
+        return { error: "That upload was refused. Sign out and back in, then retry." };
       } else {
         lastError = `Upload failed (${res.status}).`;
-        if (!isRetryable(res.status)) return { url: null, error: lastError };
+        if (!isRetryable(res.status)) return { error: lastError };
       }
     } catch (err) {
       lastError = timedOut
@@ -485,7 +518,7 @@ export async function uploadFile(
     if (attempt < UPLOAD_ATTEMPTS) await sleep(attempt * 1500);
   }
 
-  return { url: null, error: `${lastError} Check your connection and retry.` };
+  return { error: `${lastError} Check your connection and retry.` };
 }
 
 // ============================================================
@@ -1138,9 +1171,11 @@ export async function getBlockedUsers(
   }
 }
 
+export type ReportKind = "user" | "post" | "message" | "event_message";
+
 export async function submitReport(
   reporterId: string,
-  targetKind: "user" | "post" | "message",
+  targetKind: ReportKind,
   targetId: string,
   reason: ReportReason,
   details?: string

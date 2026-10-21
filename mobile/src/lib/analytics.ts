@@ -13,7 +13,8 @@ export type AnalyticsEvent =
   | "review_submitted"
   | "event_rsvp"
   | "event_created"
-  | "conversation_started";
+  | "conversation_started"
+  | "heart_profile";
 
 /**
  * Record one product event.

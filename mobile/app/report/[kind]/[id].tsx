@@ -19,7 +19,16 @@ import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { submitReport, type ReportReason } from "@/lib/db";
+import { submitReport, type ReportKind, type ReportReason } from "@/lib/db";
+
+const KINDS: ReportKind[] = ["user", "post", "message", "event_message"];
+const NOUN: Record<ReportKind, string> = {
+  user: "user",
+  post: "post",
+  message: "message",
+  // A message in a night chat is still just a message to the person reporting it.
+  event_message: "message",
+};
 
 const REASONS: { id: ReportReason; label: string; help: string }[] = [
   { id: "spam", label: "Spam or scam", help: "Repetitive, off-topic, or trying to sell something unrelated." },
@@ -39,8 +48,7 @@ export default function ReportScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const validKind: "user" | "post" | "message" =
-    kind === "user" || kind === "post" || kind === "message" ? kind : "user";
+  const validKind: ReportKind = KINDS.includes(kind as ReportKind) ? (kind as ReportKind) : "user";
 
   const submit = async () => {
     if (!userId || !id) return;
@@ -65,7 +73,7 @@ export default function ReportScreen() {
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>
-          Report {validKind === "user" ? "user" : validKind}
+          Report {NOUN[validKind]}
         </Text>
         <Pressable hitSlop={12} onPress={() => router.back()}>
           <X size={22} color={colors.text} />
@@ -95,7 +103,7 @@ export default function ReportScreen() {
                       {active ? <Check size={12} color={colors.white} /> : null}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.reasonLabel, active && { color: colors.brandText }]}>
+                      <Text style={styles.reasonLabel}>
                         {r.label}
                       </Text>
                       <Text style={styles.reasonHelp}>{r.help}</Text>
@@ -150,8 +158,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   reasonRowActive: {
-    backgroundColor: colors.surfaceSunken,
-    borderColor: colors.brandText,
+    backgroundColor: colors.surface,
+    borderColor: colors.text,
   },
   radio: {
     width: 18,
@@ -164,8 +172,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   radioActive: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brand,
+    backgroundColor: colors.text,
+    borderColor: colors.text,
   },
   reasonLabel: { ...typography.bodyStrong, color: colors.text },
   reasonHelp: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },

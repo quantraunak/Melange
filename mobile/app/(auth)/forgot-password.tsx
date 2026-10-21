@@ -10,14 +10,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowLeft, MailCheck } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, fonts, typography } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -85,12 +85,12 @@ export default function ForgotPassword() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.topBar}>
             <Pressable hitSlop={16} onPress={() => router.back()} accessibilityLabel="Back">
-              <ArrowLeft size={22} color={colors.white} />
+              <ArrowLeft size={22} color={colors.text} />
             </Pressable>
           </View>
 
           <View style={styles.header}>
-            <Logo size={64} />
+            <Logo size={40} />
             <Text style={styles.title}>Reset your password</Text>
             <Text style={styles.subtitle}>
               {sent
@@ -102,9 +102,6 @@ export default function ForgotPassword() {
           <View style={styles.card}>
             {sent ? (
               <View style={styles.sentBox}>
-                <View style={styles.sentIcon}>
-                  <MailCheck size={26} color={colors.brandText} />
-                </View>
                 <Text style={styles.sentTitle}>Email sent</Text>
                 <Text style={styles.sentBody}>
                   If an account exists for{" "}
@@ -175,34 +172,23 @@ export default function ForgotPassword() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.brand },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
+  safe: { flex: 1, backgroundColor: colors.bg },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32 },
   topBar: { paddingTop: 8, paddingBottom: 16 },
-  header: { alignItems: "center", marginVertical: 24, gap: 8 },
-  title: { ...typography.display2, color: colors.white, marginTop: 12 },
-  subtitle: { ...typography.body, color: colors.onBrandMuted, textAlign: "center", paddingHorizontal: 12 },
+  header: { alignItems: "flex-start", marginVertical: 24, gap: 8 },
+  title: { ...typography.display1, marginTop: 16 },
+  subtitle: { ...typography.body, color: colors.textSecondary },
+  // The form sits on the page; nothing here is a card.
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 20,
     gap: 14,
-    marginTop: 16,
+    marginTop: 8,
   },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 4 },
   footerText: { ...typography.caption, color: colors.textSecondary },
   footerLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 
-  sentBox: { alignItems: "center", gap: 10 },
-  sentIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSunken,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 2,
-  },
+  sentBox: { gap: 10 },
   sentTitle: { ...typography.headline, color: colors.text },
-  sentBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
-  sentHint: { ...typography.micro, color: colors.textSecondary, textAlign: "center", marginBottom: 6 },
+  sentBody: { ...typography.body, color: colors.textSecondary },
+  sentHint: { ...typography.caption, color: colors.textSecondary, marginBottom: 6 },
 });

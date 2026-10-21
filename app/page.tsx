@@ -1,28 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Camera,
-  CalendarDays,
-  Images,
-  MessageCircle,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Heart,
-} from "lucide-react";
 
-import Logo from "./components/Logo";
-import {
-  APP_STORE_URL,
-  IOS_LIVE,
-  SITE,
-  SUPPORT_PATH,
-  WEB_APP_PATH,
-} from "./lib/site";
+import WaitlistForm from "./components/WaitlistForm";
+import { SiteFooter, SiteHeader } from "./components/SiteChrome";
+import { SCENES } from "./lib/scenes";
+import { APP_STORE_URL, IOS_LIVE, SITE, SUPPORT_PATH } from "./lib/site";
+
 
 export const metadata: Metadata = {
-  title: "Melange — Where creative people find their next collaboration",
+  title: { absolute: "Melange: where creative people find their next collaboration" },
   description: SITE.description,
   openGraph: {
     title: "Melange",
@@ -35,45 +22,16 @@ export const metadata: Metadata = {
 
 /* ------------------------------------------------------------------ */
 
-function PrimaryCta({ className = "" }: { className?: string }) {
-  if (IOS_LIVE) {
-    return (
-      <a
-        href={APP_STORE_URL}
-        className={`melange-btn-primary inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white ${className}`}
-      >
-        Download for iPhone
-      </a>
-    );
-  }
-  return (
-    <Link
-      href={WEB_APP_PATH}
-      className={`melange-btn-primary inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white ${className}`}
-    >
-      Start in your browser
-    </Link>
-  );
-}
-
-function SecondaryCta({ className = "" }: { className?: string }) {
-  if (IOS_LIVE) {
-    return (
-      <Link
-        href={WEB_APP_PATH}
-        className={`inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-semibold text-indigo-900 backdrop-blur transition hover:bg-white ${className}`}
-      >
-        Or use it in your browser
-      </Link>
-    );
-  }
-  return (
-    <span
-      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white/70 px-7 py-3.5 text-base font-medium text-indigo-900/80 backdrop-blur ${className}`}
-    >
-      <Sparkles className="h-4 w-4" />
-      iPhone app on the App Store
-    </span>
+/** The one filled button on the page: the app is open to anyone. */
+function GetAppCta() {
+  const cls =
+    "melange-btn-primary inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-base font-semibold text-white sm:w-auto";
+  return IOS_LIVE ? (
+    <a href={APP_STORE_URL} className={cls}>
+      Get the app
+    </a>
+  ) : (
+    <span className={`${cls} opacity-70`}>iPhone app coming soon</span>
   );
 }
 
@@ -81,393 +39,226 @@ function SecondaryCta({ className = "" }: { className?: string }) {
 
 const STEPS = [
   {
-    n: "01",
-    title: "Build a profile that shows the work",
-    body: "Your role, your skills, and up to nine portfolio images. The grid is the resume — people decide from the work, not the bio.",
+    title: "Find people whose work fits yours",
+    body: "Discover shows photographers, models, stylists and other creatives near you, and the projects they're putting together. Melange learns your taste from what you make and like.",
   },
   {
-    n: "02",
-    title: "Post what you're working on",
-    body: "A concept, a location, a date, paid or TFP, and who you still need. Up to five reference images so the aesthetic is obvious.",
+    title: "See who's into your work",
+    body: "Heart someone's work and they find out it was you. When someone hearts yours, you can write back right away.",
   },
   {
-    n: "03",
-    title: "Discover projects and people",
-    body: "Swipe through real briefs from photographers, models, MUAs, stylists and filmmakers. Heart a profile or a piece of work you love.",
+    title: "Meet, and make something",
+    body: "Plan it in chat, or meet at an event: everyone going shares a chat before it and a private photo roll after it.",
   },
   {
-    n: "04",
-    title: "See who's interested",
-    body: "Everyone who liked your project or hearted your work shows up in Messages, by name. Write back with one tap.",
+    title: "Get credit for it",
+    body: "Post what you made and credit everyone on it. It shows on your profile, and on theirs.",
   },
-  {
-    n: "05",
-    title: "Plan the shoot, then show it off",
-    body: "Realtime chat with push notifications. When it's done, post it to the Showcase with credits for everyone who made it.",
-  },
-];
-
-const FEATURES = [
-  {
-    icon: Heart,
-    title: "Hearts, not cold DMs",
-    body: "Heart someone's profile or work and they find out it was you. When someone raises their hand first, writing back is free. Cold messages need a real profile and are capped at five a day.",
-  },
-  {
-    icon: Images,
-    title: "Portfolio, not just a profile",
-    body: "A nine-image gallery with a fullscreen lightbox, plus a “more from this creator” strip on every post. You're judged on a body of work, not one photo.",
-  },
-  {
-    icon: Star,
-    title: "A Showcase of real shoots",
-    body: "Post the shoot after it happens and credit everyone who made it, on Melange or not. The Explore tab is collaborations that actually went well.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Events you can show up to",
-    body: "Photo walks, open calls, gallery openings, golden-hour meetups. Browse by city, RSVP, and meet people in a group before committing to a one-on-one shoot.",
-  },
-  {
-    icon: Sparkles,
-    title: "Matched on taste, not just role",
-    body: "Vibe tags — moody, editorial, street, golden hour, black-and-white film — shape your feed. A perfect role match with no shared taste is not a match.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Chat that keeps up",
-    body: "Realtime messages, read receipts, and push notifications for likes, hearts, matches and replies, so the conversation doesn't die in a request folder.",
-  },
-];
-
-const ROLES = [
-  "Photographers",
-  "Models",
-  "Stylists",
-  "Makeup artists",
-  "Hair",
-  "Videographers",
-  "Directors",
-  "DPs",
-  "Editors",
-  "Actors",
-  "Musicians",
-  "Dancers",
-  "Designers",
-  "Illustrators",
 ];
 
 // Captured from the iOS app (1.7) on a demo account, so every face and name
 // in them is seeded demo content, not a real user.
 const SCREENS = [
-  { src: "/screenshots/discover.png", label: "Discover projects and heart the ones you want in on" },
-  { src: "/screenshots/explore.png", label: "Explore what people made together" },
-  { src: "/screenshots/showcase.png", label: "Every shoot credits the people who made it" },
+  { src: "/screenshots/discover.png", label: "Discover: people in your scene." },
+  { src: "/screenshots/explore.png", label: "Shoots people made, with everyone credited." },
+  { src: "/screenshots/showcase.png", label: "A shoot, with credits for everyone on it." },
 ];
 
-function PhoneShot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
+function Screenshot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
   return (
-    <div className="overflow-hidden rounded-[2.2rem] border-[6px] border-slate-900 bg-slate-900 shadow-2xl shadow-indigo-900/20">
-      <Image
-        src={src}
-        alt={alt}
-        width={603}
-        height={1311}
-        priority={priority}
-        className="h-auto w-full rounded-[1.7rem]"
-      />
-    </div>
+    <Image
+      src={src}
+      alt={alt}
+      width={603}
+      height={1311}
+      priority={priority}
+      className="h-auto w-full rounded-[1.25rem] border border-rule bg-white"
+    />
+  );
+}
+
+/** A hairline-topped section with a small-caps label in the margin on wide screens. */
+function Section({
+  id,
+  label,
+  children,
+}: {
+  id?: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-20 border-t border-rule">
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 py-14 sm:px-6 sm:py-20 md:grid-cols-[10rem_1fr] md:gap-10">
+        <p className="melange-label pt-1">{label}</p>
+        <div className="min-w-0">{children}</div>
+      </div>
+    </section>
   );
 }
 
 /* ------------------------------------------------------------------ */
 
-export default function MarketingHome() {
+export default async function MarketingHome() {
   return (
-    <main className="min-h-screen bg-white">
-      {/* ---------------- Nav ---------------- */}
-      <header className="melange-header sticky top-0 z-50">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Logo size="sm" />
-            <span className="melange-wordmark text-2xl font-bold">Melange</span>
-          </Link>
-          <div className="flex items-center gap-6">
-            <a
-              href="#how"
-              className="hidden text-sm font-medium text-slate-600 transition hover:text-indigo-700 sm:block"
-            >
-              How it works
-            </a>
-            <a
-              href="#safety"
-              className="hidden text-sm font-medium text-slate-600 transition hover:text-indigo-700 sm:block"
-            >
-              Safety
-            </a>
-            <Link
-              href={WEB_APP_PATH}
-              className="melange-btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white"
-            >
-              Sign in
-            </Link>
-          </div>
-        </nav>
-      </header>
+    <main className="min-h-screen overflow-x-hidden bg-paper text-ink">
+      <SiteHeader landing />
 
-      {/* ---------------- Hero ---------------- */}
-      <section className="melange-bg relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 py-20 sm:py-28 lg:grid-cols-[1.15fr_1fr]">
-          <div className="text-center lg:text-left">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/70 bg-white/70 px-4 py-1.5 text-sm font-medium text-indigo-800 backdrop-blur">
-              <Camera className="h-3.5 w-3.5" />
-              For photographers, models, MUAs, stylists &amp; filmmakers
-            </p>
+      {/* ---------------- Opening ---------------- */}
+      <section>
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-12 px-4 pb-16 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1fr_17rem] lg:gap-16">
+          <div className="min-w-0">
+            <p className="melange-label">USC · UCSD · LA · NYC soon</p>
 
-            <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
-              Where creative people find their next{" "}
-              <span className="melange-wordmark">collaboration</span>
+            <h1 className="mt-5 font-display text-[2.6rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+              Where creative people find their next collaboration.
             </h1>
 
-            <p className="mt-7 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl lg:max-w-none">
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted-ink">
               A photographer needs a model. A model needs a stylist. A filmmaker
-              needs a whole crew. Post what you&apos;re making, see who&apos;s
-              interested, and plan the shoot in one place instead of a hundred
-              DMs.
+              needs a whole crew. On Melange you find people whose work fits
+              yours, see who&apos;s into what you make, and make something
+              together.
             </p>
 
-            <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <PrimaryCta />
-              <SecondaryCta />
+            <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <GetAppCta />
+              <a
+                href="#updates"
+                className="text-sm font-medium text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
+              >
+                Or get updates when we open near you
+              </a>
             </div>
 
-            <p className="mt-6 text-sm text-slate-500">
-              Free to use. No ads, no in-app purchases.
+            <p className="mt-6 text-sm text-muted-ink">
+              Free on iPhone. No ads. Anyone can sign up.
             </p>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[300px]">
-            <div className="absolute -inset-8 -z-10 rounded-full bg-indigo-200/40 blur-3xl" />
-            <PhoneShot src={SCREENS[0].src} alt="Melange Discover screen" priority />
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- The problem ---------------- */}
-      <section className="border-y border-indigo-100/70 bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-20">
-          <div className="grid gap-10 md:grid-cols-2 md:gap-16">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-                Instagram was never built for this
-              </h2>
-              <p className="mt-5 text-lg leading-relaxed text-slate-600">
-                Search is useless for finding a stylist in your city this
-                weekend. There is no way to say “I want to shoot you” without it
-                landing in a request folder next to a hundred strangers. And
-                nothing tells you whether someone is actually good to work
-                with.
-              </p>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-                Job boards feel like Craigslist
-              </h2>
-              <p className="mt-5 text-lg leading-relaxed text-slate-600">
-                They treat “photographer” as a job title, as if any one of them
-                is interchangeable with any other. But taste is the whole thing.
-                A moody portrait shooter and a bright commercial shooter are not
-                the same hire, and everybody in the room knows it.
-              </p>
-            </div>
-          </div>
+          <figure className="w-full max-w-[17rem]">
+            <Screenshot src={SCREENS[0].src} alt="Melange on iPhone, the Discover tab" priority />
+            <figcaption className="mt-3 text-xs text-muted-ink">
+              The app today. Screens use a demo account.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
       {/* ---------------- How it works ---------------- */}
-      <section id="how" className="bg-slate-50/70">
-        <div className="mx-auto max-w-5xl px-6 py-24">
-          <div className="mb-16 text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-              How it works
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
-              Five steps from signing up to standing on set.
-            </p>
-          </div>
+      <Section id="how" label="How it works">
+        <ol className="divide-y divide-rule border-y border-rule">
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="grid grid-cols-[2.25rem_1fr] gap-x-3 py-7 sm:grid-cols-[3rem_1fr]">
+              <span className="font-display text-2xl leading-none tabular-nums text-muted-ink">
+                {i + 1}
+              </span>
+              <div className="min-w-0">
+                <h2 className="font-display text-2xl font-semibold leading-tight sm:text-[1.75rem]">
+                  {s.title}
+                </h2>
+                <p className="mt-2 max-w-2xl leading-relaxed text-muted-ink">{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Section>
 
-          <ol className="space-y-4">
-            {STEPS.map((s) => (
-              <li
-                key={s.n}
-                className="melange-card flex gap-6 rounded-2xl p-7 sm:gap-8"
-              >
-                <span className="melange-wordmark shrink-0 text-3xl font-bold tabular-nums">
-                  {s.n}
-                </span>
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    {s.title}
-                  </h3>
-                  <p className="mt-2 leading-relaxed text-slate-600">
-                    {s.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
+      {/* ---------------- Tables ---------------- */}
+      <Section id="tables" label="Who you sit with">
+        <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+          Melange learns your taste, and checks itself against random picks.
+        </h2>
+        <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-muted-ink">
+          <p>
+            We read taste from what you make and what you heart: the photos, not your face. That
+            tells us whose work belongs together, and whose roles make each other&apos;s work
+            possible, so we can suggest who to meet and seat groups at events.
+          </p>
+          <p>
+            Then we check. At an event, half the tables are ours and half are random, and we
+            compare who hearted each other, who was still talking a week later, and who came back.
+            If our suggestions aren&apos;t better than chance, we&apos;ll change them.
+          </p>
         </div>
-      </section>
+      </Section>
+
+      {/* ---------------- Scenes ---------------- */}
+      <Section id="scenes" label="Where">
+        <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+          A few places at a time, so the people you meet live near you.
+        </h2>
+        <ul className="mt-8 divide-y divide-rule border-y border-rule">
+          {SCENES.map((s) => (
+            <li key={s.id} className="flex items-baseline justify-between gap-4 py-4">
+              <span className="min-w-0">
+                <span className={`font-display text-2xl font-semibold ${s.live ? "" : "text-muted-ink"}`}>
+                  {s.label}
+                </span>
+                <span className="ml-3 text-muted-ink">{s.place}</span>
+              </span>
+              <span className="melange-label shrink-0">{s.live ? "Now" : "Soon"}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
       {/* ---------------- Screens ---------------- */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="mb-14 text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-              The app, as it is today
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
-              Real screens from Melange on iPhone.
-            </p>
-          </div>
-          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-8">
-            {SCREENS.map((sc) => (
-              <figure key={sc.src} className="mx-auto w-full max-w-[260px] text-center">
-                <PhoneShot src={sc.src} alt={sc.label} />
-                <figcaption className="mt-4 text-sm font-medium text-slate-700">
-                  {sc.label}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+      <Section label="The app">
+        <div className="grid grid-cols-1 gap-10 min-[480px]:grid-cols-3 min-[480px]:gap-5">
+          {SCREENS.map((sc) => (
+            <figure key={sc.src} className="w-full max-w-[16rem] min-[480px]:max-w-none">
+              <Screenshot src={sc.src} alt={sc.label} />
+              <figcaption className="mt-3 text-sm text-muted-ink">{sc.label}</figcaption>
+            </figure>
+          ))}
         </div>
-      </section>
-
-      {/* ---------------- Features ---------------- */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="mb-16 text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-              What&apos;s inside
-            </h2>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="melange-card rounded-2xl p-7">
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {f.title}
-                </h3>
-                <p className="mt-2 leading-relaxed text-slate-600">{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <p className="mt-6 text-xs text-muted-ink">
+          Screens from the iPhone app on a demo account; the people in them are placeholders.
+        </p>
+      </Section>
 
       {/* ---------------- Safety ---------------- */}
-      <section id="safety" className="melange-bg">
-        <div className="mx-auto max-w-4xl px-6 py-24">
-          <div className="melange-card rounded-3xl p-10 sm:p-14">
-            <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Meeting a stranger for a shoot is a real decision
-            </h2>
-            <p className="mt-5 text-lg leading-relaxed text-slate-600">
-              We treat it like one. You can block or report any person, post, or
-              message, and reports go to a human. Every account is 18+. Your
-              data is locked to your account at the database level, and you can
-              delete your account — and everything in it — from inside the app,
-              without emailing anyone.
-            </p>
-            <p className="mt-5 leading-relaxed text-slate-600">
-              Questions or concerns:{" "}
-              <Link
-                className="font-medium text-indigo-700 underline underline-offset-4"
-                href={SUPPORT_PATH}
-              >
-                contact us
-              </Link>
-              . A person reads every message.
-            </p>
-          </div>
+      <Section id="safety" label="Safety">
+        <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+          You&apos;re meeting strangers. Here&apos;s what we do about it.
+        </h2>
+        <ul className="mt-6 max-w-2xl space-y-3 leading-relaxed text-muted-ink">
+          <li>Events are shared by friends, so the room is friends of friends.</li>
+          <li>
+            You can block or report any person, post or message, including in an event
+            chat. A person reads every report.
+          </li>
+          <li>Every account is 18+.</li>
+          <li>
+            Your data is locked to your account in the database, and you can delete your
+            account and everything in it from inside the app.
+          </li>
+        </ul>
+        <p className="mt-6 leading-relaxed text-muted-ink">
+          Questions or worries:{" "}
+          <Link className="font-medium text-action underline underline-offset-4" href={SUPPORT_PATH}>
+            write to us
+          </Link>
+          .
+        </p>
+      </Section>
+
+      {/* ---------------- Updates (writes to the waitlist table) ---------------- */}
+      <Section id="updates" label="Updates">
+        <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+          Not in USC, UCSD or LA?
+        </h2>
+        <p className="mt-4 max-w-xl leading-relaxed text-muted-ink">
+          Leave your email and where you are. We&apos;ll tell you when Melange opens near you,
+          and when there&apos;s an event close by.
+        </p>
+        <div className="mt-8 max-w-2xl">
+          <WaitlistForm />
         </div>
-      </section>
+      </Section>
 
-      {/* ---------------- Roles ---------------- */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-            Built for the people who make the picture
-          </h2>
-          <div className="mt-9 flex flex-wrap justify-center gap-2.5">
-            {ROLES.map((r) => (
-              <span
-                key={r}
-                className="rounded-full border border-indigo-100 bg-indigo-50/60 px-4 py-2 text-sm font-medium text-indigo-900"
-              >
-                {r}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Closing CTA ---------------- */}
-      <section className="melange-bg border-t border-indigo-100/70">
-        <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <Logo size="lg" />
-          <h2 className="mt-8 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Your next shoot starts with one swipe
-          </h2>
-          <p className="mt-5 text-lg text-slate-600">
-            Post a project, or just see who&apos;s working near you.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <PrimaryCta />
-            <SecondaryCta />
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Footer ---------------- */}
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Logo size="sm" />
-              <span className="melange-wordmark text-xl font-bold">
-                Melange
-              </span>
-            </Link>
-
-            <nav className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-slate-600">
-              <Link className="transition hover:text-indigo-700" href="/app">
-                Open the app
-              </Link>
-              <Link className="transition hover:text-indigo-700" href="/support">
-                Support
-              </Link>
-              <Link className="transition hover:text-indigo-700" href="/privacy">
-                Privacy
-              </Link>
-              <Link className="transition hover:text-indigo-700" href="/terms">
-                Terms
-              </Link>
-            </nav>
-          </div>
-
-          <p className="mt-9 text-center text-sm text-slate-400 sm:text-left">
-            © {new Date().getFullYear()} Melange. Made for people who make
-            things.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

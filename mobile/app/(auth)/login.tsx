@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
-import { colors, fonts, radii, typography } from "@/lib/theme";
+import { colors, fonts, typography } from "@/lib/theme";
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 
@@ -49,12 +49,12 @@ export default function Login() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.topBar}>
             <Pressable hitSlop={16} onPress={() => router.back()}>
-              <ArrowLeft size={22} color={colors.white} />
+              <ArrowLeft size={22} color={colors.text} />
             </Pressable>
           </View>
 
           <View style={styles.header}>
-            <Logo size={64} />
+            <Logo size={40} />
             <Text style={styles.title}>Welcome back</Text>
             <Text style={styles.subtitle}>Sign in to see who picked you.</Text>
           </View>
@@ -108,18 +108,16 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.brand },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
+  safe: { flex: 1, backgroundColor: colors.bg },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32 },
   topBar: { paddingTop: 8, paddingBottom: 16 },
-  header: { alignItems: "center", marginVertical: 24, gap: 8 },
-  title: { ...typography.display2, color: colors.white, marginTop: 12 },
-  subtitle: { ...typography.body, color: colors.onBrandMuted },
+  header: { alignItems: "flex-start", marginVertical: 24, gap: 8 },
+  title: { ...typography.display1, marginTop: 16 },
+  subtitle: { ...typography.body, color: colors.textSecondary },
+  // The form sits on the page; nothing here is a card.
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 20,
     gap: 14,
-    marginTop: 16,
+    marginTop: 8,
   },
   forgotWrap: { alignSelf: "flex-end", marginTop: -4 },
   forgotLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
