@@ -29,6 +29,7 @@ import { supabase } from "@/lib/supabase";
 
 import { Avatar } from "@/components/Avatar";
 import { MatchCelebration } from "@/components/MatchCelebration";
+import { NightRoll } from "@/components/NightRoll";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -53,6 +54,7 @@ import {
   getNightPeople,
   isNightMember,
   nightEnded,
+  nightStarted,
   toggleNightHeart,
   type NightMutual,
   type NightPerson,
@@ -78,7 +80,8 @@ function when(event: EventWithDetails): string {
 /**
  * One night: what it is, RSVP, who's going, the night chat, and — from the
  * start of the night until three days after — Afterglow, where you can heart
- * people you met. Every person here opens their profile.
+ * people you met. Once it starts, the night's photos too, for the people who
+ * were there. Every person here opens their profile.
  */
 export default function EventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -126,6 +129,8 @@ export default function EventScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Bumped on every load, so the night roll reloads with the page. */
+  const [rollKey, setRollKey] = useState(0);
 
   const load = useCallback(async () => {
     if (!id || !userId) return;
@@ -151,6 +156,7 @@ export default function EventScreen() {
     }
     setLoading(false);
     setRefreshing(false);
+    setRollKey((k) => k + 1);
   }, [id, userId]);
 
   useEffect(() => {
@@ -517,6 +523,26 @@ export default function EventScreen() {
                 ))}
               </>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* The night's photos, from the moment it starts. Private to the
+            people who were there, so everyone else gets a line instead of
+            an empty grid they can't fill. */}
+        {nightStarted(event) && !event.is_canceled && userId ? (
+          <View style={styles.block}>
+            {member ? (
+              <NightRoll eventId={event.id} userId={userId} people={people} refreshKey={rollKey} />
+            ) : (
+              <>
+                <Text style={styles.eyebrow}>Photos</Text>
+                <Text style={styles.muted}>
+                  {canRsvp
+                    ? "RSVP to see the night's photos."
+                    : "The photos are for the host and everyone who went."}
+                </Text>
+              </>
+            )}
           </View>
         ) : null}
 

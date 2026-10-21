@@ -64,6 +64,11 @@ export function afterglowOpen(e: Pick<MelangeEvent, "start_at" | "end_at">, now 
   return now >= Date.parse(e.start_at) && now <= nightEnd(e) + 3 * DAY;
 }
 
+/** Whether the night has started. The night roll opens then, and stays. */
+export function nightStarted(e: Pick<MelangeEvent, "start_at">, now = Date.now()): boolean {
+  return now >= Date.parse(e.start_at);
+}
+
 /** Host, or RSVP'd going: the same rule as is_event_member(). */
 export function isNightMember(
   e: Pick<EventWithDetails, "host_id" | "my_rsvp">,
