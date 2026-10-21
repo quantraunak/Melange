@@ -13,6 +13,9 @@ import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
 import { colors, GUTTER, radii, typography } from "@/lib/theme";
 
+/** Notification taps already routed, by identifier, for this app run. */
+const handledPushes = new Set<string>();
+
 function PushBootstrap() {
   const { userId } = useAuth();
   const router = useRouter();
@@ -24,17 +27,36 @@ function PushBootstrap() {
     // PushPrimer, where there's room to explain it first.
     registerForPushAsync(userId, { prompt: false }).catch(() => {});
 
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const open = (response: Notifications.NotificationResponse) => {
+      // Once per notification: the cold-start check below and the listener
+      // can both see the same tap, and this layout remounts on sign-in.
+      const key = response.notification.request.identifier;
+      if (handledPushes.has(key)) return;
+      handledPushes.add(key);
       const data = response.notification.request.content.data as
-        | { kind?: string; matchId?: string }
+        | { kind?: string; matchId?: string; eventId?: string; storyId?: string }
         | undefined;
       if (data?.matchId) {
         router.push({ pathname: "/chat/[matchId]", params: { matchId: data.matchId } });
+      } else if (data?.kind === "event" && data.eventId) {
+        // A tag in a night photo, or anything else about one night: open it.
+        router.push({ pathname: "/event/[id]", params: { id: data.eventId } });
+      } else if (data?.kind === "story" && data.storyId) {
+        router.push({ pathname: "/story/[id]", params: { id: data.storyId } });
       } else if (data?.kind === "heart" || data?.kind === "like") {
         // Who hearted what, with Message, is on the Messages tab.
         router.push("/(tabs)/messages");
       }
-    });
+    };
+
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    // A tap that launched the app from closed happened before the listener
+    // existed; it only shows up here.
+    Notifications.getLastNotificationResponseAsync()
+      .then((last) => {
+        if (last) open(last);
+      })
+      .catch(() => {});
     return () => sub.remove();
   }, [userId, router]);
 

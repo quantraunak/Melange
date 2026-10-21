@@ -169,7 +169,7 @@ export default function ExploreScreen() {
         />
 
         {theme && !unavailable ? (
-          <ThemeCard
+          <ThemeLine
             theme={theme}
             active={themeOnly}
             onToggle={() => setThemeOnly((v) => !v)}
@@ -230,12 +230,14 @@ export default function ExploreScreen() {
 }
 
 /**
- * This week's theme. Tap the card to see only its posts (tap again for
- * everything); "Post yours" opens a quick post with the theme already on.
- * Opaque white on the grey ground, with the theme's name in the display face
- * so it reads as this week's headline rather than another tile.
+ * This week's theme, as one quiet line: "This week: Golden hour · Post yours".
+ * It used to be a headline card above the board, which made Explore read as
+ * a posting prompt; the night roll is where photos from your people live now,
+ * so this steps back. Both jobs stay: the theme's name toggles the board to
+ * only its posts (violet while on), and "Post yours" opens a quick post with
+ * the theme already set.
  */
-function ThemeCard({
+function ThemeLine({
   theme,
   active,
   onToggle,
@@ -247,23 +249,26 @@ function ThemeCard({
   onPost: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onToggle}
-      style={({ pressed }) => [styles.theme, active && styles.themeActive, pressed && { opacity: 0.92 }]}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      accessibilityLabel={`This week: ${theme.title}. ${active ? "Showing its posts. Tap to show everything." : "Tap to see its posts."}`}
-    >
-      <Text style={styles.themeEyebrow}>
-        This week{theme.posts ? ` · ${theme.posts} ${theme.posts === 1 ? "post" : "posts"}` : ""}
-      </Text>
-      <Text style={styles.themeTitle}>{theme.title}</Text>
-      {theme.prompt ? <Text style={styles.themePrompt}>{theme.prompt}</Text> : null}
-      <View style={styles.themeFoot}>
-        <Button title="Post yours" variant="primary" size="sm" onPress={onPost} />
-        <Text style={styles.themeToggle}>{active ? "Show everything" : "See posts"}</Text>
-      </View>
-    </Pressable>
+    <View style={styles.themeLine}>
+      <Pressable
+        onPress={onToggle}
+        hitSlop={8}
+        style={({ pressed }) => [styles.themeWho, pressed && { opacity: 0.6 }]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
+        accessibilityLabel={`This week: ${theme.title}. ${active ? "Showing its posts. Tap to show everything." : "Tap to see its posts."}`}
+      >
+        <Text style={styles.themeText} numberOfLines={1}>
+          This week:{" "}
+          <Text style={[styles.themeName, active && styles.themeNameActive]}>{theme.title}</Text>
+          {active ? " ✓" : ""}
+        </Text>
+      </Pressable>
+      <Text style={styles.themeDot}>·</Text>
+      <Pressable onPress={onPost} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Post yours for ${theme.title}`}>
+        <Text style={styles.themeToggle}>Post yours</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -346,19 +351,12 @@ const styles = StyleSheet.create({
   section: { gap: spacing.md },
   eyebrow: { ...typography.eyebrow, color: colors.textSecondary },
 
-  theme: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
+  themeLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  themeWho: { flexShrink: 1 },
+  themeText: { ...typography.caption, color: colors.textSecondary },
+  themeName: { fontFamily: fonts.semibold, color: colors.text },
   // Selected is violet, the one job the accent has.
-  themeActive: { borderColor: colors.accent },
-  themeEyebrow: { ...typography.eyebrow, color: colors.accentInk },
-  themeTitle: { ...typography.display2, color: colors.text },
-  themePrompt: { ...typography.body, color: colors.textSecondary },
-  themeFoot: { flexDirection: "row", alignItems: "center", gap: spacing.lg, marginTop: spacing.sm },
+  themeNameActive: { color: colors.accentInk },
+  themeDot: { ...typography.caption, color: colors.textSecondary },
   themeToggle: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
 });
