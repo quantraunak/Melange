@@ -29,7 +29,7 @@ import {
 } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
-import { formatClockTime } from "@/lib/format";
+import { formatChatDivider } from "@/lib/format";
 
 export default function ChatScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -296,40 +296,41 @@ export default function ChatScreen() {
               const isMe = item.sender_id === userId;
               const prev = messages[index - 1];
               const next = messages[index + 1];
-              const sameAuthorBefore = prev && prev.sender_id === item.sender_id;
-              // Stamping every bubble turns a conversation into a log, and
-              // "only the last of a run" does nothing when two people are
-              // alternating — every message is the end of its own run. Time
-              // marks a pause instead: the last message, or one followed by a
-              // gap of more than a quarter of an hour.
+              // Time used to sit beside the bubble, and only after a pause.
+              // In a conversation that spans a day that reads as a few stale
+              // times, and the stamp pushed the sender's bubbles in from the
+              // edge. Now it's a centered divider whenever the conversation
+              // resumes after a pause, the way Messages does it.
               const GAP_MS = 15 * 60 * 1000;
-              const endsRun =
-                !next ||
-                new Date(next.created_at).getTime() -
-                  new Date(item.created_at).getTime() >
-                  GAP_MS;
+              const gap = (a?: { created_at: string }, b?: { created_at: string }) =>
+                a && b ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : Infinity;
+              const startsSection = gap(prev, item) > GAP_MS;
+              const endsRun = !next || next.sender_id !== item.sender_id || gap(item, next) > GAP_MS;
+              const sameAuthorBefore = !startsSection && prev && prev.sender_id === item.sender_id;
               return (
-                <View
-                  style={[
-                    styles.bubbleRow,
-                    isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
-                    sameAuthorBefore ? { marginTop: 2 } : { marginTop: 10 },
-                  ]}
-                >
+                <View>
+                  {startsSection ? (
+                    <Text style={styles.divider}>{formatChatDivider(item.created_at)}</Text>
+                  ) : null}
                   <View
                     style={[
-                      styles.bubble,
-                      isMe ? styles.bubbleMe : styles.bubbleOther,
-                      endsRun && (isMe ? styles.bubbleMeTail : styles.bubbleOtherTail),
+                      styles.bubbleRow,
+                      isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+                      sameAuthorBefore ? { marginTop: 2 } : { marginTop: 10 },
                     ]}
                   >
-                    <Text style={[styles.bubbleText, isMe && { color: colors.onAccent }]}>
-                      {item.content}
-                    </Text>
+                    <View
+                      style={[
+                        styles.bubble,
+                        isMe ? styles.bubbleMe : styles.bubbleOther,
+                        endsRun && (isMe ? styles.bubbleMeTail : styles.bubbleOtherTail),
+                      ]}
+                    >
+                      <Text style={[styles.bubbleText, isMe && { color: colors.onAccent }]}>
+                        {item.content}
+                      </Text>
+                    </View>
                   </View>
-                  {endsRun ? (
-                    <Text style={styles.bubbleTime}>{formatClockTime(item.created_at)}</Text>
-                  ) : null}
                 </View>
               );
             }}
@@ -417,7 +418,13 @@ const styles = StyleSheet.create({
   bubbleMeTail: {},
   bubbleOtherTail: {},
   bubbleText: { ...typography.body, color: colors.text },
-  bubbleTime: { ...typography.micro, color: colors.textTertiary, marginBottom: 2 },
+  divider: {
+    ...typography.micro,
+    color: colors.textTertiary,
+    textAlign: "center",
+    marginTop: 18,
+    marginBottom: 4,
+  },
   inputSafe: {
     backgroundColor: colors.surface,
     borderTopColor: colors.line,

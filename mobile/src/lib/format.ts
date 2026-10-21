@@ -15,6 +15,23 @@ export function formatClockTime(iso: string): string {
 }
 
 /**
+ * The centered divider a conversation shows after a pause, the way
+ * Messages does it: "Today 3:25 PM", "Yesterday 8:09 AM", "Mon 8:09 AM",
+ * then a date once it's more than a week old.
+ */
+export function formatChatDivider(iso: string): string {
+  const then = new Date(iso);
+  const now = new Date();
+  const time = formatClockTime(iso);
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(now) - startOfDay(then)) / 86400000);
+  if (days === 0) return `Today ${time}`;
+  if (days === 1) return `Yesterday ${time}`;
+  if (days < 7) return `${then.toLocaleDateString([], { weekday: "short" })} ${time}`;
+  return `${then.toLocaleDateString([], { month: "short", day: "numeric" })}, ${time}`;
+}
+
+/**
  * Compact timestamp for the right edge of a conversation row: "3m", "2h",
  * "Tue", then a date once it's more than a week old. Deliberately terser than
  * formatTimeAgo — in a list, the column is only a few characters wide.

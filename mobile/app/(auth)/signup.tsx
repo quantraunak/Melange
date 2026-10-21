@@ -83,7 +83,10 @@ export default function Signup() {
     const { error: profileErr } = await supabase.from("profiles").upsert({
       user_id: userId,
       name: name.trim(),
-      role: role || null,
+      // profiles.role is NOT NULL in production, so skipping the role step
+      // made signup fail with "Profile insert failed". "other" is the same
+      // default the signup trigger uses (15_profile_on_signup.sql).
+      role: role || "other",
       bio: bio.trim() || null,
       current_project: project.trim() || null,
       skills: skillsArr.length ? skillsArr : null,
