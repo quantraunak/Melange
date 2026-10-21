@@ -75,7 +75,7 @@ export default function ExploreScreen() {
   const [scene, setScene] = useState<Scene | null>(null);
   const [theme, setTheme] = useState<WeeklyTheme | null>(null);
   /** Showing only this week's theme posts. */
-  const [themeOnly, setThemeOnly] = useState(false);
+  const [themeOnly] = useState(false);
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -168,15 +168,6 @@ export default function ExploreScreen() {
           }
         />
 
-        {theme && !unavailable ? (
-          <ThemeLine
-            theme={theme}
-            active={themeOnly}
-            onToggle={() => setThemeOnly((v) => !v)}
-            onPost={() => post(true)}
-          />
-        ) : null}
-
         <SceneChips<Scene | null> value={scene} onChange={setScene} allLabel="All" />
 
         <ErrorBanner message={error} />
@@ -232,48 +223,6 @@ export default function ExploreScreen() {
   );
 }
 
-/**
- * This week's theme, as one quiet line: "This week: Golden hour · Post yours".
- * It used to be a headline card above the board, which made Explore read as
- * a posting prompt; the night roll is where photos from your people live now,
- * so this steps back. Both jobs stay: the theme's name toggles the board to
- * only its posts (violet while on), and "Post yours" opens a quick post with
- * the theme already set.
- */
-function ThemeLine({
-  theme,
-  active,
-  onToggle,
-  onPost,
-}: {
-  theme: WeeklyTheme;
-  active: boolean;
-  onToggle: () => void;
-  onPost: () => void;
-}) {
-  return (
-    <View style={styles.themeLine}>
-      <Pressable
-        onPress={onToggle}
-        hitSlop={8}
-        style={({ pressed }) => [styles.themeWho, pressed && { opacity: 0.6 }]}
-        accessibilityRole="button"
-        accessibilityState={{ selected: active }}
-        accessibilityLabel={`This week: ${theme.title}. ${active ? "Showing its posts. Tap to show everything." : "Tap to see its posts."}`}
-      >
-        <Text style={styles.themeText} numberOfLines={1}>
-          This week:{" "}
-          <Text style={[styles.themeName, active && styles.themeNameActive]}>{theme.title}</Text>
-          {active ? " ✓" : ""}
-        </Text>
-      </Pressable>
-      <Text style={styles.themeDot}>·</Text>
-      <Pressable onPress={onPost} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Post yours for ${theme.title}`}>
-        <Text style={styles.themeToggle}>Post yours</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 function Tile({ story, onPress }: { story: StoryWithAuthor; onPress: () => void }) {
   const h = Math.round(COL_W * shapeFor(story.id));

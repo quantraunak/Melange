@@ -504,7 +504,9 @@ export default function DiscoverScreen() {
          * ten had never registered a device and could not be notified of
          * anything, including the owner.
          */
-        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
+        // At the top, under search and post: down by the tab bar it sat on
+        // top of the pass and heart buttons.
+        <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
           <PushPrimer userId={userId} />
         </View>
       ) : null}
