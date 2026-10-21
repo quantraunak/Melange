@@ -74,3 +74,19 @@ export function formatRecordDate(value: string): string {
   }
   return d.toLocaleDateString([], { month: "short", year: "numeric" });
 }
+
+/** "Today" / "Tomorrow" / "Oct 24", and "9:00 PM", for event cards. */
+export function formatEventTime(iso: string): { day: string; time: string } {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const dayDiff = Math.floor(
+    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - startOfToday) / dayMs
+  );
+  let day = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (dayDiff === 0) day = "Today";
+  else if (dayDiff === 1) day = "Tomorrow";
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return { day, time };
+}

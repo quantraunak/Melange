@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { Check, CheckCheck, Sparkles, Search, X } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { ScreenTitle } from "@/components/ScreenTitle";
 import { LikesList } from "@/components/LikesList";
 import { PushPrimer } from "@/components/PushPrimer";
 import { Input } from "@/components/ui/Input";
@@ -199,6 +200,9 @@ export default function MatchesScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
         }
       >
+        <View style={{ alignSelf: "stretch" }}>
+          <ScreenTitle title="Messages" />
+        </View>
         {error ? <ErrorBanner message={error} /> : null}
         <View style={{ alignSelf: "stretch" }}>
           <LikesList reloadKey={likesReload} />
@@ -210,8 +214,8 @@ export default function MatchesScreen() {
         <Text style={styles.emptyBody}>
           Message anyone from their profile, project, work or event. No match needed.
         </Text>
-        <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/stories")}>
-          <Text style={styles.emptyBtnText}>Explore</Text>
+        <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)/nights")}>
+          <Text style={styles.emptyBtnText}>Find a night</Text>
         </Pressable>
       </ScrollView>
     );
@@ -228,6 +232,7 @@ export default function MatchesScreen() {
       }
       ListHeaderComponent={
         <View style={styles.header}>
+          <ScreenTitle title="Messages" />
           {error ? <ErrorBanner message={error} /> : null}
           {actionError ? <ErrorBanner message={actionError} /> : null}
 

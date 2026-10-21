@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import { Compass, Layers, MessageCircle, UserRound } from "lucide-react-native";
+import { Compass, LayoutGrid, MessageCircle, MoonStar, UserRound } from "lucide-react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { Glass } from "@/components/ui/Glass";
@@ -42,13 +42,14 @@ function PushBootstrap() {
 }
 
 /**
- * Compass for Discover (you are looking around) and Layers for Work (things
- * stacked up over time). The previous sparkle and open book said nothing: a
- * sparkle is decoration, and a book is not a record of shoots you have done.
+ * Compass for Discover (you are looking around), a grid for Explore (the
+ * scene's moodboard), a moon for Nights. The previous sparkle and open book
+ * said nothing: a sparkle is decoration, and a book is not a moodboard.
  */
 const TAB_ICONS: Record<string, (p: { color: string; size: number }) => React.ReactNode> = {
   connect: (p) => <Compass {...p} />,
-  stories: (p) => <Layers {...p} />,
+  stories: (p) => <LayoutGrid {...p} />,
+  nights: (p) => <MoonStar {...p} />,
   messages: (p) => <MessageCircle {...p} />,
   profile: (p) => <UserRound {...p} />,
 };
@@ -154,8 +155,9 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="connect" options={{ title: "Discover" }} />
         <Tabs.Screen name="stories" options={{ title: "Explore" }} />
+        <Tabs.Screen name="nights" options={{ title: "Nights" }} />
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
-        <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+        <Tabs.Screen name="profile" options={{ title: "You" }} />
       </Tabs>
     </View>
   );

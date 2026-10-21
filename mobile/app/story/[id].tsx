@@ -28,9 +28,12 @@ import { sized } from "@/lib/imageUrl";
 import {
   deleteStory,
   getStory,
+  setFeatured,
   storyDate,
   type StoryWithAuthor,
 } from "@/lib/stories";
+import { isAdmin } from "@/lib/scenes";
+import { FOUNDING_MARK } from "@/components/IdentityLine";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -45,6 +48,18 @@ export default function StoryDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [admin, setAdmin] = useState(false);
+  const [featuring, setFeaturing] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    isAdmin().then((v) => {
+      if (alive) setAdmin(v);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -86,6 +101,18 @@ export default function StoryDetailScreen() {
         },
       },
     ]);
+  };
+
+  /** Editors only. The board re-reads on focus, so Explore reorders on the way back. */
+  const toggleFeatured = async () => {
+    if (!story || featuring) return;
+    const on = !story.featured_at;
+    setFeaturing(true);
+    setError(null);
+    const { error: err } = await setFeatured(story.id, on);
+    setFeaturing(false);
+    if (err) return setError(err);
+    setStory({ ...story, featured_at: on ? new Date().toISOString() : null });
   };
 
   const openLink = async () => {
@@ -264,6 +291,15 @@ export default function StoryDetailScreen() {
                   />
                 ) : null}
               </View>
+
+              {admin ? (
+                <Button
+                  title={story.featured_at ? `Unfeature` : `${FOUNDING_MARK} Feature on Explore`}
+                  variant="outline"
+                  loading={featuring}
+                  onPress={toggleFeatured}
+                />
+              ) : null}
 
               {mine ? (
                 <Pressable onPress={confirmDelete} style={styles.deleteRow} disabled={busy}>

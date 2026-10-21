@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react-native";
 import { EventsFeed } from "@/components/EventsFeed";
 import { colors, typography } from "@/lib/theme";
 
-/** Events on their own, for the link in Settings. Explore shows the same feed. */
+/** Every event, coming up and past, in one list. Nights is the tab; this stays for old links. */
 export default function EventsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();

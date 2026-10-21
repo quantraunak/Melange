@@ -9,6 +9,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { colors, fonts, radii, shadows, typography, inputText } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { formatEventTime } from "@/lib/format";
 import {
   cancelEvent,
   cancelRsvp,
@@ -19,21 +20,6 @@ import {
   rsvpToEvent,
   type EventWithDetails,
 } from "@/lib/events";
-
-function formatEventTime(iso: string): { day: string; time: string } {
-  const d = new Date(iso);
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const dayDiff = Math.floor(
-    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - startOfToday) / dayMs
-  );
-  let day = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  if (dayDiff === 0) day = "Today";
-  else if (dayDiff === 1) day = "Tomorrow";
-  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  return { day, time };
-}
 
 /**
  * Events: coming up, and the ones that already happened.

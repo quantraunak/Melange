@@ -33,6 +33,8 @@ export type CollabStory = {
   happened_on: string | null;
   match_id: string | null;
   is_public: boolean;
+  /** Set when an editor featured it; Explore leads with these. */
+  featured_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -135,6 +137,7 @@ function toStory(row: Record<string, unknown>): CollabStory {
     happened_on: (row.happened_on as string | null) ?? null,
     match_id: (row.match_id as string | null) ?? null,
     is_public: row.is_public !== false,
+    featured_at: (row.featured_at as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: (row.updated_at as string) ?? (row.created_at as string),
   };
@@ -148,7 +151,7 @@ async function attachAuthors(stories: CollabStory[]): Promise<StoryWithAuthor[]>
   if (ids.length) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id, name, role, avatar_url, verification_status")
+      .select("user_id, name, role, avatar_url, verification_status, founding")
       .in("user_id", ids);
     if (error) console.error("stories: author lookup failed", error.message);
     for (const p of data || []) {
@@ -158,6 +161,7 @@ async function attachAuthors(stories: CollabStory[]): Promise<StoryWithAuthor[]>
         role: (p.role as string | null) ?? null,
         avatar_url: (p.avatar_url as string | null) ?? null,
         verification_status: (p.verification_status as CreatorInfo["verification_status"]) ?? "none",
+        founding: p.founding === true,
       });
     }
   }
@@ -166,7 +170,7 @@ async function attachAuthors(stories: CollabStory[]): Promise<StoryWithAuthor[]>
 }
 
 const COLUMNS =
-  "id,author_id,title,story,media_urls,credits,contact_link,happened_on,match_id,is_public,created_at,updated_at";
+  "id,author_id,title,story,media_urls,credits,contact_link,happened_on,match_id,is_public,featured_at,created_at,updated_at";
 
 export type StoryResult<T> = {
   data: T;
@@ -193,6 +197,56 @@ export async function getStories(limit = 30): Promise<StoryResult<StoryWithAutho
     return { data: await attachAuthors(stories), error: null, unavailable: false };
   } catch (err) {
     return { data: [], error: errMsg(err), unavailable: false };
+  }
+}
+
+/**
+ * Explore: featured shoots first (newest feature first), then everything else
+ * newest first. `scene` narrows to shoots whose author is in that scene; the
+ * author's scene lives on profiles, so the filter is a list of authors.
+ */
+export async function getExploreStories(
+  scene: string | null,
+  limit = 60
+): Promise<StoryResult<StoryWithAuthor[]>> {
+  try {
+    let authorIds: string[] | null = null;
+    if (scene) {
+      const { data: people, error: peopleErr } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("scene", scene)
+        .limit(1000);
+      if (peopleErr) return { data: [], error: peopleErr.message, unavailable: false };
+      authorIds = (people ?? []).map((p) => p.user_id as string);
+      if (!authorIds.length) return { data: [], error: null, unavailable: false };
+    }
+
+    let q = supabase.from("collab_stories").select(COLUMNS).eq("is_public", true);
+    if (authorIds) q = q.in("author_id", authorIds);
+    const { data, error } = await q
+      .order("featured_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      if (isStoriesUnavailable(error.message)) return { data: [], error: null, unavailable: true };
+      return { data: [], error: error.message, unavailable: false };
+    }
+    const stories = (data || []).map((r) => toStory(r as Record<string, unknown>));
+    return { data: await attachAuthors(stories), error: null, unavailable: false };
+  } catch (err) {
+    return { data: [], error: errMsg(err), unavailable: false };
+  }
+}
+
+/** Editors only; the server refuses anyone else with a message worth showing. */
+export async function setFeatured(storyId: string, on: boolean): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.rpc("set_featured", { p_story: storyId, p_on: on });
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: errMsg(err) };
   }
 }
 
