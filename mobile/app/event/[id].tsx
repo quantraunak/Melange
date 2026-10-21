@@ -358,7 +358,7 @@ export default function EventScreen() {
       <SafeAreaView style={styles.safe} edges={["top"]}>
         {header}
         <View style={styles.center}>
-          <ErrorBanner message={error || "This night isn't available."} />
+          <ErrorBanner message={error || "This event isn't available."} />
         </View>
       </SafeAreaView>
     );
@@ -421,7 +421,7 @@ export default function EventScreen() {
             ? {
                 kicker: "It's mutual",
                 title: `${celebration.them.name.split(" ")[0]} hearted you too.`,
-                body: "You both want to see each other again. Write while you both still remember the night.",
+                body: "You both want to see each other again. Write while you both still remember it.",
                 dismiss: "Later",
               }
             : undefined
@@ -505,12 +505,12 @@ export default function EventScreen() {
           )
         ) : null}
 
-        {/* The night chat */}
+        {/* The event chat */}
         <View style={styles.block}>
-          <Text style={styles.eyebrow}>Night chat</Text>
+          <Text style={styles.eyebrow}>Event chat</Text>
           {member ? (
             <Button
-              title="Open the night chat"
+              title="Open the event chat"
               variant={canRsvp || hostIsMe ? "outline" : "primary"}
               leadingIcon={<MessagesSquare size={16} color={canRsvp || hostIsMe ? colors.text : colors.onBrand} />}
               onPress={() => router.push({ pathname: "/event/chat/[id]", params: { id: event.id } })}
@@ -529,8 +529,8 @@ export default function EventScreen() {
           <View style={styles.block}>
             <Text style={styles.eyebrow}>Tables</Text>
             <Text style={styles.muted}>
-              Melange suggests tables from what people make and like. Half the room is seated at random so we
-              can tell if it helps.
+              Melange suggests tables from what people make and like. At each event, half the room is seated
+              at random so we can tell if it helps.
             </Text>
             {!ended ? (
               <Button
@@ -673,7 +673,7 @@ export default function EventScreen() {
                 <Text style={styles.eyebrow}>Photos</Text>
                 <Text style={styles.muted}>
                   {canRsvp
-                    ? "RSVP to see the night's photos."
+                    ? "RSVP to see the photos."
                     : "The photos are for the host and everyone who went."}
                 </Text>
               </>

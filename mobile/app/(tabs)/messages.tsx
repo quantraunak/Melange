@@ -164,7 +164,7 @@ export default function MessagesScreen() {
           <Text style={styles.emptyTitle}>No messages yet</Text>
           <Text style={styles.emptyBody}>
             When someone you liked likes you back, the chat opens here. You can also message anyone
-            from their profile, their work, or a night you both went to.
+            from their profile, their work, or an event you both went to.
           </Text>
         </View>
       }

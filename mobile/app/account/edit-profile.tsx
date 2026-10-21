@@ -192,7 +192,7 @@ export default function EditProfileScreen() {
               />
             </Field>
 
-            <Field label="Scene" hint="Nights and people from your scene come first.">
+            <Field label="Scene" hint="People and events from your scene come first.">
               <SceneChips<Scene | null>
                 value={scene}
                 onChange={(s) => setSceneChoice(s === scene ? null : s)}

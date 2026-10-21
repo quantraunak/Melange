@@ -159,7 +159,7 @@ export function NightRoll({
   };
 
   const remove = (photo: NightPhoto) => {
-    Alert.alert("Delete this photo?", "It comes off the night for everyone.", [
+    Alert.alert("Delete this photo?", "It comes off the event for everyone.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -253,7 +253,7 @@ export function NightRoll({
           <View style={styles.grid}>{photos.map((p, i) => tile(p, photos, i, GRID_TILE))}</View>
         </>
       ) : loaded && !error ? (
-        <Text style={styles.muted}>No photos yet. Add yours from the night.</Text>
+        <Text style={styles.muted}>No photos yet. Add yours from the event.</Text>
       ) : null}
 
       <NightPhotoViewer

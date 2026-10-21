@@ -178,7 +178,7 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="connect" options={{ title: "Discover" }} />
         <Tabs.Screen name="stories" options={{ title: "Explore" }} />
-        <Tabs.Screen name="nights" options={{ title: "Nights" }} />
+        <Tabs.Screen name="nights" options={{ title: "Events" }} />
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
         <Tabs.Screen name="profile" options={{ title: "You" }} />
       </Tabs>

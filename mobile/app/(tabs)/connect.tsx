@@ -350,13 +350,13 @@ export default function DiscoverScreen() {
                   <Text style={styles.emptyTitle}>You&apos;ve seen every open project.</Text>
                   <Text style={styles.emptyBody}>
                     New ones show up when people post. Until then, the fastest way to meet someone
-                    is to go to a night.
+                    is to go to an event.
                   </Text>
                   <Pressable
                     onPress={() => router.push("/(tabs)/nights")}
                     style={styles.emptyCta}
                   >
-                    <Text style={styles.emptyCtaText}>Find a night</Text>
+                    <Text style={styles.emptyCtaText}>Find an event</Text>
                   </Pressable>
                 </>
               ) : (

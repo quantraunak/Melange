@@ -104,7 +104,7 @@ export default function NightsScreen() {
           />
         }
       >
-        <ScreenTitle title="Nights" action={{ label: "Host", onPress: () => router.push("/event/new"), accessibilityLabel: "Host a night" }} />
+        <ScreenTitle title="Events" action={{ label: "Host", onPress: () => router.push("/event/new"), accessibilityLabel: "Host an event" }} />
 
         {label ? (
           <ChipRow>
@@ -147,13 +147,13 @@ export default function NightsScreen() {
             {/* One action. "See every scene" was a second one, and the All
                 chip right above already does it. */}
             <Text style={styles.emptyTitle}>
-              {scope === "scene" && label ? `No nights in ${label} yet` : "No nights coming up"}
+              {scope === "scene" && label ? `No events in ${label} yet` : "No events coming up"}
             </Text>
             <Text style={styles.emptyBody}>
               Host one: pick a time and a place, say what to bring. Everyone who says they&apos;re going
               gets a group chat.
             </Text>
-            <Button title="Host a night" variant="primary" onPress={() => router.push("/event/new")} />
+            <Button title="Host an event" variant="primary" onPress={() => router.push("/event/new")} />
           </View>
         ) : (
           <View style={{ gap: spacing.lg }}>
