@@ -10,7 +10,7 @@ built and run by one engineer (Raunak Sood), with Jolea on community.
 
 <p>
   <img src="public/screenshots/discover.png" width="230" alt="Discover" />
-  <img src="public/screenshots/explore.png" width="230" alt="Explore" />
+  <img src="public/screenshots/explore.png" width="230" alt="Shoots with credits" />
   <img src="public/screenshots/showcase.png" width="230" alt="A shoot with credits" />
 </p>
 
@@ -25,8 +25,7 @@ built and run by one engineer (Raunak Sood), with Jolea on community.
 3. **Events** are where people meet in person: a link anyone can RSVP to, a
    chat for everyone going, and afterwards a photo roll private to the people
    who were there, plus quiet hearts that only reveal when they're mutual.
-4. **Credits** record who made what. Explore is the wall of what your scene
-   is making.
+4. **Credits** record who made what, on everyone's profile.
 
 ## By the numbers
 

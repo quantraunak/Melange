@@ -112,6 +112,10 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       <Glass variant="strong" radius={radii.lg} elevated style={styles.tabBarGlass}>
         <View style={styles.tabBar}>
           {state.routes.map((route, idx) => {
+            // Explore is gone: two tabs that both meant "look at creatives near
+            // me" made people ask which to use. Finished shoots live on
+            // profiles. The route stays so old links still open.
+            if (route.name === "stories") return null;
             const focused = state.index === idx;
             const { options } = descriptors[route.key];
             const label = (options.tabBarLabel as string) ?? options.title ?? route.name;

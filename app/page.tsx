@@ -68,7 +68,7 @@ const STEPS = [
   },
   {
     title: "Get credit for it",
-    body: "Post what you made and credit everyone on it. Explore is the wall of what your scene is making.",
+    body: "Post what you made and credit everyone on it. It shows on your profile, and on theirs.",
   },
 ];
 
@@ -76,7 +76,7 @@ const STEPS = [
 // in them is seeded demo content, not a real user.
 const SCREENS = [
   { src: "/screenshots/discover.png", label: "Discover: people in your scene." },
-  { src: "/screenshots/explore.png", label: "Explore: what your scene is making." },
+  { src: "/screenshots/explore.png", label: "Shoots people made, with everyone credited." },
   { src: "/screenshots/showcase.png", label: "A shoot, with credits for everyone on it." },
 ];
 
