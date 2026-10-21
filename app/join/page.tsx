@@ -87,7 +87,7 @@ export default async function JoinPage({
             </ol>
 
             <p className="mt-10 text-sm text-slate-500">
-              Code not working? Check it with whoever sent it — each code works once.
+              Code not working? Check it with whoever sent it. Codes can only be used so many times.
             </p>
           </div>
         </section>

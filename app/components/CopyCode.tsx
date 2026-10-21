@@ -20,7 +20,7 @@ export default function CopyCode({ code }: { code: string }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <p className="select-all break-all font-mono text-4xl font-bold tracking-[0.12em] text-slate-900 sm:text-5xl">
+      <p className="select-all whitespace-nowrap font-mono text-[clamp(1.5rem,7.5vw,3rem)] font-bold tracking-[0.08em] text-slate-900">
         {code}
       </p>
       <button
