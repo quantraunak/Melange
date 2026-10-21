@@ -218,14 +218,19 @@ export function seatNight(
   aiTables.forEach((t, n) =>
     t.forEach((i) => seats.push({ user_id: people[i].user_id, arm: "ai", table_no: n + 1 })),
   );
-  // Random tables are numbered after the AI ones so every table in the room
-  // has its own number. Which arm a table is in is never shown to guests.
   if (randIdx.length) {
-    composeRandom(randIdx, S, sizeFor(randIdx.length), rand).forEach((t, n) =>
+    const randTables = composeRandom(randIdx, S, sizeFor(randIdx.length), rand);
+    randTables.forEach((t, n) =>
       t.forEach((i) =>
         seats.push({ user_id: people[i].user_id, arm: "random", table_no: aiTables.length + n + 1 }),
       ),
     );
+    // Shuffle table numbers across both halves, so a table's number says
+    // nothing about which half it's in (numbering the random half after the
+    // AI half would let anyone who knew the scheme tell them apart).
+    const total = aiTables.length + randTables.length;
+    const relabel = shuffle(Array.from({ length: total }, (_, k) => k + 1), rand);
+    for (const s of seats) s.table_no = relabel[s.table_no - 1];
   }
   return { seats, experiment };
 }
