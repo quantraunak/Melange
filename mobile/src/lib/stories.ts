@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { CreatorInfo } from "./db";
+import { uploadFile, type CreatorInfo } from "./db";
 
 /**
  * Stories — the collaboration record.
@@ -35,6 +35,8 @@ export type CollabStory = {
   is_public: boolean;
   /** Set when an editor featured it; Explore leads with these. */
   featured_at: string | null;
+  /** The weekly theme it was posted for, if any (24_open_doors_and_posting.sql). */
+  theme_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -138,6 +140,7 @@ function toStory(row: Record<string, unknown>): CollabStory {
     match_id: (row.match_id as string | null) ?? null,
     is_public: row.is_public !== false,
     featured_at: (row.featured_at as string | null) ?? null,
+    theme_id: (row.theme_id as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: (row.updated_at as string) ?? (row.created_at as string),
   };
@@ -170,7 +173,7 @@ async function attachAuthors(stories: CollabStory[]): Promise<StoryWithAuthor[]>
 }
 
 const COLUMNS =
-  "id,author_id,title,story,media_urls,credits,contact_link,happened_on,match_id,is_public,featured_at,created_at,updated_at";
+  "id,author_id,title,story,media_urls,credits,contact_link,happened_on,match_id,is_public,featured_at,theme_id,created_at,updated_at";
 
 export type StoryResult<T> = {
   data: T;
@@ -204,10 +207,12 @@ export async function getStories(limit = 30): Promise<StoryResult<StoryWithAutho
  * Explore: featured shoots first (newest feature first), then everything else
  * newest first. `scene` narrows to shoots whose author is in that scene; the
  * author's scene lives on profiles, so the filter is a list of authors.
+ * `themeId` narrows to posts made for that week's theme.
  */
 export async function getExploreStories(
   scene: string | null,
-  limit = 60
+  limit = 60,
+  themeId: string | null = null
 ): Promise<StoryResult<StoryWithAuthor[]>> {
   try {
     let authorIds: string[] | null = null;
@@ -224,6 +229,7 @@ export async function getExploreStories(
 
     let q = supabase.from("collab_stories").select(COLUMNS).eq("is_public", true);
     if (authorIds) q = q.in("author_id", authorIds);
+    if (themeId) q = q.eq("theme_id", themeId);
     const { data, error } = await q
       .order("featured_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
@@ -322,6 +328,8 @@ export type NewStory = {
   contactLink: string | null;
   happenedOn: string | null;
   matchId?: string | null;
+  /** Posted for this week's theme. */
+  themeId?: string | null;
 };
 
 export async function createStory(
@@ -340,6 +348,7 @@ export async function createStory(
       is_public: true,
     };
     if (values.matchId) row.match_id = values.matchId;
+    if (values.themeId) row.theme_id = values.themeId;
 
     const { data, error } = await supabase.from("collab_stories").insert(row).select(COLUMNS).single();
     if (error) {
@@ -439,4 +448,114 @@ export async function searchProfiles(
   } catch (err) {
     return { data: [], error: errMsg(err) };
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Weekly theme, tagging and uploads (24_open_doors_and_posting.sql)   */
+/* ------------------------------------------------------------------ */
+
+export type WeeklyTheme = {
+  id: string;
+  title: string;
+  prompt: string | null;
+  /** Public posts made for it so far. */
+  posts: number;
+};
+
+/** This week's theme. `null` data with no error means no theme has started. */
+export async function getCurrentTheme(): Promise<{ data: WeeklyTheme | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("current_theme");
+    if (error) return { data: null, error: error.message };
+    const r = (data ?? null) as Record<string, unknown> | null;
+    if (!r || typeof r.id !== "string") return { data: null, error: null };
+    return {
+      data: {
+        id: r.id,
+        title: typeof r.title === "string" ? r.title : "This week",
+        prompt: typeof r.prompt === "string" && r.prompt.trim() ? r.prompt : null,
+        posts: Number(r.posts ?? 0) || 0,
+      },
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: errMsg(err) };
+  }
+}
+
+export type TaggablePerson = {
+  user_id: string;
+  name: string;
+  handle: string | null;
+  avatar_url: string | null;
+  role: string | null;
+};
+
+/**
+ * Members to tag, by name or @handle. The server already leaves out me,
+ * non-members and anyone blocked either way, which a plain profiles query
+ * can't do (I can only read my own blocks).
+ */
+export async function searchPeople(
+  query: string
+): Promise<{ data: TaggablePerson[]; error: string | null }> {
+  const q = query.trim();
+  if (!q) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase.rpc("search_people", { p_query: q, p_limit: 8 });
+    if (error) return { data: [], error: error.message };
+    return {
+      data: ((data ?? []) as Record<string, unknown>[]).map((p) => ({
+        user_id: p.user_id as string,
+        name: (p.name as string) || "Someone",
+        handle: (p.handle as string | null) ?? null,
+        avatar_url: (p.avatar_url as string | null) ?? null,
+        role: (p.role as string | null) ?? null,
+      })),
+      error: null,
+    };
+  } catch (err) {
+    return { data: [], error: errMsg(err) };
+  }
+}
+
+/** A photo on its way into a story: already uploaded, or still on the phone. */
+export type StoryAsset =
+  | { kind: "remote"; url: string }
+  | { kind: "local"; uri: string; mimeType?: string; width?: number; height?: number };
+
+export type StoryUploadProgress = { index: number; total: number; fraction: number; attempt: number };
+
+/**
+ * Uploads every local photo in order and returns all the URLs, in the same
+ * order, or the first error. One implementation for the full story form and
+ * the quick post, so a fix to retries or resizing lands in both. It stops at
+ * the first failure: a story with a hole where its third photo should be is
+ * worse than asking to retry.
+ */
+export async function uploadStoryAssets(
+  userId: string,
+  assets: StoryAsset[],
+  onProgress?: (p: StoryUploadProgress) => void
+): Promise<{ urls: string[] | null; error: string | null }> {
+  const urls: string[] = [];
+  const total = assets.filter((a) => a.kind === "local").length;
+  let done = 0;
+  for (const a of assets) {
+    if (a.kind === "remote") {
+      urls.push(a.url);
+      continue;
+    }
+    const index = done + 1;
+    onProgress?.({ index, total, fraction: 0, attempt: 1 });
+    const { url, error } = await uploadFile(userId, "posts", a.uri, a.mimeType || "image/jpeg", {
+      width: a.width,
+      height: a.height,
+      onProgress: (p) => onProgress?.({ index, total, fraction: p.fraction, attempt: p.attempt }),
+    });
+    if (error || !url) return { urls: null, error: error || "Photo upload failed." };
+    done += 1;
+    urls.push(url);
+  }
+  return { urls, error: null };
 }

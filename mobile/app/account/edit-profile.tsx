@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,34 +11,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import { Plus, X } from "lucide-react-native";
+import { X } from "lucide-react-native";
 
+import { PortfolioPhotos } from "@/components/PortfolioPhotos";
 import { Button } from "@/components/ui/Button";
 import { Chip, ChipRow } from "@/components/ui/Chip";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import {
-  getProfile,
-  PORTFOLIO_MAX_IMAGES,
-  ROLES,
-  updatePortfolio,
-  updateProfile,
-  uploadFile,
-  VIBE_PRESETS,
-} from "@/lib/db";
+import { getProfile, ROLES, updateProfile, VIBE_PRESETS } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
 import { normalizeSocialUrl } from "@/lib/reviews";
 import { supabase } from "@/lib/supabase";
 import { isScene, setHandle, setScene, type Scene } from "@/lib/scenes";
 import { SceneChips } from "@/components/SceneChips";
-
-/** Three columns inside the form's 16pt padding. */
-const TILE = (Dimensions.get("window").width - GUTTER * 2 - spacing.sm * 2) / 3;
 
 function normalizeReel(raw: string): string {
   const v = raw.trim();
@@ -77,7 +63,6 @@ export default function EditProfileScreen() {
   const [scene, setSceneChoice] = useState<Scene | null>(null);
   const [vibes, setVibes] = useState<string[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [photosBusy, setPhotosBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,72 +96,6 @@ export default function EditProfileScreen() {
   useEffect(() => {
     load();
   }, [load]);
-
-  /* Photos are files, so they save as they are picked rather than on Save.
-     They used to be added from the profile tab, where the add tile sat on its
-     own under a list it did not belong to. */
-  const onAddPhotos = async () => {
-    if (!userId) return;
-    if (photos.length >= PORTFOLIO_MAX_IMAGES) {
-      Alert.alert("Photos full", `Up to ${PORTFOLIO_MAX_IMAGES} photos.`);
-      return;
-    }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert("Photo permission denied", "Enable photo access in Settings.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: PORTFOLIO_MAX_IMAGES - photos.length,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets.length) return;
-
-    setPhotosBusy(true);
-    setError(null);
-    const uploaded: string[] = [];
-    for (const asset of result.assets) {
-      const { url, error: upErr } = await uploadFile(
-        userId,
-        "posts",
-        asset.uri,
-        asset.mimeType || "image/jpeg"
-      );
-      if (upErr || !url) {
-        setError(upErr || "Upload failed.");
-        break;
-      }
-      uploaded.push(url);
-    }
-    if (uploaded.length) {
-      const next = [...photos, ...uploaded];
-      const { error: updErr } = await updatePortfolio(userId, next);
-      if (updErr) setError(updErr);
-      else setPhotos(next);
-    }
-    setPhotosBusy(false);
-  };
-
-  const onRemovePhoto = (idx: number) => {
-    if (!userId) return;
-    Alert.alert("Remove photo?", undefined, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          const next = photos.filter((_, i) => i !== idx);
-          setPhotosBusy(true);
-          const { error: err } = await updatePortfolio(userId, next);
-          setPhotosBusy(false);
-          if (err) setError(err);
-          else setPhotos(next);
-        },
-      },
-    ]);
-  };
 
   const onSave = async () => {
     if (!userId) return;
@@ -228,7 +147,10 @@ export default function EditProfileScreen() {
       return;
     }
     trackEvent("profile_saved");
-    await supabase.rpc("refresh_profile_verification", { p_user_id: userId });
+    // The profile is saved; a stale verification badge isn't worth blocking
+    // the screen over, but it is worth a line in the log rather than silence.
+    const { error: verErr } = await supabase.rpc("refresh_profile_verification", { p_user_id: userId });
+    if (verErr) console.warn("refresh_profile_verification failed", verErr.message);
     router.back();
   };
 
@@ -308,38 +230,12 @@ export default function EditProfileScreen() {
               />
             </Field>
 
-            <Field label="Photos">
-              <View style={styles.grid}>
-                {photos.map((url, idx) => (
-                  <Pressable
-                    key={`${url}-${idx}`}
-                    style={styles.tile}
-                    onPress={() => onRemovePhoto(idx)}
-                    disabled={photosBusy}
-                    accessibilityLabel="Remove photo"
-                  >
-                    <Image source={{ uri: url }} style={styles.tileImg} />
-                    <View style={styles.tileRemove}>
-                      <X size={12} color={colors.white} />
-                    </View>
-                  </Pressable>
-                ))}
-                {photos.length < PORTFOLIO_MAX_IMAGES ? (
-                  <Pressable
-                    style={[styles.tile, styles.tileAdd]}
-                    onPress={onAddPhotos}
-                    disabled={photosBusy}
-                    accessibilityLabel="Add photos"
-                  >
-                    {photosBusy ? (
-                      <ActivityIndicator color={colors.textTertiary} />
-                    ) : (
-                      <Plus size={22} color={colors.textTertiary} />
-                    )}
-                  </Pressable>
-                ) : null}
-              </View>
-            </Field>
+            {/* Photos save as they're picked, not on Save: they're files. */}
+            {userId ? (
+              <Field label="Photos">
+                <PortfolioPhotos userId={userId} photos={photos} onChange={setPhotos} onError={setError} />
+              </Field>
+            ) : null}
 
             <Field label="Skills and gear" hint="Comma-separated">
               <Input
@@ -434,32 +330,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginTop: 10,
-  },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  tile: {
-    width: TILE,
-    aspectRatio: 1,
-    borderRadius: radii.sm,
-    overflow: "hidden",
-    backgroundColor: colors.surfaceSunken,
-  },
-  tileImg: { width: "100%", height: "100%" },
-  tileAdd: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
-  },
-  tileRemove: {
-    position: "absolute",
-    top: spacing.xs,
-    right: spacing.xs,
-    width: 22,
-    height: 22,
-    borderRadius: radii.pill,
-    backgroundColor: colors.scrim,
-    alignItems: "center",
-    justifyContent: "center",
   },
   at: { ...typography.body, color: colors.textSecondary },
   vibeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

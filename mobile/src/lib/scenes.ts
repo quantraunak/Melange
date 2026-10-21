@@ -1,9 +1,10 @@
 import { supabase } from "./supabase";
 
 /**
- * Scenes, invites, handles and the waitlist (23_scenes_invites_nights.sql).
+ * Scenes, founding codes and handles (23_scenes_invites_nights.sql, 24_open_doors_and_posting.sql).
  *
- * Melange is invite-only and starts in scenes. Every call here awaits the
+ * Melange starts in scenes. Anyone can sign up; a founding code is an
+ * optional extra that grants the ✦. Every call here awaits the
  * request and returns its error: an RPC builder that is never awaited never
  * sends, and a screen that reports success off one is the defect this app
  * keeps shipping.
@@ -27,26 +28,8 @@ export function isScene(v: unknown): v is Scene {
   return typeof v === "string" && SCENES.some((s) => s.id === v);
 }
 
-export const JOIN_URL = "https://melange-psi.vercel.app/join";
-
-/** The one line people paste into a group chat. Wording is the spec's. */
-export function inviteShareMessage(code: string): string {
-  return `Come join me on Melange — invite code ${code} ${JOIN_URL}?code=${encodeURIComponent(code)}`;
-}
-
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : "Something went wrong.";
-}
-
-/** Whether I'm in. `null` means we couldn't find out, which is not "no". */
-export async function isMember(): Promise<{ member: boolean | null; error: string | null }> {
-  try {
-    const { data, error } = await supabase.rpc("is_member");
-    if (error) return { member: null, error: error.message };
-    return { member: data === true, error: null };
-  } catch (err) {
-    return { member: null, error: errMsg(err) };
-  }
 }
 
 export type RedeemResult = {
@@ -60,7 +43,7 @@ export async function redeemInvite(
   code: string
 ): Promise<{ data: RedeemResult | null; error: string | null }> {
   const c = code.trim();
-  if (!c) return { data: null, error: "Enter the code your friend sent." };
+  if (!c) return { data: null, error: "Enter the code." };
   try {
     const { data, error } = await supabase.rpc("redeem_invite", { p_code: c });
     if (error) return { data: null, error: error.message };
@@ -100,54 +83,6 @@ export async function setHandle(
     return { handle: (data as string | null) ?? null, error: null };
   } catch (err) {
     return { handle: null, error: errMsg(err) };
-  }
-}
-
-export type InviteCode = { code: string; used: boolean };
-
-export async function getMyInviteCodes(): Promise<{ data: InviteCode[]; error: string | null }> {
-  try {
-    const { data, error } = await supabase.rpc("my_invite_codes");
-    if (error) return { data: [], error: error.message };
-    return {
-      data: ((data ?? []) as { code: string; used: boolean }[]).map((r) => ({
-        code: r.code,
-        used: r.used === true,
-      })),
-      error: null,
-    };
-  } catch (err) {
-    return { data: [], error: errMsg(err) };
-  }
-}
-
-export type WaitlistEntry = {
-  email: string;
-  name?: string | null;
-  scene: Scene | "other" | null;
-  instagram?: string | null;
-  whatYouMake?: string | null;
-};
-
-/**
- * Join the waitlist. Already being on it counts as success: the unique index
- * on lower(email) is the server saying "we have you", not a failure to show.
- */
-export async function joinWaitlist(entry: WaitlistEntry): Promise<{ error: string | null }> {
-  const email = entry.email.trim();
-  if (!email) return { error: "Your account has no email on it, so we can't add you." };
-  try {
-    const { error } = await supabase.from("waitlist").insert({
-      email,
-      name: entry.name?.trim() || null,
-      scene: entry.scene,
-      instagram: entry.instagram?.trim() || null,
-      what_you_make: entry.whatYouMake?.trim() || null,
-    });
-    if (error && error.code !== "23505") return { error: error.message };
-    return { error: null };
-  } catch (err) {
-    return { error: errMsg(err) };
   }
 }
 

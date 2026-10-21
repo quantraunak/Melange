@@ -41,11 +41,20 @@ export default function NightsScreen() {
 
   useEffect(() => {
     if (!userId) return;
-    getProfile(userId).then(({ data }) => {
+    let live = true;
+    (async () => {
+      const { data, error: err } = await getProfile(userId);
+      if (!live) return;
+      // Without the profile we don't know the scene; every scene is a list
+      // that still works, where waiting on a failed read would spin forever.
+      if (err) console.warn("nights: getProfile failed", err);
       const scene = data?.scene ?? null;
       setMyScene(scene);
       setScope(scene ? "scene" : "all");
-    });
+    })();
+    return () => {
+      live = false;
+    };
   }, [userId]);
 
   const load = useCallback(async () => {
@@ -121,7 +130,7 @@ export default function NightsScreen() {
                   <Text style={styles.glowTitle} numberOfLines={1}>
                     {e.title}
                   </Text>
-                  <Text style={styles.glowMeta}>Heart anyone you&apos;d like to see again.</Text>
+                  <Text style={styles.glowMeta}>Heart who you met</Text>
                 </View>
                 <ChevronRight size={16} color={colors.iconFaint} />
               </Pressable>
@@ -136,16 +145,12 @@ export default function NightsScreen() {
           </View>
         ) : nights.length === 0 ? (
           <View style={styles.empty}>
+            {/* One action. "See every scene" was a second one, and the All
+                chip right above already does it. */}
             <Text style={styles.emptyTitle}>
               {scope === "scene" && label ? `No nights in ${label} yet` : "No nights coming up"}
             </Text>
-            <Text style={styles.emptyBody}>Host one. A walk, a screening, a shoot, a dinner.</Text>
-            <Button title="Host a night" variant="primary" onPress={() => router.push("/event/new")} />
-            {scope === "scene" ? (
-              <Pressable onPress={() => setScope("all")} hitSlop={8}>
-                <Text style={styles.emptyLink}>See every scene</Text>
-              </Pressable>
-            ) : null}
+            <Button title="Host one" variant="primary" onPress={() => router.push("/event/new")} />
           </View>
         ) : (
           <View style={{ gap: spacing.lg }}>
@@ -176,6 +181,4 @@ const styles = StyleSheet.create({
   glowMeta: { ...typography.caption, color: colors.accentInk },
   empty: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.xxxl },
   emptyTitle: { ...typography.headline, textAlign: "center" },
-  emptyBody: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
-  emptyLink: { ...typography.caption, color: colors.brandText },
 });

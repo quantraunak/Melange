@@ -6,22 +6,16 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import {
-  ImageIcon,
-  Camera,
-  Pencil,
-  Settings as SettingsIcon,
-  Share as ShareIcon,
-} from "lucide-react-native";
+import { ImageIcon, Camera, Settings as SettingsIcon } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { IdentityLine } from "@/components/IdentityLine";
@@ -33,6 +27,7 @@ import {
 } from "@/components/ProfileSections";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { Input } from "@/components/ui/Input";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
 import { sized } from "@/lib/imageUrl";
 import { useBarTop } from "./_layout";
@@ -53,7 +48,7 @@ import {
 } from "@/lib/db";
 import { getStoriesForUser, storyDate, type StoryWithAuthor } from "@/lib/stories";
 import { formatRecordDate } from "@/lib/format";
-import { getMyInviteCodes, inviteShareMessage, type InviteCode } from "@/lib/scenes";
+import { redeemInvite } from "@/lib/scenes";
 
 
 export default function ProfileScreen() {
@@ -67,8 +62,6 @@ export default function ProfileScreen() {
   const [credits, setCredits] = useState<Credit[]>([]);
   const [stories, setStories] = useState<StoryWithAuthor[]>([]);
   const [trust, setTrust] = useState<ProfileTrust | null>(null);
-  const [invites, setInvites] = useState<InviteCode[]>([]);
-  const [invitesError, setInvitesError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,14 +77,12 @@ export default function ProfileScreen() {
       { data: creditData },
       storyRes,
       trustRes,
-      inviteRes,
     ] = await Promise.all([
       getProfile(userId),
       getMyPosts(userId),
       getCredits(userId),
       getStoriesForUser(userId),
       getProfileTrust(userId),
-      getMyInviteCodes(),
     ]);
     if (profileData) {
       setProfile(profileData);
@@ -102,8 +93,6 @@ export default function ProfileScreen() {
     setCredits(creditData || []);
     setStories(storyRes.data);
     setTrust(trustRes.data);
-    setInvites(inviteRes.data);
-    setInvitesError(inviteRes.error);
     setLoading(false);
   }, [userId]);
 
@@ -114,14 +103,6 @@ export default function ProfileScreen() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [load])
   );
-
-  const shareInvite = async (code: string) => {
-    try {
-      await Share.share({ message: inviteShareMessage(code) });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't open sharing.");
-    }
-  };
 
   useEffect(() => {
     load();
@@ -289,36 +270,10 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Being invited is the status, and these are how you pass it on. */}
-        <View style={[styles.block, styles.blockFirst]}>
-          <Text style={styles.sectionTitle}>Your invites</Text>
-          <Text style={styles.sectionHint}>Five codes. Each one lets one friend in.</Text>
-          {invitesError ? <ErrorBanner message={invitesError} /> : null}
-          {invites.map((inv) => (
-            <View key={inv.code} style={styles.listRow}>
-              <Text style={[styles.code, inv.used && styles.codeUsed]}>{inv.code}</Text>
-              {inv.used ? (
-                <Text style={styles.rowWhen}>Used</Text>
-              ) : (
-                <Pressable
-                  onPress={() => shareInvite(inv.code)}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Share invite code ${inv.code}`}
-                  style={styles.shareBtn}
-                >
-                  <ShareIcon size={14} color={colors.brandText} />
-                  <Text style={styles.sectionAction}>Share</Text>
-                </Pressable>
-              )}
-            </View>
-          ))}
-        </View>
-
         {/* Profile: about you. Everyone sees exactly this on your page. */}
         <ProfileAbout
           profile={profile}
-          emptyHint="Add what you do, what you're looking for, a bio, your Instagram and photos in Edit profile."
+          emptyHint="Add a bio and photos in Edit profile."
         />
 
         {/* One section. A credit, a story and an uploaded image were three
@@ -332,11 +287,8 @@ export default function ProfileScreen() {
               <Text style={styles.sectionAction}>Add</Text>
             </Pressable>
           </View>
-          <Text style={styles.sectionHint}>
-            Past work you made with people. It shows on Explore too, so others get ideas and find you.
-          </Text>
 
-          {work.length === 0 ? <Text style={styles.muted}>Nothing here yet.</Text> : null}
+          {work.length === 0 ? <Text style={styles.muted}>Nothing yet. It shows on Explore too.</Text> : null}
 
           {work.map((w) => (
             <Pressable
@@ -382,7 +334,6 @@ export default function ProfileScreen() {
               <Text style={styles.sectionAction}>Post</Text>
             </Pressable>
           </View>
-          <Text style={styles.sectionHint}>What you&apos;re making now and who you&apos;re looking for.</Text>
           {projects.length === 0 ? (
             <Text style={styles.muted}>Nothing open.</Text>
           ) : (
@@ -403,13 +354,8 @@ export default function ProfileScreen() {
                     {p.is_active ? "" : " · inactive"}
                   </Text>
                 </View>
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: p.id } })}
-                  accessibilityLabel={`Edit ${p.title}`}
-                >
-                  <Pencil size={16} color={colors.iconFaint} />
-                </Pressable>
+                {/* No pencil: the row is the one target, and the project
+                    page it opens has Edit project for its owner. */}
               </Pressable>
             ))
           )}
@@ -422,14 +368,82 @@ export default function ProfileScreen() {
 
         {/* Account & safety, Events and Sign out used to end the page while
             the gear sat in the header: two homes for one thing. They are
-            behind the gear, and the page ends with the last list row. */}
+            behind the gear. A founding code is the one quiet extra: it only
+            adds the ✦ now that anyone can sign up, so it sits last and goes
+            away once you have the mark. */}
+        {profile.founding ? null : <FoundingCodeRow onRedeemed={load} />}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+/**
+ * "Have a founding code?" — one row, which opens into a field in place.
+ * redeem_invite is awaited and its error shown as the server worded it
+ * ("You've already used a code."), because those messages are the only way
+ * someone learns why a code didn't take.
+ */
+function FoundingCodeRow({ onRedeemed }: { onRedeemed: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const redeem = async () => {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    const { data, error } = await redeemInvite(code);
+    if (error || !data) {
+      setBusy(false);
+      setErr(error ?? "That code didn't go through.");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    // The reload brings back founding = true, which unmounts this row and
+    // puts the ✦ in the header: that is the confirmation.
+    await onRedeemed();
+    setBusy(false);
+  };
+
+  if (!open) {
+    return (
+      <Pressable
+        onPress={() => setOpen(true)}
+        hitSlop={8}
+        style={[styles.block, styles.codeRow]}
+        accessibilityRole="button"
+      >
+        <Text style={styles.sectionAction}>Have a founding code?</Text>
+      </Pressable>
+    );
+  }
+  return (
+    <View style={styles.block}>
+      <View style={styles.codeForm}>
+        <Input
+          value={code}
+          onChangeText={(t) => setCode(t.toUpperCase())}
+          placeholder="MEL-XXXXX"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          autoComplete="off"
+          autoFocus
+          returnKeyType="go"
+          onSubmitEditing={redeem}
+          accessibilityLabel="Founding code"
+          containerStyle={{ flex: 1 }}
+        />
+        <Button title="Use" variant="primary" loading={busy} disabled={!code.trim()} onPress={redeem} />
+      </View>
+      {err ? <ErrorBanner message={err} /> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loading:{ flex: 1, alignItems: "center", justifyContent: "center" },
   loadingError: { gap: 12, paddingHorizontal: 24 },
   /* One gutter, one rhythm. Sections are separated by space and a rule, not
      by nesting a white card inside a grey one. */
@@ -479,15 +493,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     gap: spacing.md,
   },
-  blockFirst: { marginTop: 0 },
   blockHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  code: { ...typography.bodyStrong, flex: 1, letterSpacing: 1.2, fontVariant: ["tabular-nums"] },
-  codeUsed: { color: colors.textTertiary, textDecorationLine: "line-through" },
-  shareBtn: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  codeRow: { paddingBottom: spacing.sm },
+  codeForm: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   sectionTitle: { ...typography.eyebrow, color: colors.textSecondary },
   sectionAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
-  sectionCount: { ...typography.caption, color: colors.textTertiary },
-  sectionHint: { ...typography.caption, color: colors.textTertiary, marginTop: -4 },
 
   /* Every list row in this screen is the same row. */
   listRow: {

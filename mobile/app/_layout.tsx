@@ -15,14 +15,13 @@ import {
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { MatchesProvider } from "@/lib/matches";
-import { MembershipProvider, useMembership } from "@/lib/membership";
+import { isFreshSignup } from "@/lib/onboarding";
 import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Gate({ fontsReady }: { fontsReady: boolean }) {
   const { session, loading } = useAuth();
-  const { member } = useMembership();
   const segments = useSegments();
   const router = useRouter();
 
@@ -34,33 +33,29 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
     SplashScreen.hideAsync().catch(() => {});
 
     const inAuth = segments[0] === "(auth)";
-    const atGate = segments[0] === "invite";
     if (!session) {
       if (!inAuth) router.replace("/(auth)/welcome");
       return;
     }
-    // Signed in without a code: the invite gate, wherever they were headed.
-    // `member === null` means the check hasn't answered yet, and moves nobody.
-    if (member === false) {
-      if (!atGate) router.replace("/invite");
-    } else if (member === true && atGate) {
-      router.replace("/(tabs)/connect");
-    } else if (inAuth && member !== null) {
-      router.replace("/(tabs)/connect");
-    }
-  }, [loading, fontsReady, session, member, segments, router]);
+    // Signing up is the whole way in now (24_open_doors_and_posting.sql makes
+    // every account a member), so there is no gate to wait on: a session goes
+    // straight to the app — by way of the optional photos step when this
+    // session began with a signup.
+    if (inAuth) router.replace(isFreshSignup() ? "/onboarding/photos" : "/(tabs)/connect");
+  }, [loading, fontsReady, session, segments, router]);
 
   return (
     <MatchesProvider>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="invite" options={{ gestureEnabled: false, animation: "fade" }} />
+        <Stack.Screen name="onboarding/photos" options={{ gestureEnabled: false, animation: "fade" }} />
         <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="post/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/edit/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="story/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="story/quick" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="story/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="profile/[userId]" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="events/index" options={{ presentation: "card", animation: "slide_from_right" }} />
@@ -94,9 +89,7 @@ export default function RootLayout() {
             screens put a white scrim under the status bar instead. */}
         <StatusBar style="dark" />
         <AuthProvider>
-          <MembershipProvider>
-            <Gate fontsReady={fontsReady} />
-          </MembershipProvider>
+          <Gate fontsReady={fontsReady} />
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -21,6 +21,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Logo } from "@/components/Logo";
 import { colors, fonts, radii, typography } from "@/lib/theme";
 import { trackEvent } from "@/lib/analytics";
+import { clearFreshSignup, markFreshSignup } from "@/lib/onboarding";
 import { supabase } from "@/lib/supabase";
 
 const ROLES = [
@@ -55,10 +56,16 @@ export default function Signup() {
     if (!acceptedTerms) return setError("Please accept the Terms and Privacy Policy to continue.");
 
     setLoading(true);
+    // Set before the call: the session lands mid-await and the root gate
+    // routes on it straight away, before this function gets to run again.
+    markFreshSignup();
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
+    // No session means email confirmation, and their first real sign-in
+    // will be a plain login; don't leave the flag for that.
+    if (err || !data.session) clearFreshSignup();
     if (err) {
       setLoading(false);
       setError(err.message);

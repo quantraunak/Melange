@@ -341,7 +341,6 @@ export default function DiscoverScreen() {
               {search ? (
                 <>
                   <Text style={styles.emptyTitle}>No projects match that.</Text>
-                  <Text style={styles.emptyBody}>Try a role or a city instead.</Text>
                   <Pressable onPress={() => setSearch("")}>
                     <Text style={styles.emptyLink}>Clear filter</Text>
                   </Pressable>
@@ -349,10 +348,7 @@ export default function DiscoverScreen() {
               ) : catalogueSize && catalogueSize > 0 ? (
                 <>
                   <Text style={styles.emptyTitle}>You&apos;re all caught up.</Text>
-                  <Text style={styles.emptyBody}>
-                    You&apos;ve seen every open project and everyone in your scene for now. The
-                    best place to meet more is a night.
-                  </Text>
+                  <Text style={styles.emptyBody}>Meet more people at a night.</Text>
                   <Pressable
                     onPress={() => router.push("/(tabs)/nights")}
                     style={styles.emptyCta}
@@ -362,10 +358,7 @@ export default function DiscoverScreen() {
                 </>
               ) : (
                 <>
-                  <Text style={styles.emptyTitle}>No open collabs right now.</Text>
-                  <Text style={styles.emptyBody}>
-                    Post your own project so people can find you.
-                  </Text>
+                  <Text style={styles.emptyTitle}>No open projects right now.</Text>
                   <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
                     <Plus size={14} color={colors.onBrand} />
                     <Text style={styles.emptyCtaText}>Post a project</Text>
