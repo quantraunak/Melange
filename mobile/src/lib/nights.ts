@@ -273,3 +273,108 @@ export async function getNightMutuals(
     return { data: [], error: errMsg(err) };
   }
 }
+
+/*
+ * Tables (26_room_composer.sql). The host seats the room through the
+ * compose-tables Edge Function; each person then sees their own table.
+ * Half the room is seated by the composer and half at random, and nothing
+ * here ever says which half anyone is in: my_table() doesn't return the
+ * arm, and the host's read below never selects it.
+ */
+
+export type TableMate = { user_id: string; name: string; avatar_url: string | null; role: string | null };
+
+/** One table at a night. */
+export type SeatedTable = { table_no: number; people: TableMate[] };
+
+/** My table at a night, me first. Null when the room hasn't been seated. */
+export async function getMyTable(
+  eventId: string
+): Promise<{ data: SeatedTable | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("my_table", { p_event: eventId });
+    if (error) return { data: null, error: error.message };
+    const rows = (data ?? []) as (TableMate & { table_no: number })[];
+    if (!rows.length) return { data: null, error: null };
+    return {
+      data: {
+        table_no: rows[0].table_no,
+        people: rows.map(({ user_id, name, avatar_url, role }) => ({ user_id, name, avatar_url, role })),
+      },
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: errMsg(err) };
+  }
+}
+
+/**
+ * Every table at a night, for its host (RLS lets only the host read these
+ * rows). Names and faces come from event_people, which is block-aware.
+ */
+export async function getNightTables(
+  eventId: string,
+  people: NightPerson[]
+): Promise<{ data: SeatedTable[]; error: string | null }> {
+  try {
+    // Only these two columns: the arm stays in the database.
+    const { data, error } = await supabase
+      .from("night_seating")
+      .select("user_id,table_no")
+      .eq("event_id", eventId);
+    if (error) return { data: [], error: error.message };
+    const byId = new Map(people.map((p) => [p.user_id, p]));
+    const tables = new Map<number, TableMate[]>();
+    for (const r of (data ?? []) as { user_id: string; table_no: number }[]) {
+      const p = byId.get(r.user_id);
+      // Someone blocked, or who's since dropped their RSVP: not shown.
+      if (!p) continue;
+      const list = tables.get(r.table_no) ?? [];
+      list.push({ user_id: p.user_id, name: p.name, avatar_url: p.avatar_url, role: p.role });
+      tables.set(r.table_no, list);
+    }
+    return {
+      data: [...tables.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([table_no, list]) => ({ table_no, people: list.sort((a, b) => a.name.localeCompare(b.name)) })),
+      error: null,
+    };
+  } catch (err) {
+    return { data: [], error: errMsg(err) };
+  }
+}
+
+/**
+ * Seat the room. supabase-js forwards the host's session, and the function
+ * makes its database calls as the caller, so only the host gets through.
+ * A non-2xx reply carries `{ error }` in its body; show that rather than the
+ * client's generic "non-2xx status code".
+ */
+export async function seatTheRoom(
+  eventId: string
+): Promise<{ data: { people: number; tables: number } | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("compose-tables", { body: { event_id: eventId } });
+    if (error) {
+      let msg: string = error.message;
+      const ctx = (error as { context?: unknown }).context;
+      if (ctx instanceof Response) {
+        try {
+          const body = await ctx.json();
+          if (body && typeof body.error === "string") msg = body.error;
+        } catch {
+          // Not JSON; keep the client's message.
+        }
+      }
+      return { data: null, error: msg };
+    }
+    const r = (data ?? {}) as Record<string, unknown>;
+    if (typeof r.error === "string") return { data: null, error: r.error };
+    if (typeof r.people !== "number" || typeof r.tables !== "number") {
+      return { data: null, error: "The tables didn't come back. Try again." };
+    }
+    return { data: { people: r.people, tables: r.tables }, error: null };
+  } catch (err) {
+    return { data: null, error: errMsg(err) };
+  }
+}

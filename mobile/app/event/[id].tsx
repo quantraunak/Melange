@@ -49,14 +49,18 @@ import {
 } from "@/lib/events";
 import {
   afterglowOpen,
+  getMyTable,
   getNightMutuals,
   getNightPeople,
+  getNightTables,
   isNightMember,
   nightEnded,
   nightStarted,
+  seatTheRoom,
   toggleNightHeart,
   type NightMutual,
   type NightPerson,
+  type SeatedTable,
 } from "@/lib/nights";
 import { sceneLabel } from "@/lib/scenes";
 
@@ -97,6 +101,11 @@ export default function EventScreen() {
   const [rsvpBusy, setRsvpBusy] = useState(false);
   const [hearting, setHearting] = useState<Set<string>>(new Set());
   const [celebration, setCelebration] = useState<{ them: NightPerson; matchId: string | null } | null>(null);
+  /** Host: every table. Guest: their own. Never which half of the room. */
+  const [tables, setTables] = useState<SeatedTable[]>([]);
+  const [myTable, setMyTable] = useState<SeatedTable | null>(null);
+  const [seating, setSeating] = useState(false);
+  const [seatedNote, setSeatedNote] = useState<string | null>(null);
 
   // Which of these people can actually be messaged, answered by the server.
   //
@@ -149,9 +158,23 @@ export default function EventScreen() {
       setPeople(p.data);
       setMutuals(m.data);
       if (p.error) setError(p.error);
+      // The host reads every table; everyone else only their own.
+      if (e.data.host_id === userId) {
+        const t = await getNightTables(id, p.data);
+        setTables(t.data);
+        setMyTable(null);
+        if (t.error) setError(t.error);
+      } else {
+        const t = await getMyTable(id);
+        setMyTable(t.data);
+        setTables([]);
+        if (t.error) setError(t.error);
+      }
     } else {
       setPeople([]);
       setMutuals([]);
+      setTables([]);
+      setMyTable(null);
     }
     setLoading(false);
     setRefreshing(false);
@@ -253,6 +276,45 @@ export default function EventScreen() {
   };
   const canInvite = !!event && !event.is_canceled && !nightEnded(event);
 
+  const seat = async () => {
+    if (!event || seating) return;
+    setSeating(true);
+    setSeatedNote(null);
+    setError(null);
+    const { data, error: err } = await seatTheRoom(event.id);
+    if (err || !data) {
+      setSeating(false);
+      setError(err ?? "Couldn't seat the room. Try again.");
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    // Read the tables back rather than trust the counts alone.
+    await load();
+    setSeatedNote(
+      `Seated ${data.people} ${data.people === 1 ? "person" : "people"} at ${data.tables} ${
+        data.tables === 1 ? "table" : "tables"
+      }.`
+    );
+    setSeating(false);
+  };
+
+  const askToSeat = () => {
+    if (!tables.length) {
+      seat().catch(() => {});
+      return;
+    }
+    Alert.alert("Seat the room again?", "This replaces the current tables.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Re-seat",
+        style: "destructive",
+        onPress: () => {
+          seat().catch(() => {});
+        },
+      },
+    ]);
+  };
+
   const header = (
     <View style={styles.header}>
       <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Back">
@@ -275,6 +337,10 @@ export default function EventScreen() {
   const member = !!event && isNightMember(event, userId);
   const glow = !!event && member && afterglowOpen(event);
   const others = useMemo(() => people.filter((p) => p.user_id !== userId), [people, userId]);
+  const tablemates = useMemo(
+    () => (myTable ? myTable.people.filter((p) => p.user_id !== userId) : []),
+    [myTable, userId]
+  );
 
   if (loading) {
     return (
@@ -456,6 +522,81 @@ export default function EventScreen() {
           )}
         </View>
 
+        {/* Tables. The host seats the room and sees every table; a guest
+            sees only their own. Neither is told which tables were composed
+            and which were random: that's what keeps the comparison fair. */}
+        {hostIsMe && !event.is_canceled && (!ended || tables.length) ? (
+          <View style={styles.block}>
+            <Text style={styles.eyebrow}>Tables</Text>
+            <Text style={styles.muted}>
+              Melange suggests tables from what people make and like. Half the room is seated at random so we
+              can tell if it helps.
+            </Text>
+            {!ended ? (
+              <Button
+                title={tables.length ? "Seat the room again" : "Seat the room"}
+                variant={tables.length ? "outline" : "primary"}
+                loading={seating}
+                onPress={askToSeat}
+              />
+            ) : null}
+            {seatedNote ? <Text style={styles.seatedNote}>{seatedNote}</Text> : null}
+            {tables.map((t) => (
+              <View key={t.table_no} style={styles.table}>
+                <Text style={styles.tableNo}>Table {t.table_no}</Text>
+                <View style={styles.tableFaces}>
+                  {t.people.map((p) => (
+                    <Pressable
+                      key={p.user_id}
+                      style={({ pressed }) => [styles.tableFace, pressed && { opacity: 0.6 }]}
+                      onPress={() => openProfile(p.user_id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${p.name}'s profile`}
+                    >
+                      <Avatar creator={p} size="sm" />
+                      <Text style={styles.tableName} numberOfLines={1}>
+                        {p.user_id === userId ? "You" : p.name.split(" ")[0]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {!hostIsMe && myTable ? (
+          <View style={styles.block}>
+            <Text style={styles.eyebrow}>Your table</Text>
+            <Text style={styles.tableLine}>
+              Table {myTable.table_no}
+              {tablemates.length
+                ? ` · ${ended ? "You sat with" : "You'll sit with"} ${tablemates
+                    .map((p) => p.name.split(" ")[0])
+                    .join(", ")}`
+                : ""}
+            </Text>
+            {tablemates.length ? (
+              <View style={styles.tableFaces}>
+                {tablemates.map((p) => (
+                  <Pressable
+                    key={p.user_id}
+                    style={({ pressed }) => [styles.tableFace, pressed && { opacity: 0.6 }]}
+                    onPress={() => openProfile(p.user_id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${p.name}'s profile`}
+                  >
+                    <Avatar creator={p} size="md" />
+                    <Text style={styles.tableName} numberOfLines={1}>
+                      {p.name.split(" ")[0]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         {glow ? (
           <View style={styles.block}>
             <Text style={styles.eyebrow}>Afterglow</Text>
@@ -635,4 +776,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   msgText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
+  seatedNote: { ...typography.bodyStrong, color: colors.text },
+  table: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+  },
+  tableNo: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
+  tableLine: { ...typography.bodyStrong, color: colors.text },
+  tableFaces: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
+  tableFace: { alignItems: "center", gap: 4, maxWidth: 64 },
+  tableName: { ...typography.micro, color: colors.textSecondary },
 });
