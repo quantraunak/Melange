@@ -11,7 +11,6 @@ import { SwipeCard, SwipeCardBehind, type SwipeDir } from "@/components/SwipeCar
 import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useProfileGap } from "@/components/ProfilePrompt";
 import { PushPrimer } from "@/components/PushPrimer";
@@ -37,9 +36,6 @@ import {
 import { likeProject } from "@/lib/likeProject";
 
 const { width: SCREEN_W } = Dimensions.get("window");
-
-/** Set the first time someone likes a project. See hasLiked. */
-const LIKED_KEY = "melange.hasLiked.v1";
 
 export default function DiscoverScreen() {
   const router = useRouter();
@@ -69,17 +65,6 @@ export default function DiscoverScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [swiping, setSwiping] = useState(false);
   const [pendingButtonSwipe, setPendingButtonSwipe] = useState<SwipeDir | null>(null);
-  /**
-   * Whether this person has ever liked anything, which is when the offer of a
-   * notification is worth making. See the slot at the bottom of the screen.
-   */
-  const [hasLiked, setHasLiked] = useState(false);
-  useEffect(() => {
-    AsyncStorage.getItem(LIKED_KEY)
-      .then((v) => setHasLiked(v === "1"))
-      .catch(() => {});
-  }, []);
-
   const [celebration, setCelebration] = useState<
     { creator: CreatorInfo; matchId: string; projectTitle: string } | null
   >(null);
@@ -228,10 +213,6 @@ export default function DiscoverScreen() {
       });
 
       if (dir === "right") {
-        // The moment asking about notifications makes sense: they have just
-        // said they want something, and the answer arrives later or not at all.
-        setHasLiked(true);
-        AsyncStorage.setItem(LIKED_KEY, "1").catch(() => {});
         const { match, error: matchErr } = await checkAndCreateMatch(userId, post.id);
         if (matchErr) setError(matchErr);
         if (match) {
@@ -443,8 +424,13 @@ export default function DiscoverScreen() {
             </Pressable>
           </Glass>
         </View>
-      ) : hasLiked && userId ? (
+      ) : userId ? (
         /**
+         * Offered from the first visit, not after the first like. Waiting for
+         * a like meant most people never saw it: on 2026-10-20 only 3 of 13
+         * accounts could be notified, the owner's not among them, and an app
+         * with a handful of users has no other way to bring anyone back.
+         *
          * Notifications are offered here, not only on Messages.
          *
          * The only ask used to live in the Messages list header, with the
