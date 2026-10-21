@@ -103,6 +103,8 @@ export type CreatorInfo = {
   avg_rating?: number;
   review_count?: number;
   verification_status?: "none" | "pending" | "verified";
+  /** Founding members carry the ✦ wherever their name appears. */
+  founding?: boolean;
 };
 
 export type PostWithCreator = CollabPost & {
@@ -188,6 +190,11 @@ export type Profile = {
   verification_status: "none" | "pending" | "verified";
   verified_at: string | null;
   created_at: string;
+  /** 23_scenes_invites_nights.sql. founding and member_since are server-set. */
+  scene?: string | null;
+  handle?: string | null;
+  founding?: boolean;
+  member_since?: string | null;
 };
 
 export const VIBE_PRESETS = [
@@ -259,7 +266,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url, verification_status")
+    .select("user_id, name, role, avatar_url, portfolio_urls, instagram_url, linkedin_url, verification_status, founding")
     .in("user_id", userIds);
 
   if (error) {
@@ -285,6 +292,7 @@ async function fetchCreators(userIds: string[]): Promise<Map<string, CreatorInfo
       avg_rating: r?.avg_rating,
       review_count: r?.review_count,
       verification_status: (p.verification_status as CreatorInfo["verification_status"]) ?? "none",
+      founding: p.founding === true,
     });
   }
   return map;
@@ -1138,9 +1146,11 @@ export async function getBlockedUsers(
   }
 }
 
+export type ReportKind = "user" | "post" | "message" | "event_message";
+
 export async function submitReport(
   reporterId: string,
-  targetKind: "user" | "post" | "message",
+  targetKind: ReportKind,
   targetId: string,
   reason: ReportReason,
   details?: string
