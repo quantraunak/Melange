@@ -4,13 +4,15 @@ import { CalendarDays, MapPin } from "lucide-react";
 
 import { RemoteImg, SiteFooter, SiteHeader } from "../../components/SiteChrome";
 import { formatNightWhen, getSharedEvent, sharedEventSummary } from "../../lib/publicData";
-import { APP_STORE_URL, IOS_LIVE } from "../../lib/site";
+import { nightHasEnded } from "../../lib/webRsvp";
+import NightRsvp from "../../components/NightRsvp";
 
 /**
  * A night's invite link (Invite friends in the app shares /n/<event_id>).
  * Readable signed out through get_shared_event, which only exposes first
- * names and photos of the people going. Nights are invite-only: the RSVP
- * happens in the app.
+ * names and photos of the people going. "I'm going" works without the app
+ * (rsvp_by_link: name + email); the app is the next step, not the gate.
+ * Canceled nights come back null from get_shared_event, so they 404.
  */
 
 type Props = { params: Promise<{ id: string }> };
@@ -43,10 +45,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** A photo, or for people without one (everyone who said yes on the web) their first initial. */
 function Face({ name, src }: { name: string | null; src: string | null }) {
-  const initial = (name ?? "").trim().charAt(0).toUpperCase() || "✦";
+  const initial = Array.from((name ?? "").trim())[0]?.toUpperCase() || "✦";
   return (
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-50 text-base font-semibold text-indigo-700 ring-2 ring-white">
+    <span
+      aria-hidden={src ? undefined : true}
+      className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-50 to-violet-100 text-lg font-semibold text-indigo-700 ring-2 ring-white"
+    >
       {src ? <RemoteImg src={src} alt={name ?? ""} className="h-full w-full object-cover" /> : initial}
     </span>
   );
@@ -58,7 +64,6 @@ export default async function SharedNightPage({ params }: Props) {
   if (!e) notFound();
 
   const when = formatNightWhen(e.start_at, e.end_at);
-  const openInApp = `melange://event/${e.id}`;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-white">
@@ -111,21 +116,8 @@ export default async function SharedNightPage({ params }: Props) {
           ) : null}
         </header>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          {IOS_LIVE ? (
-            <a
-              href={APP_STORE_URL}
-              className="melange-btn-primary inline-flex w-full items-center justify-center rounded-xl px-7 py-3.5 text-base font-semibold text-white sm:w-auto"
-            >
-              RSVP in Melange
-            </a>
-          ) : null}
-          <a
-            href={openInApp}
-            className="inline-flex w-full items-center justify-center rounded-xl border border-indigo-200 bg-white px-7 py-3.5 text-base font-semibold text-indigo-900 transition hover:bg-indigo-50 sm:w-auto"
-          >
-            Already have it? Open the app
-          </a>
+        <div className="mt-8">
+          <NightRsvp eventId={e.id} ended={nightHasEnded(e.start_at, e.end_at)} />
         </div>
 
         <section className="mt-10">

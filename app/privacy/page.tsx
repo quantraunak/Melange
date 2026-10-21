@@ -68,6 +68,8 @@ export default function PrivacyPage() {
                 RSVP &ldquo;going&rdquo;, your <strong>first name and profile photo</strong> can be shown on that
                 night&rsquo;s share page, along with the host&rsquo;s first name and photo and how many people are
                 going. Change your RSVP and you&rsquo;re no longer shown.
+                RSVPing on a night page stores your name and email to hold your spot and, if you join Melange
+                with that email, connect the RSVP to your account.
               </li>
               <li><strong>Reports</strong> and <strong>blocks</strong> are only visible to you and to our moderation team.</li>
             </ul>
