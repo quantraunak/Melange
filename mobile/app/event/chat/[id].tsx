@@ -106,7 +106,11 @@ export default function NightChatScreen() {
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "event_messages", filter: `event_id=eq.${id}` },
+        // No event_id filter on deletes: with RLS on, Realtime sends a
+        // DELETE with only the primary key, so a filter on event_id never
+        // matches and a deleted message would stay on everyone else's
+        // screen. Removing by id is harmless for ids that aren't in this chat.
+        { event: "DELETE", schema: "public", table: "event_messages" },
         (payload) => {
           const gone = (payload.old as { id?: string }).id;
           if (gone) setMessages((prev) => prev.filter((m) => m.id !== gone));
