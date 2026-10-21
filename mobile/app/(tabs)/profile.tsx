@@ -15,7 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ImageIcon, Camera, Settings as SettingsIcon } from "lucide-react-native";
+import { Camera, Settings as SettingsIcon } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { IdentityLine } from "@/components/IdentityLine";
@@ -227,7 +227,7 @@ export default function ProfileScreen() {
               accessibilityLabel="Settings"
               style={styles.settingsBtn}
             >
-              <SettingsIcon size={18} color={colors.brandText} />
+              <SettingsIcon size={18} color={colors.text} />
             </Pressable>
           }
         />
@@ -288,7 +288,12 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {work.length === 0 ? <Text style={styles.muted}>Nothing yet. It shows on Explore too.</Text> : null}
+          {work.length === 0 ? (
+            <Text style={styles.muted}>
+              Nothing yet. Tap Add and post a finished shoot, crediting who made it with you. It shows on
+              Explore too.
+            </Text>
+          ) : null}
 
           {work.map((w) => (
             <Pressable
@@ -306,8 +311,9 @@ export default function ProfileScreen() {
                    imageUrl.ts for why. */
                 <Image source={{ uri: sized(w.image, 44, 44) }} style={styles.thumb} />
               ) : (
+                // No photo: the title's first letter, in the serif, on paper.
                 <View style={[styles.thumb, styles.thumbEmpty]}>
-                  <ImageIcon size={16} color={colors.iconFaint} strokeWidth={1.6} />
+                  <Text style={styles.thumbLetter}>{w.title.trim().slice(0, 1).toUpperCase()}</Text>
                 </View>
               )}
               <View style={{ flex: 1 }}>
@@ -335,7 +341,7 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
           {projects.length === 0 ? (
-            <Text style={styles.muted}>Nothing open.</Text>
+            <Text style={styles.muted}>Nothing open. Tap Post to say what you&apos;re making and who you need.</Text>
           ) : (
             projects.map((p) => (
               <Pressable
@@ -369,7 +375,7 @@ export default function ProfileScreen() {
         {/* Account & safety, Events and Sign out used to end the page while
             the gear sat in the header: two homes for one thing. They are
             behind the gear. A founding code is the one quiet extra: it only
-            adds the ✦ now that anyone can sign up, so it sits last and goes
+            adds the founding mark now that anyone can sign up, so it sits last and goes
             away once you have the mark. */}
         {profile.founding ? null : <FoundingCodeRow onRedeemed={load} />}
       </ScrollView>
@@ -402,7 +408,7 @@ function FoundingCodeRow({ onRedeemed }: { onRedeemed: () => Promise<void> }) {
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     // The reload brings back founding = true, which unmounts this row and
-    // puts the ✦ in the header: that is the confirmation.
+    // puts the founding mark in the header: that is the confirmation.
     await onRedeemed();
     setBusy(false);
   };
@@ -475,13 +481,13 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: radii.pill,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.text,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: colors.bg,
   },
-  profileName: { ...typography.title, color: colors.text },
+  profileName: { ...typography.display2, color: colors.text },
   profileRole: { ...typography.body, color: colors.textSecondary },
   editLink: { alignSelf: "flex-start", marginTop: spacing.sm },
 
@@ -511,8 +517,14 @@ const styles = StyleSheet.create({
   rowTitle: { ...typography.bodyStrong, color: colors.text },
   rowMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
   rowWhen: { ...typography.micro, color: colors.textTertiary },
-  thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },
-  thumbEmpty: { alignItems: "center", justifyContent: "center" },
+  thumb: { width: 44, height: 44, borderRadius: radii.photo, backgroundColor: colors.bg },
+  thumbEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+  },
+  thumbLetter: { ...typography.display2 },
   muted: { ...typography.caption, color: colors.textSecondary },
 
 });

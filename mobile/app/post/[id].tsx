@@ -19,7 +19,6 @@ import {
   ChevronRight,
   Eye,
   MessageCircle,
-  Sparkles,
   Flag,
   MapPin,
   Pencil,
@@ -233,11 +232,13 @@ export default function ProjectDetailScreen() {
               )}
             />
           ) : (
+            // No photos: the title, set large on paper, is the poster.
             <View style={[styles.heroImg, styles.placeholder]}>
-              <Sparkles size={64} color={colors.iconFaint} strokeWidth={1.2} />
+              <Text style={styles.placeholderTitle} numberOfLines={4}>
+                {post.title}
+              </Text>
             </View>
           )}
-          <View pointerEvents="none" style={styles.heroFade} />
         </View>
 
         <View style={styles.body}>
@@ -248,10 +249,10 @@ export default function ProjectDetailScreen() {
               ))}
             </ChipRow>
           ) : null}
-          <Text style={styles.title}>{post.title}</Text>
+          {post.media_urls?.length ? <Text style={styles.title}>{post.title}</Text> : null}
           {post.description ? <Text style={styles.logline}>{post.description}</Text> : null}
 
-          <Glass radius={radii.md} style={styles.facts}>
+          <View style={styles.facts}>
             {dates ? <Fact icon={<CalendarDays size={16} color={colors.iconFaint} />} label="When" value={dates} /> : null}
             {post.location ? <Fact icon={<MapPin size={16} color={colors.iconFaint} />} label="Where" value={post.location} /> : null}
             {pay ? (
@@ -264,7 +265,7 @@ export default function ProjectDetailScreen() {
             {!dates && !post.location && !pay ? (
               <Text style={styles.factsEmpty}>No dates or pay listed yet. Ask in chat.</Text>
             ) : null}
-          </Glass>
+          </View>
 
           {isMine ? (
             <View style={styles.previewNote}>
@@ -423,17 +424,8 @@ const styles = StyleSheet.create({
   closeInlineText: { color: colors.textSecondary, fontFamily: fonts.semibold },
   hero: { height: HERO_H, width, backgroundColor: colors.surfaceSunken },
   heroImg: { width, height: HERO_H },
-  placeholder: { alignItems: "center", justifyContent: "center" },
-  heroFade: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: -1,
-    height: 24,
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
+  placeholder: { justifyContent: "flex-end", paddingHorizontal: 20, paddingBottom: 8, backgroundColor: colors.bg },
+  placeholderTitle: { ...typography.display1 },
   topBar: {
     position: "absolute",
     left: 16,
@@ -448,12 +440,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    ...shadows.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    ...shadows.float,
   },
   body: { paddingHorizontal: 20, gap: 14, marginTop: 16 },
   title: { ...typography.display2, marginTop: 2 },
   logline: { ...typography.body, color: colors.textSecondary },
-  facts: { padding: 14, gap: 12 },
+  facts: {
+    paddingVertical: 14,
+    gap: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+  },
   fact: { flexDirection: "row", alignItems: "center", gap: 10 },
   factLabel: { ...typography.caption, width: 64 },
   factValue: { ...typography.body, flex: 1, fontFamily: fonts.semibold },
@@ -476,10 +476,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     height: 50,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentSoft,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
   },
-  messageText: { ...typography.bodyStrong, color: colors.accentInk },
+  messageText: { ...typography.bodyStrong, color: colors.text },
   gate: {
     flexDirection: "row",
     alignItems: "center",
@@ -509,9 +511,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     height: 56,
-    borderRadius: radii.lg,
-    backgroundColor: colors.accent,
-    ...shadows.card,
+    borderRadius: radii.md,
+    backgroundColor: colors.brand,
   },
   applyText: { ...typography.headline, color: colors.white },
   applied: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 56 },

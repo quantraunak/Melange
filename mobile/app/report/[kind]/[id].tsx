@@ -103,7 +103,7 @@ export default function ReportScreen() {
                       {active ? <Check size={12} color={colors.white} /> : null}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.reasonLabel, active && { color: colors.brandText }]}>
+                      <Text style={styles.reasonLabel}>
                         {r.label}
                       </Text>
                       <Text style={styles.reasonHelp}>{r.help}</Text>
@@ -158,8 +158,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   reasonRowActive: {
-    backgroundColor: colors.surfaceSunken,
-    borderColor: colors.brandText,
+    backgroundColor: colors.surface,
+    borderColor: colors.text,
   },
   radio: {
     width: 18,
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   radioActive: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brand,
+    backgroundColor: colors.text,
+    borderColor: colors.text,
   },
   reasonLabel: { ...typography.bodyStrong, color: colors.text },
   reasonHelp: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },

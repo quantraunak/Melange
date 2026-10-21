@@ -337,7 +337,7 @@ export default function DiscoverScreen() {
           </View>
         ) : !current ? (
           <View style={[styles.centered, { paddingBottom: barTop + GUTTER }]}>
-            <Glass style={styles.empty} elevated>
+            <View style={styles.empty}>
               {search ? (
                 <>
                   <Text style={styles.emptyTitle}>No projects match that.</Text>
@@ -347,8 +347,11 @@ export default function DiscoverScreen() {
                 </>
               ) : catalogueSize && catalogueSize > 0 ? (
                 <>
-                  <Text style={styles.emptyTitle}>You&apos;re all caught up.</Text>
-                  <Text style={styles.emptyBody}>Meet more people at a night.</Text>
+                  <Text style={styles.emptyTitle}>You&apos;ve seen every open project.</Text>
+                  <Text style={styles.emptyBody}>
+                    New ones show up when people post. Until then, the fastest way to meet someone
+                    is to go to a night.
+                  </Text>
                   <Pressable
                     onPress={() => router.push("/(tabs)/nights")}
                     style={styles.emptyCta}
@@ -359,13 +362,17 @@ export default function DiscoverScreen() {
               ) : (
                 <>
                   <Text style={styles.emptyTitle}>No open projects right now.</Text>
+                  <Text style={styles.emptyBody}>
+                    Post the first one. Say what you&apos;re making and who you need, like
+                    &ldquo;portrait series, need a model, Saturday morning.&rdquo;
+                  </Text>
                   <Pressable onPress={() => router.push("/post/new")} style={styles.emptyCta}>
                     <Plus size={14} color={colors.onBrand} />
                     <Text style={styles.emptyCtaText}>Post a project</Text>
                   </Pressable>
                 </>
               )}
-            </Glass>
+            </View>
           </View>
         ) : (
           <>
@@ -519,7 +526,7 @@ const styles = StyleSheet.create({
   gateLine: { ...typography.bodyStrong, flex: 1, color: colors.text },
   gateAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   deck: { ...StyleSheet.absoluteFillObject },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  centered: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
 
   topControls: {
     position: "absolute",
@@ -534,9 +541,9 @@ const styles = StyleSheet.create({
 
   errorSlot: { position: "absolute", left: GUTTER, right: GUTTER },
 
-  empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyTitle: { ...typography.headline, textAlign: "center" },
-  emptyBody: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+  empty: { paddingVertical: 40, alignItems: "flex-start", gap: 10 },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary },
   emptyLink: { ...typography.caption, fontFamily: "Inter_600SemiBold", color: colors.brandText, marginTop: 4 },
   emptyCta: {
     flexDirection: "row",
@@ -545,7 +552,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     paddingHorizontal: GUTTER,
     paddingVertical: 12,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
     marginTop: 8,
   },
   emptyCtaText: { ...typography.bodyStrong, color: colors.onBrand },

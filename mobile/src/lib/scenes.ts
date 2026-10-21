@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
  * Scenes, founding codes and handles (23_scenes_invites_nights.sql, 24_open_doors_and_posting.sql).
  *
  * Melange starts in scenes. Anyone can sign up; a founding code is an
- * optional extra that grants the ✦. Every call here awaits the
+ * optional extra that grants the founding mark. Every call here awaits the
  * request and returns its error: an RPC builder that is never awaited never
  * sends, and a screen that reports success off one is the defect this app
  * keeps shipping.

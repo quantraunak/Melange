@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     borderWidth: 1,
   },
   label: { fontFamily: fonts.semibold },

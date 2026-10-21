@@ -162,7 +162,10 @@ export default function MessagesScreen() {
       ListEmptyComponent={
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>No messages yet</Text>
-          <Text style={styles.emptyBody}>Message anyone from their profile, work or a night.</Text>
+          <Text style={styles.emptyBody}>
+            When someone you liked likes you back, the chat opens here. You can also message anyone
+            from their profile, their work, or a night you both went to.
+          </Text>
         </View>
       }
       renderItem={({ item }) => (
@@ -243,13 +246,13 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   name: { ...typography.bodyStrong, flex: 1, color: colors.text },
   time: { ...typography.micro, color: colors.textSecondary },
-  timeUnread: { color: colors.brandText, fontFamily: fonts.semibold },
+  timeUnread: { color: colors.text, fontFamily: fonts.semibold },
   rowBottom: { flexDirection: "row", alignItems: "center", gap: 5 },
   preview: { flex: 1, ...typography.caption, color: colors.textSecondary },
   previewUnread: { color: colors.text, fontFamily: fonts.semibold },
   unreadDot: { width: 9, height: 9, borderRadius: radii.pill, backgroundColor: colors.accent },
 
-  empty: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xxxl },
-  emptyTitle: { ...typography.headline, color: colors.text },
-  emptyBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center", maxWidth: 280 },
+  empty: { gap: spacing.sm, paddingVertical: spacing.xxl },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary, maxWidth: 340 },
 });

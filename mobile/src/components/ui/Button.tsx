@@ -82,7 +82,7 @@ function variantPalette(v: Variant) {
     case "primary":
       return { bg: colors.brand, fg: colors.onBrand, border: undefined };
     case "secondary":
-      return { bg: colors.surfaceSunken, fg: colors.brandText, border: undefined };
+      return { bg: colors.surfaceSunken, fg: colors.text, border: undefined };
     case "outline":
       return { bg: colors.surface, fg: colors.text, border: colors.lineStrong };
     case "ghost":
@@ -105,7 +105,7 @@ function sizeDims(s: Size) {
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -17,7 +17,7 @@ import { Avatar } from "@/components/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { colors, fonts, GUTTER, radii, shadows, typography, inputText } from "@/lib/theme";
+import { colors, fonts, GUTTER, radii, typography, inputText } from "@/lib/theme";
 import { trackEvent } from "@/lib/analytics";
 import {
   checkAndCreateMatch,
@@ -301,8 +301,8 @@ export function BrowseGrid({ userId }: { userId: string }) {
                     <Image source={{ uri: thumb }} style={styles.thumb} />
                   ) : (
                     <View style={[styles.thumb, styles.thumbEmpty]}>
-                      <Text style={styles.thumbEmptyText}>
-                        {post.title.charAt(0).toUpperCase()}
+                      <Text style={styles.thumbEmptyText} numberOfLines={4}>
+                        {post.title}
                       </Text>
                     </View>
                   )}
@@ -428,7 +428,9 @@ function OpenCollabsStrip({
                 <Image source={{ uri: thumb }} style={styles.stripImg} />
               ) : (
                 <View style={[styles.stripImg, styles.thumbEmpty]}>
-                  <Text style={styles.thumbEmptyText}>{p.title.charAt(0).toUpperCase()}</Text>
+                  <Text style={styles.thumbEmptyText} numberOfLines={3}>
+                    {p.title}
+                  </Text>
                 </View>
               )}
               <View style={styles.stripBody}>
@@ -451,14 +453,15 @@ const styles = StyleSheet.create({
   strip: { gap: 8 },
   stripHead: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 2 },
   stripTitle: { ...typography.bodyStrong, color: colors.text },
-  stripCount: { ...typography.micro, fontFamily: fonts.semibold, color: colors.accentInk, backgroundColor: colors.accentSoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: radii.pill, overflow: "hidden" },
+  stripCount: { ...typography.micro, fontFamily: fonts.semibold, color: colors.textSecondary },
   stripRow: { gap: 10, paddingRight: 4 },
   stripCard: {
     width: STRIP_W,
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     overflow: "hidden",
-    ...shadows.card,
   },
   stripImg: { width: STRIP_W, height: 110, backgroundColor: colors.surfaceSunken },
   stripBody: { padding: 10, gap: 6 },
@@ -479,7 +482,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  filterBtnOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  filterBtnOn: { backgroundColor: colors.text, borderColor: colors.text },
 
   filters: { gap: 8 },
   chipRow: { flexDirection: "row", gap: 8 },
@@ -489,13 +492,13 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     backgroundColor: colors.surface,
   },
   chipWide: { alignSelf: "flex-start" },
-  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipOn: { backgroundColor: colors.text, borderColor: colors.text },
   chipText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   chipTextOn: { color: colors.white },
 
@@ -519,14 +522,15 @@ const styles = StyleSheet.create({
   tile: {
     width: COLUMN_WIDTH,
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     overflow: "hidden",
-    ...shadows.card,
   },
   thumbWrap: { position: "relative" },
   thumb: { width: "100%", height: COLUMN_WIDTH, backgroundColor: colors.surfaceSunken },
-  thumbEmpty: { alignItems: "center", justifyContent: "center" },
-  thumbEmptyText: { ...typography.display1, color: colors.brandText, opacity: 0.5 },
+  thumbEmpty: { justifyContent: "flex-end", backgroundColor: colors.bg, padding: 10 },
+  thumbEmptyText: { ...typography.display2 },
 
   statusPill: {
     position: "absolute",
@@ -534,7 +538,7 @@ const styles = StyleSheet.create({
     left: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
   },
   statusLiked: { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentSoft },
   statusPassed: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong },
@@ -548,8 +552,8 @@ const styles = StyleSheet.create({
     left: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(30,58,138,0.85)",
+    borderRadius: radii.sm,
+    backgroundColor: colors.text,
   },
   payPillText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.white },
 
@@ -575,14 +579,14 @@ const styles = StyleSheet.create({
   },
   likeBtnDone: { backgroundColor: colors.accent, borderColor: colors.accent },
 
-  empty: { paddingVertical: 48, alignItems: "center", gap: 6, paddingHorizontal: 24 },
-  emptyTitle: { ...typography.bodyStrong, color: colors.text },
-  emptyBody: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+  empty: { paddingVertical: 48, alignItems: "flex-start", gap: 6 },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary },
   clearAll: {
     marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.lineStrong,
   },

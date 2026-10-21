@@ -87,7 +87,7 @@ export function HeartButton({
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Heart size={18} color={on ? colors.danger : colors.textSecondary} fill={on ? colors.danger : "transparent"} />
+      <Heart size={18} color={on ? colors.text : colors.textSecondary} fill={on ? colors.text : "transparent"} />
       {label ? <Text style={[styles.text, on && styles.textOn]}>{on ? "Hearted" : "Heart"}</Text> : null}
     </Pressable>
   );
@@ -102,12 +102,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     height: 48,
     paddingHorizontal: spacing.lg,
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     backgroundColor: colors.surface,
   },
-  pillOn: { borderColor: colors.dangerLine, backgroundColor: colors.dangerSoft },
+  // Hearted is ink: red is kept for destructive confirmation.
+  pillOn: { borderColor: colors.text },
   text: { ...typography.bodyStrong, fontFamily: fonts.semibold, color: colors.textSecondary },
-  textOn: { color: colors.dangerText },
+  textOn: { color: colors.text },
 });

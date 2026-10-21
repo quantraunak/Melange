@@ -11,7 +11,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { CalendarDays, Heart, Image as ImageIcon, MapPin, X } from "lucide-react-native";
+import { CalendarDays, Heart, MapPin, X } from "lucide-react-native";
 
 import { colors, GUTTER, motion, radii, shadows, typography } from "@/lib/theme";
 import { payLabel, projectDates, projectRoles, type PostWithCreator } from "@/lib/db";
@@ -102,9 +102,12 @@ function Poster({
           cachePolicy="memory-disk"
         />
       ) : (
+        // No photo: the title, set large on paper. Never a stand-in graphic.
         <View style={styles.placeholder}>
-          <ImageIcon size={56} color={colors.iconFaint} strokeWidth={1.75} />
-          <Text style={styles.placeholderText}>No photo yet</Text>
+          <Text style={styles.placeholderTitle} numberOfLines={4}>
+            {post.title}
+          </Text>
+          <Text style={styles.placeholderText}>No photos yet</Text>
         </View>
       )}
     </View>
@@ -519,8 +522,8 @@ export function SwipeCard({
       <Animated.View style={[styles.card, { bottom: barTop }, animatedStyle]}>
         <Poster post={post} imageIndex={imageIndex} height={SCREEN_H - barTop} />
 
-        {/* The only gradient in the app: keeps the dark status bar legible. */}
-        <Scrim height={topInset + 48} />
+        {/* A flat paper band under the status bar, so its dark glyphs read on any photo. */}
+        <Scrim height={topInset} />
 
         {images > 1 ? (
           <View style={styles.pagingRow} pointerEvents="box-none">
@@ -580,12 +583,14 @@ const styles = StyleSheet.create({
   poster: { ...StyleSheet.absoluteFillObject, margin: -24 },
   placeholder: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
+    // Inside the 24pt overscan, and clear of the status bar and the plate.
+    paddingHorizontal: GUTTER + 24,
+    paddingTop: 140,
     gap: 12,
     backgroundColor: colors.bg,
   },
-  placeholderText: { ...typography.caption, color: colors.textTertiary },
+  placeholderTitle: { ...typography.display1 },
+  placeholderText: { ...typography.caption },
 
   pagingRow: { ...StyleSheet.absoluteFillObject, flexDirection: "row" },
   pageZone: { width: "32%", height: "100%" },
@@ -614,8 +619,8 @@ const styles = StyleSheet.create({
   segmentOn: { backgroundColor: colors.white },
 
   tint: { ...StyleSheet.absoluteFillObject },
-  tintLike: { backgroundColor: "rgba(124,58,237,0.18)" },
-  tintPass: { backgroundColor: "rgba(17,24,39,0.22)" },
+  tintLike: { backgroundColor: "rgba(55,48,163,0.18)" },
+  tintPass: { backgroundColor: "rgba(20,20,20,0.22)" },
   verdict: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   verdictRing: {
     width: 120,
@@ -679,7 +684,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.lineStrong,
   },
-  verbAccent: { backgroundColor: colors.accent, ...shadows.card },
+  // Like is this screen's one primary action, so it is the one indigo fill.
+  verbAccent: { backgroundColor: colors.brand },
   // Absolute, so Pass and Like centre on the screen's spine rather than on
   // the bounding box of all three controls.
   undo: { position: "absolute", left: GUTTER, height: 44, justifyContent: "center" },

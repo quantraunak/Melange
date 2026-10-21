@@ -266,7 +266,7 @@ export const profileStyles = StyleSheet.create({
   rowTitle: { ...typography.bodyStrong, color: colors.text },
   rowMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
   rowWhen: { ...typography.micro, color: colors.textTertiary },
-  thumb: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.bg },
+  thumb: { width: 44, height: 44, borderRadius: radii.photo, backgroundColor: colors.bg },
   thumbEmpty: { backgroundColor: colors.surfaceSunken },
 });
 
@@ -275,13 +275,14 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.xs },
   ratingText: { ...typography.caption, color: colors.text },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  // On the page, set off by a rule at the left like a pull quote; not a box.
   lookingFor: {
     gap: 2,
-    padding: spacing.md,
-    borderRadius: radii.sm,
-    backgroundColor: colors.accentSoft,
+    paddingLeft: spacing.md,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.text,
   },
-  label: { ...typography.micro, fontFamily: fonts.semibold, color: colors.accentInk, textTransform: "uppercase" },
+  label: { ...typography.eyebrow },
   body: { ...typography.body, color: colors.text },
   bio: { ...typography.body, color: colors.textSecondary },
   linkChip: {
@@ -290,14 +291,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     backgroundColor: colors.surface,
   },
   linkText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  tile: { width: TILE, height: TILE_H, borderRadius: radii.sm, backgroundColor: colors.surfaceSunken },
+  tile: { width: TILE, height: TILE_H, borderRadius: radii.photo, backgroundColor: colors.surfaceSunken },
   review: {
     gap: spacing.sm,
     paddingVertical: 10,

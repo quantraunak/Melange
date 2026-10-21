@@ -208,7 +208,6 @@ export default function NewEventScreen() {
                 onPress={() => setCategory(c.id)}
                 style={[styles.catChip, on && styles.catChipOn]}
               >
-                <Text style={styles.catEmoji}>{c.emoji}</Text>
                 <Text style={[styles.catText, on && styles.catTextOn]}>{c.label}</Text>
               </Pressable>
             );
@@ -233,7 +232,7 @@ export default function NewEventScreen() {
           <TextArea
             value={description}
             onChangeText={setDescription}
-            placeholder="What to bring, meetup spot, vibe..."
+            placeholder="Meet at the fountain at 6. Bring a film camera if you have one."
             numberOfLines={4}
           />
         </Field>
@@ -302,7 +301,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.lineStrong,
   },
-  headerTitle: { ...typography.headline, color: colors.brandText },
+  headerTitle: { ...typography.headline },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
   hint: { ...typography.caption, color: colors.textSecondary },
   coverBox: {
@@ -323,16 +322,15 @@ const styles = StyleSheet.create({
   catChip: {
     width: "30%",
     minWidth: 96,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     alignItems: "center",
     backgroundColor: colors.white,
   },
-  catChipOn: { borderColor: colors.brandText, backgroundColor: colors.surfaceSunken },
-  catEmoji: { ...typography.headline },
-  catText: { ...typography.micro, color: colors.textSecondary, textAlign: "center", marginTop: 2 },
-  catTextOn: { color: colors.brandText, fontFamily: fonts.semibold },
+  catChipOn: { borderColor: colors.text, backgroundColor: colors.surface },
+  catText: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
+  catTextOn: { color: colors.text, fontFamily: fonts.semibold },
   input: { ...inputText, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, backgroundColor: colors.white },
 });

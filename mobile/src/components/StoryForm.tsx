@@ -19,7 +19,6 @@ import { ArrowLeft, ArrowRight, ImagePlus, Plus, UserPlus, X } from "lucide-reac
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Chip, ChipRow } from "@/components/ui/Chip";
-import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
@@ -326,14 +325,14 @@ export function StoryForm({
               />
             </Field>
 
-            <Glass variant="flat" style={styles.privacyNote}>
+            <View style={styles.privacyNote}>
               <Text style={styles.privacyText}>
                 People who want to work with you tap{" "}
                 <Text style={styles.privacyStrong}>Work with me</Text>, which goes through the
                 usual like and match. Nobody gets a way to contact you directly unless you both
                 say yes.
               </Text>
-            </Glass>
+            </View>
           </>
         ) : null}
 
@@ -522,9 +521,6 @@ function CreditsStep({
             onPress={addTyped}
             style={({ pressed }) => [styles.resultRow, styles.typedRow, pressed && { opacity: 0.85 }]}
           >
-            <View style={styles.typedIcon}>
-              <UserPlus size={16} color={colors.iconFaint} />
-            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.resultName}>Add “{query.trim()}”</Text>
               <Text style={styles.resultRole}>
@@ -558,7 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.lineStrong,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     paddingVertical: 9,
     paddingHorizontal: 14,
   },
@@ -583,14 +579,7 @@ const styles = StyleSheet.create({
     borderColor: colors.lineStrong,
   },
   typedRow: { borderStyle: "dashed" },
-  typedIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.md,
-    backgroundColor: colors.bg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
   resultName: { ...typography.body, fontFamily: fonts.semibold },
   resultRole: { ...typography.micro },
 
@@ -637,7 +626,8 @@ const styles = StyleSheet.create({
   },
   imageAddText: { ...typography.micro, fontFamily: fonts.semibold },
 
-  privacyNote: { padding: 14 },
+  // A note on the page, set off by a rule; not a box.
+  privacyNote: { paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: colors.lineStrong },
   privacyText: { ...typography.caption, lineHeight: 19 },
   privacyStrong: { color: colors.text, fontFamily: fonts.semibold },
 

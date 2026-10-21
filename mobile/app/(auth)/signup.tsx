@@ -122,12 +122,12 @@ export default function Signup() {
         >
           <View style={styles.topBar}>
             <Pressable hitSlop={16} onPress={() => router.back()}>
-              <ArrowLeft size={22} color={colors.white} />
+              <ArrowLeft size={22} color={colors.text} />
             </Pressable>
           </View>
 
           <View style={styles.header}>
-            <Logo size={56} />
+            <Logo size={40} />
             <Text style={styles.title}>Create your profile</Text>
             <Text style={styles.subtitle}>Only takes a minute.</Text>
           </View>
@@ -178,7 +178,7 @@ export default function Signup() {
                       onPress={() => setRole(r.id)}
                     >
                       {selected ? (
-                        <Check size={14} color={colors.brandText} style={{ marginRight: 4 }} />
+                        <Check size={14} color={colors.text} style={{ marginRight: 4 }} />
                       ) : null}
                       <Text style={[styles.rolePillText, selected && styles.rolePillTextSelected]}>
                         {r.label}
@@ -264,16 +264,14 @@ export default function Signup() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.brand },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
+  safe: { flex: 1, backgroundColor: colors.bg },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32 },
   topBar: { paddingTop: 8, paddingBottom: 12 },
-  header: { alignItems: "center", marginBottom: 16, gap: 6 },
-  title: { ...typography.title, color: colors.white, marginTop: 8 },
-  subtitle: { ...typography.caption, color: colors.onBrandMuted },
+  header: { alignItems: "flex-start", marginBottom: 24, gap: 6 },
+  title: { ...typography.display1, marginTop: 16 },
+  subtitle: { ...typography.body, color: colors.textSecondary },
+  // The form sits on the page; nothing here is a card.
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 20,
     gap: 12,
   },
   row: { flexDirection: "row", gap: 12 },
@@ -286,14 +284,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
   },
   rolePillSelected: {
-    backgroundColor: colors.surfaceSunken,
-    borderColor: colors.brandText,
+    backgroundColor: colors.surface,
+    borderColor: colors.text,
   },
   rolePillText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
-  rolePillTextSelected: { color: colors.brandText },
+  rolePillTextSelected: { color: colors.text },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 4 },
   footerText: { ...typography.caption, color: colors.textSecondary },
   footerLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
@@ -315,8 +313,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxOn: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brand,
+    backgroundColor: colors.text,
+    borderColor: colors.text,
   },
   termsText: { ...typography.caption, flex: 1, color: colors.textSecondary },
   termsLink: {

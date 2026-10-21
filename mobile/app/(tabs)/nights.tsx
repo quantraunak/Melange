@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ChevronRight, Heart } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 
 import { NightCard } from "@/components/NightCard";
 import { ScreenTitle } from "@/components/ScreenTitle";
@@ -125,12 +125,11 @@ export default function NightsScreen() {
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.glowRow, pressed && { opacity: 0.7 }]}
               >
-                <Heart size={18} color={colors.accent} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.glowTitle} numberOfLines={1}>
                     {e.title}
                   </Text>
-                  <Text style={styles.glowMeta}>Heart who you met</Text>
+                  <Text style={styles.glowMeta}>Heart anyone you&apos;d like to see again</Text>
                 </View>
                 <ChevronRight size={16} color={colors.iconFaint} />
               </Pressable>
@@ -150,7 +149,11 @@ export default function NightsScreen() {
             <Text style={styles.emptyTitle}>
               {scope === "scene" && label ? `No nights in ${label} yet` : "No nights coming up"}
             </Text>
-            <Button title="Host one" variant="primary" onPress={() => router.push("/event/new")} />
+            <Text style={styles.emptyBody}>
+              Host one: pick a time and a place, say what to bring. Everyone who says they&apos;re going
+              gets a group chat.
+            </Text>
+            <Button title="Host a night" variant="primary" onPress={() => router.push("/event/new")} />
           </View>
         ) : (
           <View style={{ gap: spacing.lg }}>
@@ -173,12 +176,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    backgroundColor: colors.accentSoft,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
   },
   glowTitle: { ...typography.bodyStrong },
-  glowMeta: { ...typography.caption, color: colors.accentInk },
-  empty: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.xxxl },
-  emptyTitle: { ...typography.headline, textAlign: "center" },
+  glowMeta: { ...typography.caption },
+  empty: { alignItems: "flex-start", gap: spacing.md, paddingVertical: spacing.xxl },
+  emptyTitle: { ...typography.display2 },
+  emptyBody: { ...typography.body, color: colors.textSecondary },
 });

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Bell, X } from "lucide-react-native";
+import { X } from "lucide-react-native";
 
 import { colors, fonts, spacing, typography } from "@/lib/theme";
 import { getPushPermission, registerForPushAsync } from "@/lib/push";
@@ -62,7 +62,6 @@ export function PushPrimer({ userId }: { userId: string }) {
 
   return (
     <View style={styles.bar}>
-      <Bell size={15} color={colors.textSecondary} />
       {/* One line, five words: it sits above people's conversations and
           should never be the loudest thing there. */}
       <Text style={styles.text} numberOfLines={1}>

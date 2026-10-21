@@ -1,18 +1,9 @@
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  ChevronRight,
-  FileText,
-  LifeBuoy,
-  LogOut,
-  ShieldOff,
-  Trash2,
-  User,
-} from "lucide-react-native";
+import { ArrowLeft, ChevronRight } from "lucide-react-native";
 
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 
 /**
@@ -35,40 +26,33 @@ export default function SettingsScreen() {
     ]);
 
   const rows: {
-    icon: React.ReactNode;
     label: string;
     onPress: () => void;
     danger?: boolean;
   }[] = [
     {
-      icon: <User size={18} color={colors.iconFaint} />,
       label: "Edit profile",
       onPress: () => router.push("/account/edit-profile"),
     },
     {
-      icon: <ShieldOff size={18} color={colors.iconFaint} />,
       label: "Blocked users",
       onPress: () => router.push("/account/blocked"),
     },
     {
       // The only published contact used to be support@melange.app, a parked
       // domain we don't own. The form reaches a person (21_trust_and_support.sql).
-      icon: <LifeBuoy size={18} color={colors.iconFaint} />,
       label: "Help & support",
       onPress: () => Linking.openURL("https://melange-psi.vercel.app/support"),
     },
     {
-      icon: <FileText size={18} color={colors.iconFaint} />,
       label: "Privacy & terms",
       onPress: () => Linking.openURL("https://melange-psi.vercel.app/privacy"),
     },
     {
-      icon: <LogOut size={18} color={colors.iconFaint} />,
       label: "Sign out",
       onPress: onSignOut,
     },
     {
-      icon: <Trash2 size={18} color={colors.dangerText} />,
       label: "Delete account",
       onPress: () => router.push("/account/delete"),
       danger: true,
@@ -79,7 +63,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Back">
-          <ArrowLeft size={22} color={colors.iconFaint} />
+          <ArrowLeft size={22} color={colors.text} />
         </Pressable>
         <Text style={styles.title}>Settings</Text>
         <View style={{ width: 22 }} />
@@ -89,11 +73,10 @@ export default function SettingsScreen() {
         {rows.map((row) => (
           <Pressable
             key={row.label}
-            style={[styles.row, row.danger && { borderColor: colors.dangerLine }]}
+            style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
             onPress={row.onPress}
             accessibilityRole="button"
           >
-            {row.icon}
             <Text style={[styles.rowText, row.danger && { color: colors.dangerText }]}>
               {row.label}
             </Text>
@@ -115,16 +98,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   title: { ...typography.headline, color: colors.text },
-  body: { padding: 16, gap: 10 },
+  body: { paddingHorizontal: 16, paddingTop: 8 },
+  // Plain rows on the page, a hairline between them.
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    borderRadius: radii.sm,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
   },
   rowText: { ...typography.body, flex: 1, color: colors.text },
 });
