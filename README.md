@@ -1,125 +1,137 @@
 # Melange
 
-**Where creative people find their next collaboration.**
+**Small nights for people who make things.** A host, a place and a start
+time; a friend sends you the link; you go, meet the people there, and find
+them again in the app afterwards.
 
-A photographer needs a model. A model needs a stylist. A filmmaker needs a whole crew. Right now that all happens through Instagram DMs and group chats. Melange is a place built for it: post what you're working on, swipe through other people's projects, match when you both like each other's work, and message to plan the shoot.
+iOS app on the [App Store](https://apps.apple.com/app/id6774481477) ·
+website at [melange-psi.vercel.app](https://melange-psi.vercel.app) ·
+built and run by one engineer (Raunak Sood), with Jolea on community.
 
-**[Try the web app](https://melange-psi.vercel.app)** · **[iOS app setup](./mobile/README.md)**
+<p>
+  <img src="public/screenshots/discover.png" width="230" alt="Discover" />
+  <img src="public/screenshots/explore.png" width="230" alt="Explore" />
+  <img src="public/screenshots/showcase.png" width="230" alt="A shoot with credits" />
+</p>
 
-> **Where things actually stand:** read [`docs/STATUS.md`](./docs/STATUS.md) first. It has the real numbers, what works, what's broken, and what's blocking launch — no spin.
->
-> For the reasoning behind the product, read [`docs/STRATEGY.md`](./docs/STRATEGY.md).
+---
 
-## What's in this repo
+## What it does
 
-| Folder | What it is |
+1. **A friend sends you a night.** The link shows the place, the time, the
+   host and the first names of who's going. You can say yes with a name and
+   an email — no app needed yet.
+2. **Before it, you meet the room.** In the app you see who's going and talk
+   in the night's group chat.
+3. **After it, the night stays with the people who were there.** Its photos
+   are private to them, people tag each other, and for three days you can
+   quietly heart anyone you'd see again. A heart is only revealed if it's
+   mutual.
+4. **Between nights,** Discover finds people in your scene and Explore is
+   the scene's wall of work, credited to everyone who made it.
+
+## By the numbers
+
+| | |
 |---|---|
-| `app/` | The website (Next.js) |
-| `mobile/` | The iPhone app (Expo / React Native) |
-| `supabase/` | The database, security rules, and the server function that sends push notifications |
-| `docs/` | Strategy, status, roadmap, design, setup guides |
-| `scripts/` | Admin tools — apply a database change, wipe test data, seed demo accounts |
+| App Store releases | 9 shipped: 1.0 in May 2026, then 1.2 → 1.8 between Oct 9 and Oct 20 |
+| Database migrations | 25, every one idempotent; the last five tested against production inside a rolled-back transaction before applying |
+| Code | ~35k lines of TypeScript and SQL across an Expo app, a Next.js site and Postgres |
+| Production bugs found by querying the live database | ~40, most of them the "reports success, does nothing" kind |
+| Users | early: about a dozen accounts. This is a working product, not a traction story yet. |
 
-Both apps share one database. Sign up on your phone, sign in on the web, same account and same messages.
+## Engineering worth looking at
 
-## How it works, for a user
+**Privacy and safety enforced by the database, not the client.** Both apps
+talk straight to Postgres with a public key, so every rule lives in row-level
+security and `SECURITY DEFINER` functions
+([`supabase/schema`](supabase/schema)). A few examples:
 
-1. **Sign up** — name, role, skills, bio.
-2. **Post a collaboration** — what you're looking for, where, paid or unpaid, up to 5 photos.
-3. **Swipe** through other people's posts.
-4. **Match** when you both swipe right.
-5. **Message** to plan the shoot.
+- **Mutual-only reveals.** Hearts between people from the same night go in a
+  table with RLS on and *no read policy at all*; the only way in is a
+  function that tells you about a heart when it's mutual
+  ([`23_scenes_invites_nights.sql`](supabase/schema/23_scenes_invites_nights.sql)).
+  The first design reused the app's general hearts table — which notifies the
+  recipient on insert — and would have leaked every one-way heart.
+- **Private night photos.** A storage bucket whose read policy derives
+  membership from the object path, so a photo is visible only to the host and
+  the people going, and nobody can upload under someone else's name
+  ([`25_web_rsvp_and_night_photos.sql`](supabase/schema/25_web_rsvp_and_night_photos.sql)).
+- **Server-only fields.** Verification status and founding status are guarded
+  by triggers that ignore client writes, after an audit found any user could
+  give themselves the verified badge with one API call
+  ([`21_trust_and_support.sql`](supabase/schema/21_trust_and_support.sql)).
 
-There's also an events tab (photo walks, open calls, gallery openings) and a portfolio gallery on your profile.
+**Testing migrations against production without changing it.** Every recent
+migration was run inside `BEGIN … ROLLBACK` against the live database with
+behavior tests that impersonate real roles (`SET LOCAL ROLE authenticated`,
+forged JWT claims): can an outsider read the night chat, can a spoofed upload
+path get through, does a second invite code get refused. That caught a policy
+someone had added in the dashboard — present in production, in no migration —
+that let signed-out visitors read every profile.
 
-## What's built
+**The bug class that shaped the codebase.** The recurring defect was
+"something reports success while doing nothing": a zero-row `UPDATE` returns
+no error; a `void supabase.rpc(...)` never sends because the builder is lazy
+(that one silently dropped five months of analytics); push webhooks configured
+by a comment telling a human to click through a dashboard, which nobody did.
+The fixes moved configuration into migrations
+([`12_push_webhooks.sql`](supabase/schema/12_push_webhooks.sql)) and made
+"await it and check the error" a house rule.
 
-Everything below works on **both** the website and the iPhone app:
+**A security pass a reviewer would actually find.** The published support
+address was on a parked domain someone else owned (mail to it could never
+arrive, and its buyer could have reset the review accounts); demo passwords
+were in the public repo; toggling a heart could buzz someone's phone
+indefinitely; a heart you *sent* lifted the cold-message limit. Each is fixed
+and the reasoning is in the migration that fixed it.
 
-- Sign up and sign in, with sessions that persist
-- Full profile editing, including avatar and up to 9 portfolio images
-- Posts with photos, location, pay, and tags — create, edit, delete
-- Swipe feed with search, filtered by who you've blocked
-- Matching, and live chat with unread counts that stay in sync across devices
-- Password reset by email, on both the website and the phone
-- Events — create one, browse by city, RSVP
-- "Vibe" tags that influence what shows up in your feed
-- Reviews after a collaboration, visible on both profiles
-- Block and report, for users, posts, and messages
-- Delete your account from inside the app
-- Every database table is locked down so you can only read and write your own data
+**Shipping from the command line.** EAS builds, an App Store Connect API
+script ([`scripts/asc.mjs`](scripts/asc.mjs)) that creates versions, attaches
+builds and submits for review, and `fastlane` for screenshots — so a release
+is a few commands, not an afternoon in a web console.
 
-**iPhone-only extras:** native swipe gestures, push notifications for matches and messages, an intro carousel before signup, undo on a mis-swipe, a full-screen match moment, read receipts, and unmatch.
+## Product decisions, and why
 
-**Not built yet:** travel mode ("I'm in NYC next week") and Shoot Diary (posting the results of a collaboration). See [`docs/ROADMAP.md`](./docs/ROADMAP.md).
+Melange started as "swipe to find creative collaborators." Research said
+that wouldn't work: a free collaboration has no transaction to build a
+business on, Instagram already does the introduction, and similar apps had
+stalled for the same reasons ([`docs/MARKET_RESEARCH_2026-10.md`](docs/MARKET_RESEARCH_2026-10.md)).
+
+A second pass studied ~50 consumer social and in-person companies from
+2023–2026 — what grew, what faded and why
+([`docs/RESEARCH_2026.md`](docs/RESEARCH_2026.md)). The current design follows
+what the evidence pointed to:
+
+- **The invite works before the download** (Partiful's loop) → anyone can
+  RSVP from a night's web page.
+- **Private content of you and your people beats public feeds** (Locket,
+  Retro) → night photos are visible only to the people who were there.
+- **A recurring real-world occasion beats a clever mechanic** (Poparazzi,
+  BeReal, Clubhouse faded; Timeleft, run clubs grew) → the product is built
+  around nights, and the app is where they continue.
+- **Dense in one place before anywhere else** → scenes, starting with LA.
 
 ## How it's built
 
-There is no backend server. Both apps talk straight to Supabase, and the database itself enforces who can see what.
+| | Website | iOS app | Backend |
+|---|---|---|---|
+| | Next.js (App Router), Tailwind | Expo / React Native, expo-router | Supabase: Postgres, Auth, Storage, Realtime, Edge Functions |
+| Hosting | Vercel | App Store | Supabase |
 
-| | Website | iPhone app |
-|---|---|---|
-| Framework | Next.js | Expo |
-| Language | TypeScript | TypeScript |
-| Look and feel | React + Tailwind | React Native |
-| Database, login, file storage, live updates | Supabase | Supabase |
-| Where it runs | Vercel | App Store |
+Both clients share one database and no other code. Push notifications are
+Postgres triggers that call an Edge Function (`supabase/functions/send-push`),
+which sends through Expo. More in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-More detail in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
-
-## Running it yourself
-
-**Website:**
+## Running it
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in your Supabase URL and key
-npm run dev                  # open http://localhost:3000
+cp .env.example .env.local   # Supabase URL + anon key
+npm run dev                  # website on http://localhost:3000
+
+cd mobile && npm install && npx expo start   # iOS app
 ```
 
-**iPhone app:**
-
-```bash
-cd mobile
-npm install
-cp .env.example .env         # same Supabase URL and key as above
-npm run ios
-```
-
-Full iPhone setup, push notification wiring, and the App Store submission steps are in [`mobile/README.md`](./mobile/README.md).
-
-## Setting up the database
-
-Run these six files in order, in the Supabase SQL Editor:
-
-| File | What it adds |
-|---|---|
-| `supabase/schema/01_core.sql` | Accounts, profiles, posts, swipes, matches, messages |
-| `supabase/schema/02_safety.sql` | Blocking, reporting, push notification tokens, unread tracking |
-| `supabase/schema/03_events.sql` | Events, vibe tags, portfolios |
-| `supabase/schema/04_reviews.sql` | Reviews, social links, feed ranking |
-| `supabase/schema/05_ranking.sql` | Analytics, verified badges, better ranking, live chat updates |
-| `supabase/schema/06_interactions.sql` | Read receipts, unmatch, undo a swipe |
-| `supabase/schema/07_matching.sql` | Match creation moved into the database: `create_match` verifies both right-swipes, direct INSERT removed |
-
-Or from the command line:
-
-```bash
-SUPABASE_PROJECT_REF=... SUPABASE_ACCESS_TOKEN=... \
-MIGRATION_FILE=supabase/schema/03_events.sql node scripts/apply_migration.mjs
-```
-
-You can safely run any of them more than once.
-
-## App Store status
-
-**Melange is live on the App Store** — version 1.0 is Ready for Distribution.
-Version 1.1 is in Prepare for Submission. Check App Store Connect for the
-current state rather than any file in this repo; `docs/STATUS.md` claimed for
-weeks that the app had never been submitted, long after it had.
-
-Screenshots live in [`mobile/store/screenshots/en-US/`](./mobile/store/screenshots)
-and are uploaded with `fastlane deliver` — `eas submit` ships the binary only.
-The checklist is in [`docs/STATUS.md`](./docs/STATUS.md#app-store-what-is-actually-left).
-
-Apple requires certain safety features for any app with user-generated content. All of them are done: reporting, blocking, a privacy policy and terms, in-app account deletion, an 18+ age gate at signup, and a contact email for moderation.
+Database changes are plain SQL files in `supabase/schema`, applied in order
+(`scripts/apply_migration.mjs`). Setup details in [`docs/SETUP.md`](docs/SETUP.md).
