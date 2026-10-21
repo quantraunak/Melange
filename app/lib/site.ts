@@ -30,8 +30,8 @@ export const SUPPORT_PATH = "/support";
 
 export const SITE = {
   name: "Melange",
-  tagline: "Where creative people find their next collaboration.",
+  tagline: "Where young creatives find their crew — the people, the nights, the ideas.",
   description:
-    "Photographers, models, makeup artists, stylists and filmmakers post what they're working on, match with each other, and plan the shoot.",
+    "Melange is an invite-only app for young creatives in USC, UCSD and LA (NYC soon). Go to a night, find your people, and explore what your scene is making.",
   url: "https://melange-psi.vercel.app",
 } as const;
