@@ -25,13 +25,16 @@ import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, radii, typography } from "@/lib/theme";
-import { ROLES, uploadFile, type CreatorInfo } from "@/lib/db";
+import { ROLES, type CreatorInfo } from "@/lib/db";
 import {
   STORY_MAX_CREDITS,
   STORY_MAX_IMAGES,
   normalizeContactLink,
   searchProfiles,
+  uploadStoryAssets,
+  type StoryAsset,
   type StoryCredit,
+  type StoryUploadProgress,
 } from "@/lib/stories";
 
 const STEPS = ["What", "Who with", "Photos", "Finish"] as const;
@@ -45,9 +48,7 @@ export type StoryFormValues = {
   happenedOn: string | null;
 };
 
-type Asset =
-  | { kind: "remote"; url: string }
-  | { kind: "local"; uri: string; mimeType?: string; width?: number; height?: number };
+type Asset = StoryAsset;
 
 /** "2024-06" from "June 2024", "6/2024", "2024-06". Month precision only. */
 export function normalizeMonth(raw: string): string | null {
@@ -105,12 +106,7 @@ export function StoryForm({
    * next to a spinner that never changed, so a stalled upload and a slow one
    * looked identical and there was nothing to do but force-quit.
    */
-  const [progress, setProgress] = useState<{
-    index: number;
-    total: number;
-    fraction: number;
-    attempt: number;
-  } | null>(null);
+  const [progress, setProgress] = useState<StoryUploadProgress | null>(null);
 
   const addCredit = (c: StoryCredit) => {
     if (credits.length >= STORY_MAX_CREDITS) {
@@ -197,45 +193,15 @@ export function StoryForm({
     setError(null);
     setUploading(true);
 
-    const finalUrls: string[] = [];
-    const toUpload = assets.filter((a) => a.kind === "local").length;
-    let done = 0;
-    for (const a of assets) {
-      if (a.kind === "remote") {
-        finalUrls.push(a.url);
-      } else {
-        setProgress({ index: done + 1, total: toUpload, fraction: 0, attempt: 1 });
-        const { url, error: upErr } = await uploadFile(
-          userId,
-          "posts",
-          a.uri,
-          a.mimeType || "image/jpeg",
-          {
-            width: a.width,
-            height: a.height,
-            onProgress: (p) =>
-              setProgress({
-                index: done + 1,
-                total: toUpload,
-                fraction: p.fraction,
-                attempt: p.attempt,
-              }),
-          }
-        );
-        if (upErr || !url) {
-          // Everything typed so far stays on screen: the form is not reset, so
-          // the only thing lost is the retry.
-          setUploading(false);
-          setProgress(null);
-          setError(upErr || "Photo upload failed.");
-          return;
-        }
-        done += 1;
-        finalUrls.push(url);
-      }
-    }
+    const { urls: finalUrls, error: upErr } = await uploadStoryAssets(userId, assets, setProgress);
     setUploading(false);
     setProgress(null);
+    if (upErr || !finalUrls) {
+      // Everything typed so far stays on screen: the form is not reset, so
+      // the only thing lost is the retry.
+      setError(upErr || "Photo upload failed.");
+      return;
+    }
 
     const { url: link } = normalizeContactLink(linkText);
     const { error: submitErr } = await onSubmit({

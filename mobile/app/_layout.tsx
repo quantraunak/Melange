@@ -52,6 +52,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="post/edit/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="story/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="story/quick" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="story/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="profile/[userId]" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="events/index" options={{ presentation: "card", animation: "slide_from_right" }} />
