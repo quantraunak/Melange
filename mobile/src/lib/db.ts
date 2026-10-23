@@ -228,10 +228,21 @@ export type Gate = { ok: true; line: null } | { ok: false; line: string };
  * is the kind of hand-holding this product does not do: say the one thing that
  * is missing and open the screen that fixes it.
  */
+/**
+ * Off while Melange is getting its first people on. With the floor on, nobody
+ * below three photos and a role could post a project or like one, and most of
+ * the people being invited were below it — so their projects never appeared.
+ * Turn back on (true) once there are enough posts that quality matters more
+ * than getting anything up. The server-side policies were already lifted by
+ * 14_ungate_until_1_4.sql, so this is the only switch.
+ */
+export const PROFILE_FLOOR_ON = false;
+
 export function profileGate(
   profile: Pick<Profile, "role" | "portfolio_urls"> | null,
   verb: "post" | "like" | "message"
 ): Gate {
+  if (!PROFILE_FLOOR_ON) return { ok: true, line: null };
   const photos = profile?.portfolio_urls?.length ?? 0;
   const needsPhotos = photos < PROFILE_MIN_IMAGES;
   const needsRole = !profile?.role?.trim();

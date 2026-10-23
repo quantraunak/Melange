@@ -18,7 +18,7 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 
-import { useProfileGap } from "@/components/ProfilePrompt";
+import { FirstPostNudge, useHasPosted } from "@/components/FirstPostNudge";
 import { PushPrimer } from "@/components/PushPrimer";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, GUTTER, motion, radii, typography } from "@/lib/theme";
@@ -107,7 +107,7 @@ export default function DiscoverScreen() {
   /** Kept whole because the gate reads role and portfolio, not just a name. */
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [gateLine, setGateLine] = useState<string | null>(null);
-  const profileGap = useProfileGap(userId);
+  const posted = useHasPosted(userId);
 
   const [lastSwipe, setLastSwipe] = useState<{ post: DeckCard; dir: SwipeDir } | null>(null);
   const [rewinding, setRewinding] = useState(false);
@@ -482,11 +482,6 @@ export default function DiscoverScreen() {
             </Pressable>
           </Glass>
         </View>
-      ) : profileGap ? (
-        /* The profile floor is said in red above the tab bar on every tab
-           (ProfileFloorWarning). Nothing else takes this slot meanwhile, so
-           the two never stack. */
-        null
       ) : userId ? (
         /**
          * Offered from the first visit, not after the first like. Waiting for
@@ -506,9 +501,15 @@ export default function DiscoverScreen() {
          */
         // At the top, under search and post: down by the tab bar it sat on
         // top of the pass and heart buttons.
-        <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
-          <PushPrimer userId={userId} />
-        </View>
+        posted === false ? (
+          // Until you have posted a project, asking you to is the one thing
+          // in this slot. Notifications can wait for the next visit.
+          <FirstPostNudge posted={posted} top={topInset + 78} />
+        ) : (
+          <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
+            <PushPrimer userId={userId} />
+          </View>
+        )
       ) : null}
     </View>
   );
