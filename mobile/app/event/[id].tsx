@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -186,10 +186,17 @@ export default function EventScreen() {
   }, [load]);
 
   // Back from the night chat or a profile: the going list may have moved.
+  // Read through a ref: this callback is memoized on [load], so a plain
+  // `loading` here is the value from the first render (true) forever, and the
+  // reload on focus never ran. Coming back from Edit profile with new photos
+  // showed the old ones until the app restarted.
+  const loadingRef = useRef(loading);
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
   useFocusEffect(
     useCallback(() => {
-      if (!loading) load();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (!loadingRef.current) load();
     }, [load])
   );
 
