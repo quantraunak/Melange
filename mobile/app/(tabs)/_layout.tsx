@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
 import { colors, GUTTER, radii, typography } from "@/lib/theme";
+import { ProfileFloorWarning } from "@/components/ProfileFloorWarning";
 
 /** Notification taps already routed, by identifier, for this app run. */
 const handledPushes = new Set<string>();
@@ -186,8 +187,15 @@ export default function TabsLayout() {
         <Tabs.Screen name="messages" options={{ title: "Messages" }} />
         <Tabs.Screen name="profile" options={{ title: "You" }} />
       </Tabs>
+      <FloorWarning />
     </View>
   );
+}
+
+/** Red, above the tab bar, until the profile meets the floor. */
+function FloorWarning() {
+  const barTop = useBarTop();
+  return <ProfileFloorWarning bottom={barTop} />;
 }
 
 const styles = StyleSheet.create({

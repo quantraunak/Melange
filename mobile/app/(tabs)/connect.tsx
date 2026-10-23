@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSharedValue, withSpring } from "react-native-reanimated";
@@ -150,10 +150,17 @@ export default function DiscoverScreen() {
     });
   }, [userId]);
 
+  // Read through a ref: this callback is memoized on [load], so a plain
+  // `loading` here is the value from the first render (true) forever, and the
+  // reload on focus never ran. Coming back from Edit profile with new photos
+  // showed the old ones until the app restarted.
+  const loadingRef = useRef(loading);
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
   useFocusEffect(
     useCallback(() => {
-      if (!loading) load();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (!loadingRef.current) load();
     }, [load])
   );
 
@@ -476,20 +483,10 @@ export default function DiscoverScreen() {
           </Glass>
         </View>
       ) : profileGap ? (
-        /**
-         * One slot, three possible occupants, ordered by how much each is in
-         * the person's way: the line from an action we just refused, then the
-         * profile floor (which blocks the app), then notifications (which are
-         * optional). Stacking them would bury the deck under banners.
-         */
-        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
-          <Glass style={styles.gate} elevated>
-            <Text style={styles.gateLine}>{profileGap}</Text>
-            <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={10}>
-              <Text style={styles.gateAction}>Edit profile</Text>
-            </Pressable>
-          </Glass>
-        </View>
+        /* The profile floor is said in red above the tab bar on every tab
+           (ProfileFloorWarning). Nothing else takes this slot meanwhile, so
+           the two never stack. */
+        null
       ) : userId ? (
         /**
          * Offered from the first visit, not after the first like. Waiting for

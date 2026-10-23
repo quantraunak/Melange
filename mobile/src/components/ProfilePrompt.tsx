@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
 
 import { getProfile, profileGate, PROFILE_MIN_IMAGES } from "@/lib/db";
+
+export type ProfileFloorGap = {
+  /** One line saying exactly what is missing. */
+  line: string;
+  photosNeeded: number;
+  needsRole: boolean;
+};
 
 /**
  * Tells someone their profile is below the floor BEFORE they hit it.
@@ -12,22 +20,17 @@ import { getProfile, profileGate, PROFILE_MIN_IMAGES } from "@/lib/db";
  * be refused, and the refusal arrived exactly when you were trying to do
  * something else.
  *
- * That was survivable while the floor was new and applied only to new
- * accounts. It is not survivable now: every real person on Melange except the
- * owner is below it. Two have no photos at all and one has a single photo, and
- * none of them ever saw an onboarding step that asked for any. Shipping a
- * consistent gate without this would have quietly locked out the whole user
- * base and mentioned it only when they next tried to use the app.
- *
- * This is a hook rather than a component so the screen can decide where it
- * sits relative to the other things competing for the same slot.
+ * Every real person on Melange except the owner started below it, and none of
+ * them saw an onboarding step that asked for photos. So this is checked on
+ * every screen focus and every time the app comes back to the foreground: the
+ * warning goes away the moment the profile is fixed, and not before.
  */
-export function useProfileGap(userId: string | null): string | null {
-  const [line, setLine] = useState<string | null>(null);
+export function useProfileFloor(userId: string | null): ProfileFloorGap | null {
+  const [gap, setGap] = useState<ProfileFloorGap | null>(null);
 
   const check = useCallback(() => {
     if (!userId) {
-      setLine(null);
+      setGap(null);
       return;
     }
     let alive = true;
@@ -35,16 +38,22 @@ export function useProfileGap(userId: string | null): string | null {
       .then(({ data }) => {
         if (!alive || !data) return;
         if (profileGate(data, "like").ok) {
-          setLine(null);
+          setGap(null);
           return;
         }
         const photos = data.portfolio_urls?.length ?? 0;
-        const need = PROFILE_MIN_IMAGES - photos;
-        setLine(
-          need > 0
-            ? `Add ${need} more photo${need === 1 ? "" : "s"} so people can see your work.`
-            : "Pick a role so people know what you do."
-        );
+        const photosNeeded = Math.max(0, PROFILE_MIN_IMAGES - photos);
+        const needsRole = !data.role?.trim();
+        const parts = [
+          photosNeeded > 0 ? `add ${photosNeeded} more photo${photosNeeded === 1 ? "" : "s"}` : null,
+          needsRole ? "pick a role" : null,
+        ].filter(Boolean);
+        const what = parts.join(" and ");
+        setGap({
+          line: `You can't post or like anything until you ${what}.`,
+          photosNeeded,
+          needsRole,
+        });
       })
       .catch(() => {});
     return () => {
@@ -53,9 +62,20 @@ export function useProfileGap(userId: string | null): string | null {
   }, [userId]);
 
   useEffect(check, [check]);
-  // Re-check on focus so the prompt disappears as soon as they come back from
+  // Re-check on focus so the warning disappears as soon as they come back from
   // adding photos, instead of lingering and implying it did not work.
   useFocusEffect(check);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") check();
+    });
+    return () => sub.remove();
+  }, [check]);
 
-  return line;
+  return gap;
+}
+
+/** Just the line, for screens that only need to say it. */
+export function useProfileGap(userId: string | null): string | null {
+  return useProfileFloor(userId)?.line ?? null;
 }
