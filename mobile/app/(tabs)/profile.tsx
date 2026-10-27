@@ -267,13 +267,21 @@ export default function ProfileScreen() {
             ) : null}
             <IdentityLine founding={profile.founding} scene={profile.scene} handle={profile.handle} />
             <RatingLine trust={trust} />
-            <Pressable
-              onPress={() => router.push("/account/edit-profile")}
-              hitSlop={12}
-              style={styles.editLink}
-            >
-              <Text style={styles.sectionAction}>Edit profile</Text>
-            </Pressable>
+            <View style={styles.editLinks}>
+              <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={12}>
+                <Text style={styles.sectionAction}>Edit profile</Text>
+              </Pressable>
+              {userId ? (
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: "/profile/[userId]", params: { userId, preview: "1" } })
+                  }
+                  hitSlop={12}
+                >
+                  <Text style={styles.sectionAction}>See it as others do</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -496,7 +504,7 @@ const styles = StyleSheet.create({
   },
   profileName: { ...typography.display2, color: colors.text },
   profileRole: { ...typography.body, color: colors.textSecondary },
-  editLink: { alignSelf: "flex-start", marginTop: spacing.sm },
+  editLinks: { flexDirection: "row", flexWrap: "wrap", gap: spacing.lg, marginTop: spacing.sm },
 
   /* A section: a rule, an eyebrow, then content directly on the ground. */
   block: {

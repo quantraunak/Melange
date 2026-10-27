@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, CalendarRange, ExternalLink, MessageCircle, Trash2 } from "lucide-react-native";
 
 import { HeartButton } from "@/components/HeartButton";
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
@@ -45,6 +46,7 @@ export default function StoryDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [admin, setAdmin] = useState(false);
   const [featuring, setFeaturing] = useState(false);
@@ -138,6 +140,7 @@ export default function StoryDetailScreen() {
           </View>
         ) : (
           <>
+            <PhotoViewer photos={story.media_urls} index={viewing} onClose={() => setViewing(null)} />
             <View style={styles.gallery}>
               {story.media_urls.length ? (
                 <>
@@ -150,13 +153,18 @@ export default function StoryDetailScreen() {
                     }
                   >
                     {story.media_urls.map((uri, i) => (
-                      <Image
+                      <Pressable
                         key={`${uri}-${i}`}
-                        source={{ uri: sized(uri, SCREEN_W, 400) }}
-                        style={styles.galleryImage}
-                        contentFit="cover"
-                        transition={160}
-                      />
+                        onPress={() => setViewing(i)}
+                        accessibilityLabel="Open photo full screen"
+                      >
+                        <Image
+                          source={{ uri: sized(uri, SCREEN_W, 400) }}
+                          style={styles.galleryImage}
+                          contentFit="cover"
+                          transition={160}
+                        />
+                      </Pressable>
                     ))}
                   </ScrollView>
                   {story.media_urls.length > 1 ? (

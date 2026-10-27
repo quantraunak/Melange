@@ -54,7 +54,10 @@ import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
  * anything you can act on about your own account.
  */
 export default function PublicProfileScreen() {
-  const { userId: viewedId } = useLocalSearchParams<{ userId: string }>();
+  const { userId: viewedId, preview } = useLocalSearchParams<{ userId: string; preview?: string }>();
+  // Opened from "See it as others do" on your own You tab: stay here instead
+  // of bouncing back to the editable tab.
+  const previewingSelf = preview === "1";
   const router = useRouter();
   const { userId: me } = useAuth();
 
@@ -94,8 +97,8 @@ export default function PublicProfileScreen() {
   /* Your own profile is the Profile tab, which can edit. Landing here from a
      credit on your own work would otherwise be a dead end that looks broken. */
   useEffect(() => {
-    if (me && viewedId && me === viewedId) router.replace("/(tabs)/profile");
-  }, [me, viewedId, router]);
+    if (me && viewedId && me === viewedId && !previewingSelf) router.replace("/(tabs)/profile");
+  }, [me, viewedId, router, previewingSelf]);
 
   const header = (
     <View style={styles.header}>
@@ -147,6 +150,14 @@ export default function PublicProfileScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       {header}
       <ScrollView contentContainerStyle={styles.scroll}>
+        {previewingSelf && profile.user_id === me ? (
+          <View style={styles.previewNote}>
+            <Text style={styles.previewText}>This is how other people see your profile.</Text>
+            <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={10}>
+              <Text style={styles.previewLink}>Edit</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <View style={styles.identity}>
           <Avatar creator={{ name: profile.name, avatar_url: profile.avatar_url }} size="xl" />
           <View style={{ flex: 1 }}>
@@ -280,6 +291,17 @@ export default function PublicProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  previewNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+  },
+  previewText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
+  previewLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: "row",
