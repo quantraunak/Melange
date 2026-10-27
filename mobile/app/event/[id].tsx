@@ -188,8 +188,7 @@ export default function EventScreen() {
   // Back from the night chat or a profile: the going list may have moved.
   // Read through a ref: this callback is memoized on [load], so a plain
   // `loading` here is the value from the first render (true) forever, and the
-  // reload on focus never ran. Coming back from Edit profile with new photos
-  // showed the old ones until the app restarted.
+  // reload on focus never ran.
   const loadingRef = useRef(loading);
   useEffect(() => {
     loadingRef.current = loading;

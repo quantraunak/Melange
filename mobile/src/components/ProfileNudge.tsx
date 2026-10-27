@@ -10,13 +10,14 @@ import type { Profile } from "@/lib/db";
  * you do, and a line about you. Empty when it's done. This is the nudge, not a
  * gate — nothing is blocked while these are missing (PROFILE_FLOOR_ON).
  */
-export function profileMissing(
-  profile: Pick<Profile, "portfolio_urls" | "avatar_url" | "role" | "bio">
-): string[] {
+export function profileMissing(profile: Pick<Profile, "portfolio_urls" | "role" | "bio">): string[] {
   const out: string[] = [];
-  const hasPhoto = (profile.portfolio_urls?.length ?? 0) > 0 || !!profile.avatar_url;
+  // A profile photo (avatar) doesn't count: messaging someone you haven't
+  // matched with needs one photo of your work (meets_message_floor in
+  // 20_message_floor.sql), and "done" here has to mean that works.
+  const hasPhoto = (profile.portfolio_urls?.length ?? 0) > 0;
   const role = profile.role?.trim();
-  if (!hasPhoto) out.push("a photo");
+  if (!hasPhoto) out.push("a photo of your work");
   if (!role || role === "other") out.push("what you do");
   if (!profile.bio?.trim()) out.push("a short bio");
   return out;

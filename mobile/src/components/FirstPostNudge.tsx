@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Plus, X } from "lucide-react-native";
@@ -34,8 +34,20 @@ export function useHasPosted(userId: string | null): boolean | null {
  * Getting the first people on: until you have posted a project, Discover asks
  * you to — a big card at the top, and a popup every time you open Discover.
  * Both stop for good once you have a post.
+ *
+ * `after` takes the card's place once it's put off ("Later" or the X), so the
+ * slot's next occupant (the notifications ask) still gets seen by people who
+ * never post.
  */
-export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: number }) {
+export function FirstPostNudge({
+  posted,
+  top,
+  after,
+}: {
+  posted: boolean | null;
+  top: number;
+  after?: ReactNode;
+}) {
   const router = useRouter();
   const [cardHidden, setCardHidden] = useState(false);
   const [popup, setPopup] = useState(false);
@@ -60,6 +72,10 @@ export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: n
   const post = () => {
     setPopup(false);
     router.push("/post/new");
+  };
+  const later = () => {
+    setPopup(false);
+    setCardHidden(true);
   };
 
   return (
@@ -89,9 +105,11 @@ export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: n
             </Pressable>
           </View>
         </View>
-      ) : null}
+      ) : (
+        after ?? null
+      )}
 
-      <Modal visible={popup} transparent animationType="fade" onRequestClose={() => setPopup(false)}>
+      <Modal visible={popup} transparent animationType="fade" onRequestClose={later}>
         <View style={styles.scrim}>
           <View style={styles.modal} accessibilityViewIsModal>
             <Text style={styles.modalTitle}>Help us get Melange going ☆</Text>
@@ -107,7 +125,7 @@ export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: n
               <Plus size={18} color={colors.onBrand} />
               <Text style={styles.modalBtnText}>Post a project</Text>
             </Pressable>
-            <Pressable onPress={() => setPopup(false)} hitSlop={8} accessibilityRole="button">
+            <Pressable onPress={later} hitSlop={8} accessibilityRole="button">
               <Text style={styles.later}>Later</Text>
             </Pressable>
             <Text style={styles.sign}>Jolea &amp; Raunak xx ☆</Text>

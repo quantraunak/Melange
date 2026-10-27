@@ -152,8 +152,7 @@ export default function DiscoverScreen() {
 
   // Read through a ref: this callback is memoized on [load], so a plain
   // `loading` here is the value from the first render (true) forever, and the
-  // reload on focus never ran. Coming back from Edit profile with new photos
-  // showed the old ones until the app restarted.
+  // reload on focus never ran.
   const loadingRef = useRef(loading);
   useEffect(() => {
     loadingRef.current = loading;
@@ -502,9 +501,18 @@ export default function DiscoverScreen() {
         // At the top, under search and post: down by the tab bar it sat on
         // top of the pass and heart buttons.
         posted === false ? (
-          // Until you have posted a project, asking you to is the one thing
-          // in this slot. Notifications can wait for the next visit.
-          <FirstPostNudge posted={posted} top={topInset + 78} />
+          // Until you have posted a project, asking you to comes first in
+          // this slot. Putting it off hands the slot to notifications, so
+          // people who never post still get asked.
+          <FirstPostNudge
+            posted={posted}
+            top={topInset + 78}
+            after={
+              <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
+                <PushPrimer userId={userId} />
+              </View>
+            }
+          />
         ) : (
           <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
             <PushPrimer userId={userId} />
