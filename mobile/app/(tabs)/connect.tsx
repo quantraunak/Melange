@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSharedValue, withSpring } from "react-native-reanimated";
@@ -18,7 +18,7 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { Glass } from "@/components/ui/Glass";
 import { Input } from "@/components/ui/Input";
 
-import { useProfileGap } from "@/components/ProfilePrompt";
+import { FirstPostNudge, useHasPosted } from "@/components/FirstPostNudge";
 import { PushPrimer } from "@/components/PushPrimer";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { colors, fonts, GUTTER, motion, radii, typography } from "@/lib/theme";
@@ -107,7 +107,7 @@ export default function DiscoverScreen() {
   /** Kept whole because the gate reads role and portfolio, not just a name. */
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [gateLine, setGateLine] = useState<string | null>(null);
-  const profileGap = useProfileGap(userId);
+  const posted = useHasPosted(userId);
 
   const [lastSwipe, setLastSwipe] = useState<{ post: DeckCard; dir: SwipeDir } | null>(null);
   const [rewinding, setRewinding] = useState(false);
@@ -150,10 +150,16 @@ export default function DiscoverScreen() {
     });
   }, [userId]);
 
+  // Read through a ref: this callback is memoized on [load], so a plain
+  // `loading` here is the value from the first render (true) forever, and the
+  // reload on focus never ran.
+  const loadingRef = useRef(loading);
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
   useFocusEffect(
     useCallback(() => {
-      if (!loading) load();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (!loadingRef.current) load();
     }, [load])
   );
 
@@ -475,21 +481,6 @@ export default function DiscoverScreen() {
             </Pressable>
           </Glass>
         </View>
-      ) : profileGap ? (
-        /**
-         * One slot, three possible occupants, ordered by how much each is in
-         * the person's way: the line from an action we just refused, then the
-         * profile floor (which blocks the app), then notifications (which are
-         * optional). Stacking them would bury the deck under banners.
-         */
-        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
-          <Glass style={styles.gate} elevated>
-            <Text style={styles.gateLine}>{profileGap}</Text>
-            <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={10}>
-              <Text style={styles.gateAction}>Edit profile</Text>
-            </Pressable>
-          </Glass>
-        </View>
       ) : userId ? (
         /**
          * Offered from the first visit, not after the first like. Waiting for
@@ -509,9 +500,24 @@ export default function DiscoverScreen() {
          */
         // At the top, under search and post: down by the tab bar it sat on
         // top of the pass and heart buttons.
-        <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
-          <PushPrimer userId={userId} />
-        </View>
+        posted === false ? (
+          // Until you have posted a project, asking you to comes first in
+          // this slot. Putting it off hands the slot to notifications, so
+          // people who never post still get asked.
+          <FirstPostNudge
+            posted={posted}
+            top={topInset + 78}
+            after={
+              <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
+                <PushPrimer userId={userId} />
+              </View>
+            }
+          />
+        ) : (
+          <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
+            <PushPrimer userId={userId} />
+          </View>
+        )
       ) : null}
     </View>
   );

@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Dimensions, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Link2, Star } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { Chip } from "@/components/ui/Chip";
 import { sized } from "@/lib/imageUrl";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
@@ -111,6 +112,7 @@ export function ProfileAbout({ profile, emptyHint }: { profile: Profile; emptyHi
   const bio = profile.bio?.trim();
   const photos = profile.portfolio_urls ?? [];
   const empty = !roles.length && !lookingFor && !bio && !links.length && !photos.length;
+  const [viewing, setViewing] = useState<number | null>(null);
 
   return (
     <View style={styles.block}>
@@ -154,16 +156,23 @@ export function ProfileAbout({ profile, emptyHint }: { profile: Profile; emptyHi
       {photos.length ? (
         <View style={styles.grid}>
           {photos.map((url, i) => (
-            <Image
+            <Pressable
               key={`${url}-${i}`}
-              source={{ uri: sized(url, TILE, TILE_H) }}
-              style={styles.tile}
-              contentFit="cover"
-              transition={160}
-            />
+              onPress={() => setViewing(i)}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`Photo ${i + 1} of ${photos.length}, open full screen`}
+            >
+              <Image
+                source={{ uri: sized(url, TILE, TILE_H) }}
+                style={styles.tile}
+                contentFit="cover"
+                transition={160}
+              />
+            </Pressable>
           ))}
         </View>
       ) : null}
+      <PhotoViewer photos={photos} index={viewing} onClose={() => setViewing(null)} />
     </View>
   );
 }

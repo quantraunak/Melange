@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react-native";
 
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { Avatar } from "@/components/Avatar";
 import { MatchCelebration } from "@/components/MatchCelebration";
 import { Chip, ChipRow } from "@/components/ui/Chip";
@@ -58,7 +59,7 @@ type Loaded = {
 };
 
 export default function ProjectDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, posted } = useLocalSearchParams<{ id: string; posted?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { userId } = useAuth();
@@ -69,6 +70,7 @@ export default function ProjectDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [swiped, setSwiped] = useState<"left" | "right" | null>(null);
   const [applying, setApplying] = useState(false);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<{ matchId: string } | null>(null);
   const [me, setMe] = useState<Pick<CreatorInfo, "name" | "avatar_url">>({ name: "You", avatar_url: null });
   /**
@@ -218,6 +220,7 @@ export default function ProjectDetailScreen() {
         }}
       />
 
+      <PhotoViewer photos={post.media_urls ?? []} index={viewing} onClose={() => setViewing(null)} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.hero}>
           {post.media_urls?.length ? (
@@ -227,8 +230,10 @@ export default function ProjectDetailScreen() {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <Image source={{ uri: item }} style={styles.heroImg} contentFit="cover" />
+              renderItem={({ item, index: i }) => (
+                <Pressable onPress={() => setViewing(i)} accessibilityLabel="Open photo full screen">
+                  <Image source={{ uri: item }} style={styles.heroImg} contentFit="cover" />
+                </Pressable>
               )}
             />
           ) : (
@@ -271,7 +276,9 @@ export default function ProjectDetailScreen() {
             <View style={styles.previewNote}>
               <Eye size={16} color={colors.brandText} />
               <Text style={styles.previewNoteText}>
-                Preview: this is how your project looks to everyone else.
+                {posted === "1"
+                  ? "Posted. It's on Discover now, and you can find it any time under Projects on your You tab."
+                  : "Preview: this is how your project looks to everyone else."}
                 {post.is_active ? "" : " It's inactive, so nobody else sees it right now."}
               </Text>
             </View>

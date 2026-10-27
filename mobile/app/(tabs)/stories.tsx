@@ -103,10 +103,16 @@ export default function ExploreScreen() {
     load();
   }, [load]);
 
+  // Read through a ref: this callback is memoized on [load], so a plain
+  // `loading` here is the value from the first render (true) forever, and the
+  // reload on focus never ran.
+  const loadingRef = useRef(loading);
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
   useFocusEffect(
     useCallback(() => {
-      if (!loading) load();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (!loadingRef.current) load();
     }, [load])
   );
 

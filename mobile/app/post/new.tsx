@@ -63,7 +63,7 @@ export default function NewProjectsScreen() {
         busy={busy}
         onSubmit={async (v) => {
           setBusy(true);
-          const { error } = await createPost(userId, v.title, v.description, {
+          const { data: created, error } = await createPost(userId, v.title, v.description, {
             roles: v.roles,
             looking_for: v.roles,
             project_start: v.projectStart ?? undefined,
@@ -80,7 +80,14 @@ export default function NewProjectsScreen() {
               photos: v.mediaUrls.length,
               pay_type: v.payType ?? null,
             });
-            router.back();
+            // Straight to the post, as everyone else will see it, rather than
+            // back to wherever you started: "where did my post go?" was the
+            // first question people asked after posting.
+            if (created) {
+              router.replace({ pathname: "/post/[id]", params: { id: created.id, posted: "1" } });
+            } else {
+              router.back();
+            }
           }
           return { error };
         }}
