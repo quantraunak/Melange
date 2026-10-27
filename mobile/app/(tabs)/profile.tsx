@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Camera, Settings as SettingsIcon } from "lucide-react-native";
 
+import { ProfileNudge } from "@/components/ProfileNudge";
 import { Avatar } from "@/components/Avatar";
 import { IdentityLine } from "@/components/IdentityLine";
 import { ScreenTitle } from "@/components/ScreenTitle";
@@ -278,12 +279,15 @@ export default function ProfileScreen() {
                   }
                   hitSlop={12}
                 >
-                  <Text style={styles.sectionAction}>See it as others do</Text>
+                  <Text style={styles.sectionAction}>Preview profile</Text>
                 </Pressable>
               ) : null}
             </View>
           </View>
         </View>
+
+        {/* Until the profile is done: what's missing, and a popup on each visit. */}
+        <ProfileNudge profile={profile} />
 
         {/* Profile: about you. Everyone sees exactly this on your page. */}
         <ProfileAbout

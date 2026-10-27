@@ -55,7 +55,7 @@ import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
  */
 export default function PublicProfileScreen() {
   const { userId: viewedId, preview } = useLocalSearchParams<{ userId: string; preview?: string }>();
-  // Opened from "See it as others do" on your own You tab: stay here instead
+  // Opened from "Preview profile" on your own You tab: stay here instead
   // of bouncing back to the editable tab.
   const previewingSelf = preview === "1";
   const router = useRouter();

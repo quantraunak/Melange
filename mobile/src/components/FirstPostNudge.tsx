@@ -41,10 +41,17 @@ export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: n
   const [popup, setPopup] = useState(false);
 
   // Every time Discover comes into focus without a post: pop up again.
+  // A beat after focus, not on it: right after posting, Discover still thinks
+  // you haven't until its re-check lands, and popping up then would nag
+  // someone who just did it.
   useFocusEffect(
     useCallback(() => {
       setCardHidden(false);
-      setPopup(true);
+      const t = setTimeout(() => setPopup(true), 900);
+      return () => {
+        clearTimeout(t);
+        setPopup(false);
+      };
     }, [])
   );
 
@@ -87,7 +94,7 @@ export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: n
       <Modal visible={popup} transparent animationType="fade" onRequestClose={() => setPopup(false)}>
         <View style={styles.scrim}>
           <View style={styles.modal} accessibilityViewIsModal>
-            <Text style={styles.modalTitle}>Help us get Melange going</Text>
+            <Text style={styles.modalTitle}>Help us get Melange going ☆</Text>
             <Text style={styles.modalBody}>
               Post a project so people can find you. It takes a minute: a title, a photo or two, and
               who you&apos;re looking for.
@@ -103,7 +110,7 @@ export function FirstPostNudge({ posted, top }: { posted: boolean | null; top: n
             <Pressable onPress={() => setPopup(false)} hitSlop={8} accessibilityRole="button">
               <Text style={styles.later}>Later</Text>
             </Pressable>
-            <Text style={styles.sign}>Jolea &amp; Raunak xx</Text>
+            <Text style={styles.sign}>Jolea &amp; Raunak xx ☆</Text>
           </View>
         </View>
       </Modal>
