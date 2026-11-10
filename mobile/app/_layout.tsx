@@ -50,6 +50,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding/photos" options={{ gestureEnabled: false, animation: "fade" }} />
+        <Stack.Screen name="onboarding/from-form" options={{ gestureEnabled: false, animation: "fade" }} />
         <Stack.Screen name="chat/[matchId]" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="post/new" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="post/edit/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
@@ -58,6 +59,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="story/quick" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="story/[id]" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="profile/[userId]" options={{ presentation: "card", animation: "slide_from_right" }} />
+        <Stack.Screen name="matches/index" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="events/index" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="event/[id]" options={{ presentation: "card", animation: "slide_from_right" }} />
         <Stack.Screen name="event/chat/[id]" options={{ presentation: "card", animation: "slide_from_right" }} />

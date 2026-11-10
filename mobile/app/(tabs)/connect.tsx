@@ -29,6 +29,7 @@ import { useBarTop } from "./_layout";
 import {
   checkAndCreateMatch,
   getExplorePosts,
+  getMySwipes,
   getFeedPosts,
   getProfile,
   profileGate,
@@ -43,6 +44,22 @@ import { likeProject } from "@/lib/likeProject";
 import { toggleHeart } from "@/lib/hearts";
 import { getDiscoverPeople, type ScenePerson } from "@/lib/scenes";
 import { orderByTaste } from "@/lib/taste";
+import { getMyIntros } from "@/lib/intros";
+
+/** How many hand-picked matches you have, re-checked whenever Discover is shown. */
+function useIntroCount(): number {
+  const [count, setCount] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      getMyIntros().then(({ data }) => alive && setCount(data.length));
+      return () => {
+        alive = false;
+      };
+    }, [])
+  );
+  return count;
+}
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -108,9 +125,14 @@ export default function DiscoverScreen() {
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [gateLine, setGateLine] = useState<string | null>(null);
   const posted = useHasPosted(userId);
+  const introCount = useIntroCount();
 
   const [lastSwipe, setLastSwipe] = useState<{ post: DeckCard; dir: SwipeDir } | null>(null);
   const [rewinding, setRewinding] = useState(false);
+
+  // True while going back through earlier posts, so the reload on focus
+  // doesn't send them back to the first card.
+  const replayingRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -125,7 +147,7 @@ export default function DiscoverScreen() {
     else if (data) {
       // Taste nudges the server's ranking; it doesn't replace it.
       setPosts(await orderByTaste(data, (p) => p.owner_id, 0.4));
-      setIndex(0);
+      if (!replayingRef.current) setIndex(0);
     }
     setLoading(false);
 
@@ -167,7 +189,34 @@ export default function DiscoverScreen() {
     setIndex(0);
   }, [search]);
 
-  const deck = useMemo<DeckCard[]>(() => [...posts, ...people.map(personCard)], [posts, people]);
+  /**
+   * "See earlier posts again": once the deck is empty, the same projects from
+   * the start, including ones you already passed or liked. Nothing new is
+   * written for a card you swipe the same way again; a like on something you
+   * passed flips that pass (likeProject with passed:true). Undo is off while
+   * replaying, because undoing would delete your original swipe.
+   */
+  const [replay, setReplay] = useState<{ cards: DeckCard[]; swipes: Map<string, "left" | "right"> } | null>(null);
+  const [checkBackLater, setCheckBackLater] = useState(false);
+
+  const seeEarlierPosts = useCallback(async () => {
+    if (!userId) return;
+    const [{ data: all, error: err }, { data: swipes }] = await Promise.all([
+      getExplorePosts(userId, 200),
+      getMySwipes(userId),
+    ]);
+    if (err) return setError(err);
+    replayingRef.current = true;
+    setReplay({ cards: all ?? [], swipes });
+    setCheckBackLater(false);
+    setLastSwipe(null);
+    setIndex(0);
+  }, [userId]);
+
+  const deck = useMemo<DeckCard[]>(
+    () => (replay ? replay.cards : [...posts, ...people.map(personCard)]),
+    [replay, posts, people]
+  );
 
   const filtered = useMemo(() => {
     if (!search.trim()) return deck;
@@ -213,8 +262,45 @@ export default function DiscoverScreen() {
       setSwiping(true);
       setError(null);
       setIndex((i) => i + 1);
-      setLastSwipe({ post, dir });
+      setLastSwipe(replay ? null : { post, dir });
       tx.value = 0;
+
+      // Going back through earlier posts: only a new like is worth writing.
+      if (replay && !post.isPerson) {
+        // Past the last earlier post: back to the normal deck, so anything
+        // new posted meanwhile comes first.
+        const endReplay = () => {
+          if (index + 1 < replay.cards.length) return;
+          replayingRef.current = false;
+          setReplay(null);
+          setIndex(0);
+          load();
+        };
+        const before = replay.swipes.get(post.id);
+        if (dir === "left" || before === "right") {
+          endReplay();
+          setSwiping(false);
+          return;
+        }
+        const outcome = await likeProject({ userId, postId: post.id, profile: myProfile, passed: before === "left" });
+        if (outcome.status === "failed" || outcome.status === "blocked") {
+          setIndex((i) => Math.max(0, i - 1));
+          setError(outcome.status === "failed" ? outcome.message : outcome.line);
+          setSwiping(false);
+          return;
+        }
+        replay.swipes.set(post.id, "right");
+        trackEvent("swipe_right", { post_id: post.id, owner_id: post.owner_id, from: "replay" });
+        const { match } = await checkAndCreateMatch(userId, post.id);
+        if (match) {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await refreshMatches();
+          setCelebration({ creator: post.creator, matchId: match.id, projectTitle: post.title });
+        }
+        endReplay();
+        setSwiping(false);
+        return;
+      }
 
       // A person: passing is just moving on (nothing is recorded), and a
       // like is the existing profile heart.
@@ -292,7 +378,7 @@ export default function DiscoverScreen() {
 
       setSwiping(false);
     },
-    [userId, current, swiping, refreshMatches, tx, myProfile]
+    [userId, current, swiping, refreshMatches, tx, myProfile, replay, index, load]
   );
 
   const rewind = useCallback(async () => {
@@ -356,17 +442,18 @@ export default function DiscoverScreen() {
                 </>
               ) : catalogueSize && catalogueSize > 0 ? (
                 <>
-                  <Text style={styles.emptyTitle}>You&apos;ve seen every open project.</Text>
-                  <Text style={styles.emptyBody}>
-                    New ones show up when people post. Until then, the fastest way to meet someone
-                    is to go to an event.
-                  </Text>
-                  <Pressable
-                    onPress={() => router.push("/(tabs)/nights")}
-                    style={styles.emptyCta}
-                  >
-                    <Text style={styles.emptyCtaText}>Find an event</Text>
-                  </Pressable>
+                  <Text style={styles.emptyTitle}>You&apos;ve seen everyone for now ✨</Text>
+                  <Text style={styles.emptyBody}>New people join every week.</Text>
+                  {checkBackLater ? null : (
+                    <>
+                      <Pressable onPress={seeEarlierPosts} style={styles.emptyCta} accessibilityRole="button">
+                        <Text style={styles.emptyCtaText}>See earlier posts again</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setCheckBackLater(true)} accessibilityRole="button">
+                        <Text style={styles.emptyLink}>Check back later</Text>
+                      </Pressable>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -449,6 +536,20 @@ export default function DiscoverScreen() {
           </Glass>
         ) : (
           <>
+            {/* Hand-picked matches from the Melange team (29_intro_matches.sql). */}
+            <Pressable
+              onPress={() => router.push("/matches")}
+              accessibilityRole="button"
+              accessibilityLabel={introCount ? `Your matches, ${introCount}` : "Your matches"}
+              style={({ pressed }) => [styles.matchesPill, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.matchesPillText}>Your matches</Text>
+              {introCount ? (
+                <View style={styles.matchesCount}>
+                  <Text style={styles.matchesCountText}>{introCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
             <GlassButton
               accessibilityLabel="Filter projects"
               onPress={() => setSearchOpen(true)}
@@ -548,6 +649,30 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchWrap: { flex: 1, paddingHorizontal: 4 },
+  // Left of search and post; marginRight pushes those two to the right edge.
+  matchesPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 44,
+    paddingHorizontal: 14,
+    marginRight: "auto",
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+  },
+  matchesPillText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
+  matchesCount: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  matchesCountText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.onBrand },
   searchInput: { borderWidth: 0, backgroundColor: "transparent" },
 
   errorSlot: { position: "absolute", left: GUTTER, right: GUTTER },

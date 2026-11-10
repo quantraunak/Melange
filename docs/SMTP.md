@@ -34,6 +34,11 @@ Thirty minutes, free at this scale:
 
 ## When to do it
 
-Not urgent at 12 accounts. It becomes urgent the day real signups start,
+Now: hand-picked matching links students to their matches by confirmed email,
+so email confirmation has to be on, and confirmation needs this. The full
+click-by-click version, including switching confirmation on, is step 2 of
+`docs/MATCHING.md`.
+
+Before matching, it was not urgent at 12 accounts. It becomes urgent the day real signups start,
 because a password reset that silently does not arrive is the kind of failure
 nobody reports — they just leave.

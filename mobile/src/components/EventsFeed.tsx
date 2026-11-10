@@ -274,11 +274,10 @@ export function EventsFeed({
 
           {events.length === 0 && !error ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Nothing on the calendar yet</Text>
               <Text style={styles.emptyBody}>
                 {cityFilter
                   ? "Nothing matches that place. Clear the filter, or post the first one there."
-                  : "Going to a gallery opening or a golden-hour walk anyway? Tap Post an event and say when and where."}
+                  : "Nothing posted yet. Got a show or a performance coming up? Post it here."}
               </Text>
             </View>
           ) : (

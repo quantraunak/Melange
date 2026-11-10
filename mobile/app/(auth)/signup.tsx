@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -62,6 +63,10 @@ export default function Signup() {
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
+      // The database creates the profile from these (15_profile_on_signup.sql),
+      // which is the only way it gets a name when email confirmation is on:
+      // there is no session yet, so the upsert below can't run.
+      options: { data: { name: name.trim(), role: role || "other" } },
     });
     // No session means email confirmation, and their first real sign-in
     // will be a plain login; don't leave the flag for that.
@@ -69,6 +74,17 @@ export default function Signup() {
     if (err) {
       setLoading(false);
       setError(err.message);
+      return;
+    }
+    // Email confirmation is on: the account exists but has no session until
+    // they click the link. Say so, rather than failing the profile write.
+    if (!data.session) {
+      setLoading(false);
+      Alert.alert(
+        "Check your email",
+        `We sent a link to ${email.trim()}. Tap it to confirm your email, then sign in.`,
+        [{ text: "OK", onPress: () => router.replace("/(auth)/login") }]
+      );
       return;
     }
     const userId = data.user?.id;
