@@ -12,9 +12,29 @@ import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { registerForPushAsync } from "@/lib/push";
 import { colors, GUTTER, radii, typography } from "@/lib/theme";
+import { getMyApplicant } from "@/lib/intros";
 
 /** Notification taps already routed, by identifier, for this app run. */
 const handledPushes = new Set<string>();
+
+/**
+ * Signed up after filling in a school's Melange form? Once per app launch,
+ * until they finish it, open the "we started your profile from your form"
+ * setup (29_intro_matches.sql, my_applicant). Does nothing for everyone else.
+ */
+let formSetupOffered = false;
+function FormSetupBootstrap() {
+  const { userId } = useAuth();
+  const router = useRouter();
+  useEffect(() => {
+    if (!userId || formSetupOffered) return;
+    formSetupOffered = true;
+    getMyApplicant().then((a) => {
+      if (a && !a.setup_done) router.push("/onboarding/from-form");
+    });
+  }, [userId, router]);
+  return null;
+}
 
 function PushBootstrap() {
   const { userId } = useAuth();
@@ -175,6 +195,7 @@ export default function TabsLayout() {
   return (
     <View style={styles.root}>
       <PushBootstrap />
+      <FormSetupBootstrap />
       <Tabs
         initialRouteName="connect"
         tabBar={(props) => <GlassTabBar {...props} />}

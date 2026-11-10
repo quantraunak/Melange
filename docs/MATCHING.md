@@ -14,6 +14,17 @@ then mark the match **sent**. Only then does it appear in their app, under
 | Admin page | `/internal/matches` on the website (`app/internal/matches/page.tsx`) |
 | The script you paste into the sheet | `scripts/google-apps-script/applicants.gs` |
 | Your matches in the app | `mobile/app/matches/index.tsx`, `mobile/src/lib/intros.ts` |
+| Profile and first post started from the form | `mobile/app/onboarding/from-form.tsx` |
+
+**Starting from the form.** When someone signs in and their confirmed email
+matches a form response, the app opens "We started your profile from your
+form": their name, what they do (from "What do you make?"), who they're looking
+for, Instagram and work link are filled in. They add photos, fix anything, and
+tap Save. Then a project post is filled in from their idea and who they're
+looking for. They add pictures, edit, and tap Post, or skip it. Nothing becomes
+public until they tap Save or Post: their answers were shared with their
+matches, not with everyone. It comes back each time they open the app until
+they finish it.
 
 Do the steps in this order.
 
@@ -200,6 +211,12 @@ once after steps 1–5.
    up in the app with A's form email. You should get "Check your email". Tap the
    link, sign in. Discover shows **Your matches 1**; open it: B is there with
    **Message** and **View profile**.
+4b. **Starting from the form.** Right after that first sign-in, the app opens
+   "We started your profile from your form". Check the fields match the form,
+   add a photo, Save. Next comes the post filled in from the idea: add a
+   picture, Post. It opens the post. Close and reopen the app: the setup doesn't
+   come back. (On a fresh test account, try "Do this later" first: it comes back
+   on the next launch.)
 5. **Messaging with no photos.** From A's brand-new account (no photos, no
    role) tap **Message** on the match and send. It goes through. Then try
    messaging some random person from their profile: it asks for a photo and

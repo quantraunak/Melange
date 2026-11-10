@@ -72,9 +72,13 @@ CREATE TABLE IF NOT EXISTS public.applicants (
   consent         BOOLEAN NOT NULL CHECK (consent),
   submitted_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   status          TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'matched', 'waiting')),
+  -- When they finished (or skipped for good) the "we filled this in from your
+  -- form" setup in the app. NULL: offer it.
+  app_setup_done_at TIMESTAMPTZ,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE public.applicants ADD COLUMN IF NOT EXISTS app_setup_done_at TIMESTAMPTZ;
 ALTER TABLE public.applicants ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------
@@ -376,6 +380,44 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public.my_intros() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.my_intros() TO authenticated;
+
+-- Your own form answers, to start your profile and first post from. Found by
+-- the same trusted-email rule as my_intros (applicant_user_id), so nobody can
+-- read someone else's answers by signing up with their address. No phone.
+CREATE OR REPLACE FUNCTION public.my_applicant()
+RETURNS TABLE (
+  name TEXT, school TEXT, instagram TEXT, makes TEXT[], looking_for TEXT[],
+  looking_for_note TEXT, intent TEXT, idea TEXT, time_available TEXT,
+  work_link TEXT, setup_done BOOLEAN
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT a.name, a.school, a.instagram, a.makes, a.looking_for, a.looking_for_note,
+         a.intent, a.idea, a.time_available, a.work_link, a.app_setup_done_at IS NOT NULL
+  FROM public.applicants a
+  WHERE auth.uid() IS NOT NULL
+    AND public.applicant_user_id(a.id) = auth.uid()
+  LIMIT 1;
+$$;
+REVOKE ALL ON FUNCTION public.my_applicant() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.my_applicant() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.finish_applicant_setup()
+RETURNS VOID
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  UPDATE public.applicants a SET app_setup_done_at = now(), updated_at = now()
+  WHERE auth.uid() IS NOT NULL
+    AND a.app_setup_done_at IS NULL
+    AND public.applicant_user_id(a.id) = auth.uid();
+$$;
+REVOKE ALL ON FUNCTION public.finish_applicant_setup() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.finish_applicant_setup() TO authenticated;
 
 -- The "meet more people" prompt, once per person. True the first time only.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS intro_nudge_seen_at TIMESTAMPTZ;
