@@ -421,10 +421,9 @@ function EventCard({
         ) : null}
         <Pressable
           style={({ pressed }) => [styles.hostRow, pressed && styles.pressedOpacity]}
-          onPress={isMine ? undefined : onOpenHost}
-          disabled={isMine}
-          accessibilityRole={isMine ? undefined : "button"}
-          accessibilityLabel={isMine ? undefined : `${event.host.name}'s profile`}
+          onPress={onOpenHost}
+          accessibilityRole="button"
+          accessibilityLabel={isMine ? "Your profile" : `${event.host.name}'s profile`}
         >
           <Avatar
             creator={{ name: event.host.name, avatar_url: event.host.avatar_url }}

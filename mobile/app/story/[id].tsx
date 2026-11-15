@@ -178,7 +178,7 @@ export default function StoryDetailScreen() {
               ) : (
                 // No photos: the title, set large on paper, is the cover.
                 <View style={[styles.galleryImage, styles.galleryEmpty]}>
-                  <Text style={styles.typeOnly} numberOfLines={5}>
+                  <Text style={styles.typeOnly}>
                     {story.title}
                   </Text>
                 </View>
@@ -259,7 +259,7 @@ export default function StoryDetailScreen() {
                       >
                         <Text
                           style={[styles.creditName, c.user_id && styles.creditNameLink]}
-                          numberOfLines={1}
+                         
                         >
                           {c.name}
                         </Text>

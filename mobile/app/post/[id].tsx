@@ -243,7 +243,7 @@ export default function ProjectDetailScreen() {
           ) : (
             // No photos: the title, set large on paper, is the poster.
             <View style={[styles.heroImg, styles.placeholder]}>
-              <Text style={styles.placeholderTitle} numberOfLines={4}>
+              <Text style={styles.placeholderTitle}>
                 {post.title}
               </Text>
             </View>
@@ -293,15 +293,16 @@ export default function ProjectDetailScreen() {
 
           {creator ? (
             <Pressable
-              onPress={
-                isMine
-                  ? undefined
-                  : () => router.push({ pathname: "/profile/[userId]", params: { userId: post.owner_id } })
+              // Your own too: it opens your profile the way others see it.
+              onPress={() =>
+                router.push({
+                  pathname: "/profile/[userId]",
+                  params: isMine ? { userId: post.owner_id, preview: "1" } : { userId: post.owner_id },
+                })
               }
-              disabled={isMine}
-              accessibilityRole={isMine ? undefined : "button"}
-              accessibilityLabel={isMine ? undefined : `${creator.name}'s profile`}
-              style={({ pressed }) => [pressed && !isMine && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel={isMine ? "Your profile" : `${creator.name}'s profile`}
+              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
             >
               <Glass radius={radii.md} style={styles.byCard}>
                 <Avatar creator={creator} size="lg" />

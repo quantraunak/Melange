@@ -191,10 +191,10 @@ export function ProfileTrustSections({
             >
               <Avatar creator={c.with} size="sm" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
+                <Text style={styles.rowTitle}>
                   {c.title ?? `With ${c.with.name}`}
                 </Text>
-                <Text style={styles.rowMeta} numberOfLines={1}>
+                <Text style={styles.rowMeta}>
                   {c.title ? `with ${c.with.name} · ` : ""}
                   {monthYear(c.date)}
                 </Text>

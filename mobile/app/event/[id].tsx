@@ -32,6 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/Avatar";
 import { MatchCelebration } from "@/components/MatchCelebration";
 import { NightRoll } from "@/components/NightRoll";
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -91,6 +92,7 @@ export default function EventScreen() {
   const [mutuals, setMutuals] = useState<NightMutual[]>([]);
   const [me, setMe] = useState<{ name: string; avatar_url: string | null }>({ name: "You", avatar_url: null });
   const [rsvpBusy, setRsvpBusy] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
   const [hearting, setHearting] = useState<Set<string>>(new Set());
   const [celebration, setCelebration] = useState<{ them: NightPerson; matchId: string | null } | null>(null);
 
@@ -387,7 +389,16 @@ export default function EventScreen() {
         }
       >
         {/* A real cover or none: without one, the title in the serif is the cover. */}
-        {event.cover_url ? <Image source={{ uri: event.cover_url }} style={styles.cover} /> : null}
+        {event.cover_url ? (
+          <Pressable onPress={() => setCoverOpen(true)} accessibilityRole="imagebutton" accessibilityLabel="Open photo full screen">
+            <Image source={{ uri: event.cover_url }} style={styles.cover} />
+          </Pressable>
+        ) : null}
+        <PhotoViewer
+          photos={event.cover_url ? [event.cover_url] : []}
+          index={coverOpen ? 0 : null}
+          onClose={() => setCoverOpen(false)}
+        />
 
         <Text style={styles.cat}>
           {cat.label}

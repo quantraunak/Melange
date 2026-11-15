@@ -18,6 +18,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { Camera, Settings as SettingsIcon } from "lucide-react-native";
 
 import { ProfileNudge } from "@/components/ProfileNudge";
+import { shareProfile } from "@/lib/share";
 import { Avatar } from "@/components/Avatar";
 import { IdentityLine } from "@/components/IdentityLine";
 import { ScreenTitle } from "@/components/ScreenTitle";
@@ -262,9 +263,9 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName} numberOfLines={1}>{profile.name}</Text>
+            <Text style={styles.profileName}>{profile.name}</Text>
             {profile.role && profile.role !== "other" ? (
-              <Text style={styles.profileRole} numberOfLines={1}>{profile.role}</Text>
+              <Text style={styles.profileRole}>{profile.role}</Text>
             ) : null}
             <IdentityLine founding={profile.founding} scene={profile.scene} handle={profile.handle} />
             <RatingLine trust={trust} />
@@ -282,6 +283,12 @@ export default function ProfileScreen() {
                   <Text style={styles.sectionAction}>Preview profile</Text>
                 </Pressable>
               ) : null}
+              <Pressable
+                onPress={() => shareProfile(profile, true).then((e) => e && setError(e))}
+                hitSlop={12}
+              >
+                <Text style={styles.sectionAction}>Share</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -336,11 +343,11 @@ export default function ProfileScreen() {
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
+                <Text style={styles.rowTitle}>
                   {w.title}
                 </Text>
                 {w.with ? (
-                  <Text style={styles.rowMeta} numberOfLines={1}>
+                  <Text style={styles.rowMeta}>
                     {w.with}
                   </Text>
                 ) : null}
@@ -370,10 +377,10 @@ export default function ProfileScreen() {
                 accessibilityHint="Shows the project the way other people see it"
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
+                  <Text style={styles.rowTitle}>
                     {p.title}
                   </Text>
-                  <Text style={styles.rowMeta} numberOfLines={1}>
+                  <Text style={styles.rowMeta}>
                     {projectDates(p) ?? formatRecordDate(p.created_at)}
                     {projectRoles(p).length ? ` · ${projectRoles(p).slice(0, 3).join(", ")}` : ""}
                     {p.is_active ? "" : " · inactive"}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, FlatList, Modal, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Dimensions, FlatList, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
@@ -12,7 +12,8 @@ const { width: W, height: H } = Dimensions.get("window");
  * A photo, big. Tap any photo on a profile, a project or a piece of work and
  * it opens here, full screen on black, swipeable through the rest of the set.
  * The whole frame, uncropped: the grids crop to fit, this is where you see
- * what was actually shot.
+ * what was actually shot. Pinch to zoom in (each page is its own zooming
+ * scroll view, so a zoomed photo pans before the set swipes on).
  */
 export function PhotoViewer({
   photos,
@@ -46,11 +47,7 @@ export function PhotoViewer({
           initialScrollIndex={index ?? 0}
           getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
           onMomentumScrollEnd={(e) => setCurrent(Math.round(e.nativeEvent.contentOffset.x / W))}
-          renderItem={({ item }) => (
-            <Pressable style={styles.page} onPress={onClose} accessibilityLabel="Close photo">
-              <Image source={{ uri: item }} style={styles.img} contentFit="contain" transition={120} />
-            </Pressable>
-          )}
+          renderItem={({ item }) => <ZoomPage uri={item} onClose={onClose} />}
         />
         <View style={[styles.top, { top: insets.top + spacing.sm }]}>
           <Text style={styles.count}>
@@ -62,6 +59,26 @@ export function PhotoViewer({
         </View>
       </View>
     </Modal>
+  );
+}
+
+/** One photo you can pinch into. A tap closes, as before. */
+function ZoomPage({ uri, onClose }: { uri: string; onClose: () => void }) {
+  return (
+    <ScrollView
+      style={styles.page}
+      contentContainerStyle={styles.page}
+      maximumZoomScale={4}
+      minimumZoomScale={1}
+      bouncesZoom
+      centerContent
+      showsHorizontalScrollIndicator={false}
+      showsVerticalScrollIndicator={false}
+    >
+      <Pressable style={styles.page} onPress={onClose} accessibilityLabel="Close photo" accessibilityHint="Pinch to zoom">
+        <Image source={{ uri }} style={styles.img} contentFit="contain" transition={120} />
+      </Pressable>
+    </ScrollView>
   );
 }
 
