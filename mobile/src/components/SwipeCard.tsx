@@ -13,8 +13,8 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { CalendarDays, Heart, MapPin, X } from "lucide-react-native";
 
-import { colors, GUTTER, motion, radii, shadows, typography } from "@/lib/theme";
-import { payLabel, projectDates, projectRoles, type PostWithCreator } from "@/lib/db";
+import { colors, fonts, GUTTER, motion, radii, shadows, typography } from "@/lib/theme";
+import { payLabel, projectDates, projectPlace, projectRoles, type PostWithCreator } from "@/lib/db";
 import { sized } from "@/lib/imageUrl";
 import { usePressScale } from "@/lib/usePressScale";
 import { sceneLabel, type ScenePerson } from "@/lib/scenes";
@@ -153,8 +153,12 @@ function Plate({
   const roles = projectRoles(post);
   const dates = projectDates(post);
   const pay = payLabel(post);
-  const shown = roles.slice(0, 3);
-  const extra = roles.length - shown.length;
+  const place = post.isPerson ? post.location : projectPlace(post, sceneLabel);
+  // On a project, the chip on top is what the poster IS; who they need is a
+  // line under the title. As chips on top, people read the roles they were
+  // looking for as the poster's own job.
+  const ownRole = post.creator.role && post.creator.role !== "other" ? post.creator.role : null;
+  const lookingFor = post.isPerson ? [] : roles;
   const press = usePressScale("card", { haptic: false });
   const interactive = !!onLike;
 
@@ -174,12 +178,17 @@ function Plate({
               }
               style={styles.caption}
             >
-              {roles.length ? (
+              {post.isPerson ? (
+                roles.length ? (
+                  <ChipRow style={styles.chips}>
+                    {roles.slice(0, 3).map((r) => (
+                      <Chip key={r} label={r} size="sm" tone="accent" />
+                    ))}
+                  </ChipRow>
+                ) : null
+              ) : ownRole ? (
                 <ChipRow style={styles.chips}>
-                  {shown.map((r) => (
-                    <Chip key={r} label={r} size="sm" tone="accent" />
-                  ))}
-                  {extra > 0 ? <Chip label={`+${extra}`} size="sm" tone="outline" /> : null}
+                  <Chip label={ownRole} size="sm" tone="accent" />
                 </ChipRow>
               ) : null}
 
@@ -194,6 +203,12 @@ function Plate({
                 </Text>
               ) : null}
 
+              {lookingFor.length ? (
+                <Text style={styles.lookingFor} numberOfLines={1}>
+                  Looking for: {lookingFor.join(", ")}
+                </Text>
+              ) : null}
+
               <View style={styles.metaRow}>
                 {dates ? (
                   <View style={styles.meta}>
@@ -203,11 +218,11 @@ function Plate({
                     </Text>
                   </View>
                 ) : null}
-                {post.location ? (
+                {place ? (
                   <View style={styles.meta}>
                     <MapPin size={14} color={colors.iconFaint} strokeWidth={1.75} />
                     <Text style={styles.metaText} numberOfLines={1}>
-                      {post.location}
+                      {place}
                     </Text>
                   </View>
                 ) : null}
@@ -649,6 +664,7 @@ const styles = StyleSheet.create({
   caption: { paddingHorizontal: GUTTER, paddingTop: 18, paddingBottom: GUTTER },
   chips: { marginBottom: 12 },
   title: { ...typography.display2, marginBottom: 6 },
+  lookingFor: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
   logline: { ...typography.body, color: colors.textSecondary, marginBottom: 14 },
   metaRow: {
     flexDirection: "row",

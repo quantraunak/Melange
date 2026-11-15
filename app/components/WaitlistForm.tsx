@@ -105,7 +105,7 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
         />
       </label>
       <label className="block">
-        <span className="text-sm font-medium text-ink">Scene</span>
+        <span className="text-sm font-medium text-ink">Where are you?</span>
         <select
           value={scene}
           onChange={(e) => setScene(e.target.value as WaitlistScene | "")}
@@ -120,7 +120,6 @@ export default function WaitlistForm({ defaultScene = "" }: { defaultScene?: Wai
               {s.live ? "" : " (soon)"}
             </option>
           ))}
-          <option value="other">Somewhere else</option>
         </select>
       </label>
       <label className="block">

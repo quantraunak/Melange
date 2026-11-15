@@ -10,13 +10,15 @@ import { supabase } from "./supabase";
  * keeps shipping.
  */
 
-export type Scene = "usc" | "ucsd" | "la" | "nyc";
+/** Regions (29_projects_and_regions.sql). California and remote for now. */
+export type Scene = "sd" | "la" | "sf" | "other_ca" | "remote";
 
 export const SCENES: { id: Scene; label: string }[] = [
-  { id: "usc", label: "USC" },
-  { id: "ucsd", label: "UCSD" },
+  { id: "sd", label: "San Diego" },
   { id: "la", label: "LA" },
-  { id: "nyc", label: "NYC" },
+  { id: "sf", label: "SF" },
+  { id: "other_ca", label: "Other California" },
+  { id: "remote", label: "Remote" },
 ];
 
 export function sceneLabel(scene: string | null | undefined): string | null {

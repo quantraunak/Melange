@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import { ArrowLeft, ArrowRight, ImagePlus, X } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Plus, X } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { Chip, ChipRow } from "@/components/ui/Chip";
@@ -23,8 +23,10 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/TextArea";
 import { Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { colors, fonts, radii, typography } from "@/lib/theme";
 import { PAY_TYPES, ROLES, uploadFile, type PayType } from "@/lib/db";
+import { SCENES } from "@/lib/scenes";
 
 const MAX_IMAGES = 5;
 
@@ -35,7 +37,10 @@ export type ProjectFormValues = {
   projectStart: string | null; // YYYY-MM-DD
   projectEnd: string | null;
   location: string;
-  payType: PayType | null;
+  /** sd / la / sf / other_ca / remote, or null. */
+  region: string | null;
+  isRemote: boolean;
+  payTypes: PayType[];
   compensation: string;
   mediaUrls: string[];
 };
@@ -44,7 +49,7 @@ type Asset =
   | { kind: "remote"; url: string }
   | { kind: "local"; uri: string; mimeType?: string; width?: number; height?: number };
 
-const STEPS = ["What", "Roles", "When & where", "Pay & poster"] as const;
+const STEPS = ["Project", "Who", "When & where", "Pay & photos"] as const;
 
 /**
  * Accepts "2026-10-18", "10/18", "10/18/26", "Oct 18". Returns YYYY-MM-DD or
@@ -88,26 +93,10 @@ function toIso(y: number, m: number, d: number): string | null {
 function prettyDate(iso: string | null): string {
   if (!iso) return "";
   return new Date(`${iso}T12:00:00`).toLocaleDateString([], {
-    weekday: "short",
     month: "short",
     day: "numeric",
+    year: "numeric",
   });
-}
-
-/** Quick picks for the most common answers. */
-function weekendPicks(): { label: string; start: string; end: string }[] {
-  const now = new Date();
-  const day = now.getDay(); // 0 Sun
-  const toSat = (6 - day + 7) % 7 || 7;
-  const sat = new Date(now.getFullYear(), now.getMonth(), now.getDate() + toSat, 12);
-  const sun = new Date(sat.getTime() + 86400000);
-  const sat2 = new Date(sat.getTime() + 7 * 86400000);
-  const sun2 = new Date(sat2.getTime() + 86400000);
-  const iso = (d: Date) => toIso(d.getFullYear(), d.getMonth() + 1, d.getDate())!;
-  return [
-    { label: "This weekend", start: iso(sat), end: iso(sun) },
-    { label: "Next weekend", start: iso(sat2), end: iso(sun2) },
-  ];
 }
 
 export function ProjectForm({
@@ -134,7 +123,11 @@ export function ProjectForm({
   const [startIso, setStartIso] = useState<string | null>(initial?.projectStart ?? null);
   const [endIso, setEndIso] = useState<string | null>(initial?.projectEnd ?? null);
   const [location, setLocation] = useState(initial?.location ?? "");
-  const [payType, setPayType] = useState<PayType | null>(initial?.payType ?? null);
+  const [region, setRegion] = useState<string | null>(initial?.region ?? null);
+  const [isRemote, setIsRemote] = useState(initial?.isRemote ?? false);
+  const [payTypes, setPayTypes] = useState<PayType[]>(initial?.payTypes ?? []);
+  const [otherRole, setOtherRole] = useState("");
+  const [viewing, setViewing] = useState<number | null>(null);
   const [compensation, setCompensation] = useState(initial?.compensation ?? "");
   const [assets, setAssets] = useState<Asset[]>(
     (initial?.mediaUrls ?? []).map((url) => ({ kind: "remote", url }))
@@ -153,7 +146,20 @@ export function ProjectForm({
     attempt: number;
   } | null>(null);
 
-  const picks = useMemo(() => weekendPicks(), []);
+  // Roles typed under "Other" show as chips like the rest.
+  const customRoles = roles.filter((r) => !(ROLES as readonly string[]).includes(r));
+
+  const addOtherRole = () => {
+    const r = otherRole.trim();
+    if (!r) return;
+    setRoles((prev) => (prev.some((x) => x.toLowerCase() === r.toLowerCase()) ? prev : [...prev, r]));
+    setOtherRole("");
+  };
+
+  const togglePay = (k: PayType) => {
+    Haptics.selectionAsync();
+    setPayTypes((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  };
 
   const toggleRole = (r: string) => {
     Haptics.selectionAsync();
@@ -176,7 +182,7 @@ export function ProjectForm({
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Photo access needed", "Allow photo access in Settings to add a poster.");
+      Alert.alert("Photo access needed", "Allow photo access in Settings to add photos.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -199,14 +205,13 @@ export function ProjectForm({
   const removeAsset = (idx: number) => setAssets((prev) => prev.filter((_, i) => i !== idx));
 
   const validateStep = (s: number): string | null => {
-    // Only a title and a photo are required. Roles, dates and pay are optional.
+    // Only a title is required. Who, dates, place, pay and photos are optional.
     if (s === 0 && !title.trim()) return "Give your project a title.";
     if (s === 2) {
-      if (startText.trim() && !startIso) return "Start date: try 10/18 or Oct 18.";
-      if (endText.trim() && !endIso) return "End date: try 10/19 or Oct 19.";
+      if (startText.trim() && !startIso) return "Start date: try 10/18/2026.";
+      if (endText.trim() && !endIso) return "End date: try 10/19/2026.";
       if (startIso && endIso && endIso < startIso) return "The end date is before the start.";
     }
-    if (s === 3 && assets.length === 0) return "Add at least one photo so people can see what you mean.";
     return null;
   };
 
@@ -282,7 +287,9 @@ export function ProjectForm({
       projectStart: startIso,
       projectEnd: endIso ?? startIso,
       location: location.trim(),
-      payType,
+      region,
+      isRemote,
+      payTypes,
       compensation: compensation.trim(),
       mediaUrls: finalUrls,
     });
@@ -306,15 +313,15 @@ export function ProjectForm({
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {step === 0 ? (
           <>
-            <Text style={styles.stepTitle}>What are you making?</Text>
+            <Text style={styles.stepTitle}>What&apos;s your project?</Text>
             <Field label="Title">
-              <Input value={title} onChangeText={setTitle} placeholder="e.g. Golden-hour rooftop editorial" autoFocus />
+              <Input value={title} onChangeText={setTitle} placeholder="e.g. Portfolio shoot, need a stylist" autoFocus />
             </Field>
-            <Field label="Description" hint="One or two lines. What it is, what the look is.">
+            <Field label="About it" hint="What it is and what you need help with.">
               <TextArea
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Moody, warm, film-grain look. Looking for a model and a stylist."
+                placeholder="I'm a model building my portfolio. Looking for a stylist and a photographer this month."
                 numberOfLines={4}
               />
             </Field>
@@ -323,45 +330,75 @@ export function ProjectForm({
 
         {step === 1 ? (
           <>
-            <Text style={styles.stepTitle}>Who do you still need?</Text>
-            <Text style={styles.stepHint}>Optional. Tap who you&apos;d love to work with. People apply to the project, not to a role.</Text>
+            <Text style={styles.stepTitle}>Who are you looking for?</Text>
             <ChipRow style={{ marginTop: 4 }}>
-              {ROLES.map((r) => (
+              {ROLES.filter((r) => r !== "Other").map((r) => (
                 <Chip key={r} label={r} selected={roles.includes(r)} onPress={() => toggleRole(r)} />
               ))}
+              {customRoles.map((r) => (
+                <Chip key={r} label={r} selected onPress={() => toggleRole(r)} />
+              ))}
             </ChipRow>
+            <Field label="Other" hint="Type anyone not listed.">
+              <View style={styles.otherRow}>
+                <Input
+                  value={otherRole}
+                  onChangeText={setOtherRole}
+                  placeholder="e.g. Tattoo artist"
+                  onSubmitEditing={addOtherRole}
+                  returnKeyType="done"
+                  containerStyle={{ flex: 1 }}
+                />
+                <Pressable onPress={addOtherRole} style={styles.otherAdd} accessibilityLabel="Add">
+                  <Plus size={18} color={colors.onBrand} />
+                </Pressable>
+              </View>
+            </Field>
           </>
         ) : null}
 
         {step === 2 ? (
           <>
             <Text style={styles.stepTitle}>When and where?</Text>
-            <ChipRow>
-              {picks.map((p) => (
-                <Chip
-                  key={p.label}
-                  label={p.label}
-                  selected={startIso === p.start && endIso === p.end}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setStartIso(p.start);
-                    setEndIso(p.end);
-                    setStartText(prettyDate(p.start));
-                    setEndText(prettyDate(p.end));
-                  }}
-                />
-              ))}
-            </ChipRow>
             <View style={styles.twoCol}>
-              <Field label="Starts" style={{ flex: 1 }} hint={startIso ? prettyDate(startIso) : "e.g. 10/18"}>
-                <Input value={startText} onChangeText={setStart} placeholder="10/18" autoCapitalize="none" />
+              <Field label="Starts" style={{ flex: 1 }} hint={startIso ? prettyDate(startIso) : "Optional"}>
+                <Input value={startText} onChangeText={setStart} placeholder="10/18/2026" autoCapitalize="none" keyboardType="numbers-and-punctuation" />
               </Field>
-              <Field label="Ends" style={{ flex: 1 }} hint={endIso ? prettyDate(endIso) : "optional"}>
-                <Input value={endText} onChangeText={setEnd} placeholder="10/19" autoCapitalize="none" />
+              <Field label="Ends" style={{ flex: 1 }} hint={endIso ? prettyDate(endIso) : "Optional"}>
+                <Input value={endText} onChangeText={setEnd} placeholder="10/19/2026" autoCapitalize="none" keyboardType="numbers-and-punctuation" />
               </Field>
             </View>
-            <Field label="Location">
-              <Input value={location} onChangeText={setLocation} placeholder="e.g. Orange, CA" />
+            <Field label="Area">
+              <ChipRow>
+                {SCENES.filter((r) => r.id !== "remote").map((r) => (
+                  <Chip
+                    key={r.id}
+                    label={r.label}
+                    selected={region === r.id}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setRegion(region === r.id ? null : r.id);
+                    }}
+                  />
+                ))}
+              </ChipRow>
+            </Field>
+            <Pressable
+              style={styles.checkRow}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setIsRemote((v) => !v);
+              }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isRemote }}
+            >
+              <View style={[styles.checkbox, isRemote && styles.checkboxOn]}>
+                {isRemote ? <Check size={14} color={colors.white} strokeWidth={3} /> : null}
+              </View>
+              <Text style={styles.checkLabel}>Can be done remotely</Text>
+            </Pressable>
+            <Field label="Place (optional)">
+              <Input value={location} onChangeText={setLocation} placeholder="e.g. Echo Park, or a studio downtown" />
             </Field>
           </>
         ) : null}
@@ -371,19 +408,18 @@ export function ProjectForm({
             <Text style={styles.stepTitle}>How are people paid?</Text>
             <View style={styles.payList}>
               {PAY_TYPES.map((p) => {
-                const on = payType === p.key;
+                const on = payTypes.includes(p.key);
                 return (
                   <Pressable
                     key={p.key}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setPayType(p.key);
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: on }}
+                    onPress={() => togglePay(p.key)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
                   >
                     <Glass variant="soft" radius={radii.md} style={[styles.payRow, on && styles.payRowOn]}>
-                      <View style={[styles.radio, on && styles.radioOn]} />
+                      <View style={[styles.checkbox, on && styles.checkboxOn]}>
+                        {on ? <Check size={14} color={colors.white} strokeWidth={3} /> : null}
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.payLabel}>{p.label}</Text>
                         <Text style={styles.payHint}>{p.hint}</Text>
@@ -393,15 +429,17 @@ export function ProjectForm({
                 );
               })}
             </View>
-            <Field label="Detail" hint="Optional: rate, meals, travel.">
+            <Field label="Details (optional)" hint="Rate, meals, travel.">
               <Input value={compensation} onChangeText={setCompensation} placeholder="e.g. $150/day, lunch on set" />
             </Field>
 
-            <Field label={`Poster or stills (up to ${MAX_IMAGES})`} hint="The first image is the card.">
+            <Field label="Photos for your project (optional)" hint={`Up to ${MAX_IMAGES}. The first one shows on Discover. Tap one to see it bigger.`}>
               <View style={styles.images}>
                 {assets.map((a, idx) => (
                   <View key={`${idx}-${a.kind === "remote" ? a.url : a.uri}`} style={styles.imageThumb}>
-                    <Image source={{ uri: a.kind === "remote" ? a.url : a.uri }} style={{ width: "100%", height: "100%" }} />
+                    <Pressable onPress={() => setViewing(idx)} accessibilityLabel="See photo bigger" style={{ width: "100%", height: "100%" }}>
+                      <Image source={{ uri: a.kind === "remote" ? a.url : a.uri }} style={{ width: "100%", height: "100%" }} />
+                    </Pressable>
                     <Pressable style={styles.imageRemove} onPress={() => removeAsset(idx)} hitSlop={6}>
                       <X size={14} color={colors.white} />
                     </Pressable>
@@ -434,6 +472,12 @@ export function ProjectForm({
           </View>
         ) : null}
       </ScrollView>
+
+      <PhotoViewer
+        photos={assets.map((a) => (a.kind === "remote" ? a.url : a.uri))}
+        index={viewing}
+        onClose={() => setViewing(null)}
+      />
 
       <View style={styles.footer}>
         {step > 0 ? (
@@ -485,14 +529,27 @@ const styles = StyleSheet.create({
   payList: { gap: 8 },
   payRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   payRowOn: { borderColor: colors.accent },
-  radio: {
-    width: 18,
-    height: 18,
-    borderRadius: radii.sm,
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.lineStrong,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  radioOn: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkboxOn: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
+  checkLabel: typography.body,
+  otherRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  otherAdd: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.sm,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   payLabel: typography.headline,
   payHint: typography.caption,
   images: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

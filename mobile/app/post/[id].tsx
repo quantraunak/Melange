@@ -22,6 +22,7 @@ import {
   Flag,
   MapPin,
   Pencil,
+  Users,
   Wallet,
   X,
 } from "lucide-react-native";
@@ -37,12 +38,14 @@ import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
+import { sceneLabel } from "@/lib/scenes";
 import {
   checkAndCreateMatch,
   getMySwipes,
   getProfile,
   payLabel,
   projectDates,
+  projectPlace,
   projectRoles,
   type CollabPost,
   type CreatorInfo,
@@ -200,6 +203,7 @@ export default function ProjectDetailScreen() {
   const roles = projectRoles(post);
   const dates = projectDates(post);
   const pay = payLabel(post);
+  const place = projectPlace(post, sceneLabel);
   const detail = post.pay_type && post.compensation ? post.compensation : null;
 
   return (
@@ -247,19 +251,22 @@ export default function ProjectDetailScreen() {
         </View>
 
         <View style={styles.body}>
-          {roles.length ? (
+          {/* What the poster is, on top. Who they need is a line below: as
+              chips up here, people read them as the poster's own job. */}
+          {creator?.role && creator.role !== "other" ? (
             <ChipRow>
-              {roles.map((r) => (
-                <Chip key={r} label={r} tone="accent" />
-              ))}
+              <Chip label={creator.role} tone="accent" />
             </ChipRow>
           ) : null}
           {post.media_urls?.length ? <Text style={styles.title}>{post.title}</Text> : null}
           {post.description ? <Text style={styles.logline}>{post.description}</Text> : null}
 
           <View style={styles.facts}>
+            {roles.length ? (
+              <Fact icon={<Users size={16} color={colors.iconFaint} />} label="Looking for" value={roles.join(", ")} />
+            ) : null}
             {dates ? <Fact icon={<CalendarDays size={16} color={colors.iconFaint} />} label="When" value={dates} /> : null}
-            {post.location ? <Fact icon={<MapPin size={16} color={colors.iconFaint} />} label="Where" value={post.location} /> : null}
+            {place ? <Fact icon={<MapPin size={16} color={colors.iconFaint} />} label="Where" value={place} /> : null}
             {pay ? (
               <Fact
                 icon={<Wallet size={16} color={colors.iconFaint} />}
@@ -267,7 +274,7 @@ export default function ProjectDetailScreen() {
                 value={detail ? `${pay} · ${detail}` : pay}
               />
             ) : null}
-            {!dates && !post.location && !pay ? (
+            {!dates && !place && !pay && !roles.length ? (
               <Text style={styles.factsEmpty}>No dates or pay listed yet. Ask in chat.</Text>
             ) : null}
           </View>
@@ -417,7 +424,7 @@ function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; va
     <View style={styles.fact}>
       {icon}
       <Text style={styles.factLabel}>{label}</Text>
-      <Text style={styles.factValue} numberOfLines={2}>
+      <Text style={styles.factValue}>
         {value}
       </Text>
     </View>

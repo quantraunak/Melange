@@ -31,6 +31,11 @@ export type CollabPost = {
   project_end?: string | null;
   roles?: string[] | null;
   pay_type?: PayType | null;
+  /** 29_projects_and_regions.sql: more than one pay type, region, remote, finished. */
+  pay_types?: PayType[] | null;
+  region?: string | null;
+  is_remote?: boolean | null;
+  finished_at?: string | null;
 };
 
 /** Open roles vocabulary. Order is display order in the picker. */
@@ -51,13 +56,23 @@ export const ROLES = [
   "Designer",
   "Illustrator",
   "Writer",
+  "Poet",
+  "Painter",
+  "Animator",
+  "Photo editor",
+  "Set designer",
+  "Costume designer",
+  "Singer",
+  "Rapper",
+  "DJ",
+  "Choreographer",
   "Other",
 ] as const;
 
 export const PAY_TYPES: { key: PayType; label: string; hint: string }[] = [
-  { key: "paid", label: "Paid", hint: "Day rate or flat fee" },
-  { key: "tfp", label: "Trade (TFP)", hint: "Time for photos, footage or prints" },
-  { key: "credit", label: "Credit", hint: "Credit, a tag, a copy of the work" },
+  { key: "paid", label: "Paid", hint: "Money: a day rate or a flat fee" },
+  { key: "tfp", label: "Trade", hint: "Everyone gets the photos or footage to use" },
+  { key: "credit", label: "Credit", hint: "Your name on it and a tag" },
 ];
 
 /** Roles on a project, reading the structured column first. */
@@ -76,10 +91,21 @@ export function projectDates(post: Pick<CollabPost, "project_start" | "project_e
   return `${start} to ${fmt(post.project_end)}`;
 }
 
-export function payLabel(post: Pick<CollabPost, "pay_type" | "compensation">): string | null {
-  const t = PAY_TYPES.find((x) => x.key === post.pay_type);
-  if (t) return t.label;
+export function payLabel(post: Pick<CollabPost, "pay_type" | "pay_types" | "compensation">): string | null {
+  const keys = post.pay_types?.length ? post.pay_types : post.pay_type ? [post.pay_type] : [];
+  const labels = keys.map((k) => PAY_TYPES.find((x) => x.key === k)?.label).filter(Boolean);
+  if (labels.length) return labels.join(" + ");
   return post.compensation || null;
+}
+
+/** "LA · Echo Park", "Remote", "SF · or remote". */
+export function projectPlace(
+  post: Pick<CollabPost, "region" | "is_remote" | "location">,
+  regionLabel: (id: string | null | undefined) => string | null
+): string | null {
+  const parts = [regionLabel(post.region), post.location?.trim() || null].filter(Boolean) as string[];
+  if (post.is_remote) parts.push(parts.length ? "or remote" : "Remote");
+  return parts.length ? parts.join(" · ") : null;
 }
 
 export type Credit = {
@@ -549,6 +575,9 @@ export async function createPost(
     project_start?: string;
     project_end?: string;
     pay_type?: PayType;
+    pay_types?: PayType[];
+    region?: string;
+    is_remote?: boolean;
   }
 ): Promise<{ data: CollabPost | null; error: string | null }> {
   try {
@@ -561,6 +590,9 @@ export async function createPost(
     if (opts?.project_start) row.project_start = opts.project_start;
     if (opts?.project_end) row.project_end = opts.project_end;
     if (opts?.pay_type) row.pay_type = opts.pay_type;
+    if (opts?.pay_types?.length) row.pay_types = opts.pay_types;
+    if (opts?.region) row.region = opts.region;
+    if (opts?.is_remote) row.is_remote = true;
 
     let res = await supabase.from("collab_posts").insert(row).select().single();
     if (res.error && isMissingProjectColumns(res.error.message)) {
@@ -571,6 +603,9 @@ export async function createPost(
       delete legacy.project_start;
       delete legacy.project_end;
       delete legacy.pay_type;
+      delete legacy.pay_types;
+      delete legacy.region;
+      delete legacy.is_remote;
       if (opts?.roles?.length && !legacy.looking_for) legacy.looking_for = opts.roles;
       if (opts?.pay_type && !legacy.compensation) legacy.compensation = opts.pay_type.toUpperCase();
       res = await supabase.from("collab_posts").insert(legacy).select().single();
@@ -586,7 +621,7 @@ export async function createPost(
 
 /** PostgREST's wording when a column from 08_projects.sql is not there yet. */
 function isMissingProjectColumns(message: string): boolean {
-  const names = /(roles|project_start|project_end|pay_type|reel_url)/i;
+  const names = /(roles|project_start|project_end|pay_type|pay_types|region|is_remote|finished_at|reel_url)/i;
   return names.test(message) && /(column|schema cache)/i.test(message);
 }
 
@@ -602,6 +637,10 @@ export async function updatePost(
       delete legacy.project_start;
       delete legacy.project_end;
       delete legacy.pay_type;
+      delete legacy.pay_types;
+      delete legacy.region;
+      delete legacy.is_remote;
+      delete legacy.finished_at;
       if (patch.roles?.length) legacy.looking_for = patch.roles;
       if (patch.pay_type && !patch.compensation) legacy.compensation = patch.pay_type.toUpperCase();
       res = await supabase.from("collab_posts").update(legacy).eq("id", postId).select().single();

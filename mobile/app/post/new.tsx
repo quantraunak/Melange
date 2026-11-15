@@ -69,7 +69,10 @@ export default function NewProjectsScreen() {
             project_start: v.projectStart ?? undefined,
             project_end: v.projectEnd ?? undefined,
             location: v.location || undefined,
-            pay_type: v.payType ?? undefined,
+            pay_type: v.payTypes[0],
+            pay_types: v.payTypes,
+            region: v.region ?? undefined,
+            is_remote: v.isRemote,
             compensation: v.compensation || undefined,
             media_urls: v.mediaUrls.length ? v.mediaUrls : undefined,
           });
@@ -78,7 +81,7 @@ export default function NewProjectsScreen() {
             trackEvent("post_created", {
               roles: v.roles.length,
               photos: v.mediaUrls.length,
-              pay_type: v.payType ?? null,
+              pay_type: v.payTypes.join(",") || null,
             });
             // Straight to the post, as everyone else will see it, rather than
             // back to wherever you started: "where did my post go?" was the
