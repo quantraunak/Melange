@@ -44,22 +44,7 @@ import { likeProject } from "@/lib/likeProject";
 import { toggleHeart } from "@/lib/hearts";
 import { getDiscoverPeople, type ScenePerson } from "@/lib/scenes";
 import { orderByTaste } from "@/lib/taste";
-import { getMyIntros } from "@/lib/intros";
 
-/** How many hand-picked matches you have, re-checked whenever Discover is shown. */
-function useIntroCount(): number {
-  const [count, setCount] = useState(0);
-  useFocusEffect(
-    useCallback(() => {
-      let alive = true;
-      getMyIntros().then(({ data }) => alive && setCount(data.length));
-      return () => {
-        alive = false;
-      };
-    }, [])
-  );
-  return count;
-}
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -125,7 +110,6 @@ export default function DiscoverScreen() {
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [gateLine, setGateLine] = useState<string | null>(null);
   const posted = useHasPosted(userId);
-  const introCount = useIntroCount();
 
   const [lastSwipe, setLastSwipe] = useState<{ post: DeckCard; dir: SwipeDir } | null>(null);
   const [rewinding, setRewinding] = useState(false);
@@ -536,20 +520,6 @@ export default function DiscoverScreen() {
           </Glass>
         ) : (
           <>
-            {/* Hand-picked matches from the Melange team (29_intro_matches.sql). */}
-            <Pressable
-              onPress={() => router.push("/matches")}
-              accessibilityRole="button"
-              accessibilityLabel={introCount ? `Your matches, ${introCount}` : "Your matches"}
-              style={({ pressed }) => [styles.matchesPill, pressed && { opacity: 0.85 }]}
-            >
-              <Text style={styles.matchesPillText}>Your matches</Text>
-              {introCount ? (
-                <View style={styles.matchesCount}>
-                  <Text style={styles.matchesCountText}>{introCount}</Text>
-                </View>
-              ) : null}
-            </Pressable>
             <GlassButton
               accessibilityLabel="Filter projects"
               onPress={() => setSearchOpen(true)}
@@ -649,30 +619,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchWrap: { flex: 1, paddingHorizontal: 4 },
-  // Left of search and post; marginRight pushes those two to the right edge.
-  matchesPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    height: 44,
-    paddingHorizontal: 14,
-    marginRight: "auto",
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
-  },
-  matchesPillText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.text },
-  matchesCount: {
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    backgroundColor: colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  matchesCountText: { ...typography.micro, fontFamily: fonts.semibold, color: colors.onBrand },
   searchInput: { borderWidth: 0, backgroundColor: "transparent" },
 
   errorSlot: { position: "absolute", left: GUTTER, right: GUTTER },
