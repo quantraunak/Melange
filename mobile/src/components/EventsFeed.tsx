@@ -387,7 +387,7 @@ function EventCard({
 
       <View style={styles.cardBody}>
         <Text style={styles.catText}>
-          {past ? day : time} · {cat.label}
+          {[past ? day : event.time_set === false ? null : time, cat.label].filter(Boolean).join(" · ")}
         </Text>
         <Pressable
           onPress={onOpen}
@@ -462,6 +462,32 @@ function EventCard({
             </Text>
           </Pressable>
         )
+      ) : event.is_paid ? (
+        // No RSVP on a paid event: the page says how to pay.
+        <View style={styles.rsvpRow}>
+          <Pressable
+            style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
+            onPress={onOpen}
+            accessibilityLabel={`${event.title}, how to pay`}
+          >
+            <Text style={styles.rsvpLabel}>
+              {event.price ? `Paid · ${event.price}` : "Paid"} · How to pay
+            </Text>
+          </Pressable>
+          {isMine ? null : (
+            <>
+              <View style={styles.rsvpDivider} />
+              <Pressable
+                style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
+                onPress={onMessage}
+                accessibilityLabel={`Message ${event.host.name}`}
+              >
+                <MessageCircle size={14} color={colors.textSecondary} />
+                <Text style={styles.rsvpLabel}>Message</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
       ) : (
       <View style={styles.rsvpRow}>
         <Pressable

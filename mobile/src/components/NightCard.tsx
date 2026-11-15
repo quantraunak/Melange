@@ -51,7 +51,7 @@ export function NightCard({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${night.title}, ${day} at ${time}`}
+      accessibilityLabel={night.time_set === false ? `${night.title}, ${day}` : `${night.title}, ${day} at ${time}`}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       {night.cover_url ? (
@@ -67,7 +67,7 @@ export function NightCard({
 
       <View style={styles.body}>
         <Text style={styles.when}>
-          {day} · {time}
+          {night.time_set === false ? day : `${day} · ${time}`}
           {night.my_rsvp === "going" ? "  ·  You're going" : ""}
         </Text>
         {/* No cover: the title, set large in the serif, is the cover. */}

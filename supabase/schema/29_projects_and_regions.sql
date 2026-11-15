@@ -26,6 +26,7 @@
 --
 -- 5. PAID EVENTS. events.is_paid, price and how_to_pay (free text: "Venmo
 --    @name at the door"). The app hides "I'm going" on a paid event.
+--    events.time_set is false when the host gave a day and no time.
 --
 -- 6. HEARTS ON MESSAGES. message_hearts: either person in a chat can heart a
 --    message once. Readable by the two people in the chat only.
@@ -279,7 +280,10 @@ UPDATE public.profiles SET handle = public.make_handle(name) WHERE handle IS NUL
 ALTER TABLE public.events
   ADD COLUMN IF NOT EXISTS is_paid    BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS price      TEXT CHECK (price IS NULL OR length(price) <= 60),
-  ADD COLUMN IF NOT EXISTS how_to_pay TEXT CHECK (how_to_pay IS NULL OR length(how_to_pay) <= 300);
+  ADD COLUMN IF NOT EXISTS how_to_pay TEXT CHECK (how_to_pay IS NULL OR length(how_to_pay) <= 300),
+  -- false when the host gave a date with no time, so the app shows the day
+  -- alone instead of a made-up 12:00 PM.
+  ADD COLUMN IF NOT EXISTS time_set   BOOLEAN NOT NULL DEFAULT true;
 
 -- No RSVPs on a paid event: the app hides the button, and this makes sure.
 CREATE OR REPLACE FUNCTION public.no_rsvp_on_paid_event()
@@ -290,6 +294,11 @@ SET search_path = public
 AS $$
 BEGIN
   IF EXISTS (SELECT 1 FROM public.events WHERE id = NEW.event_id AND is_paid) THEN
+    -- Sign-up turning an old web "yes" into an RSVP (claim_web_rsvps) has no
+    -- signed-in user. Skip that row quietly: raising would fail the sign-up.
+    IF TG_TABLE_NAME = 'event_rsvps' AND auth.uid() IS NULL THEN
+      RETURN NULL;
+    END IF;
     RAISE EXCEPTION 'This is a paid event. See how to pay on the event.';
   END IF;
   RETURN NEW;
@@ -300,6 +309,59 @@ DROP TRIGGER IF EXISTS trg_no_rsvp_on_paid_event ON public.event_rsvps;
 CREATE TRIGGER trg_no_rsvp_on_paid_event
   BEFORE INSERT OR UPDATE ON public.event_rsvps
   FOR EACH ROW EXECUTE FUNCTION public.no_rsvp_on_paid_event();
+
+-- The same for "I'm going" on the web share page (rsvp_by_link).
+DROP TRIGGER IF EXISTS trg_no_web_rsvp_on_paid_event ON public.event_web_rsvps;
+CREATE TRIGGER trg_no_web_rsvp_on_paid_event
+  BEFORE INSERT ON public.event_web_rsvps
+  FOR EACH ROW EXECUTE FUNCTION public.no_rsvp_on_paid_event();
+
+-- The web share page (/n/<id>) needs the price, how to pay and whether a
+-- time was set. Same as 25_web_rsvp_and_night_photos.sql plus those.
+CREATE OR REPLACE FUNCTION public.get_shared_event(p_event UUID)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH going AS (
+    SELECT split_part(p.name, ' ', 1) AS name, p.avatar_url, r.created_at
+    FROM public.event_rsvps r JOIN public.profiles p ON p.user_id = r.user_id
+    WHERE r.event_id = p_event AND r.state = 'going'
+    UNION ALL
+    SELECT split_part(w.name, ' ', 1), NULL, w.created_at
+    FROM public.event_web_rsvps w
+    WHERE w.event_id = p_event AND w.user_id IS NULL
+  )
+  SELECT jsonb_build_object(
+    'id', e.id,
+    'title', e.title,
+    'description', e.description,
+    'start_at', e.start_at,
+    'end_at', e.end_at,
+    'time_set', e.time_set,
+    'location_name', e.location_name,
+    'cover_url', e.cover_url,
+    'scene', e.scene,
+    'capacity', e.capacity,
+    'is_paid', e.is_paid,
+    'price', e.price,
+    'how_to_pay', e.how_to_pay,
+    'host', jsonb_build_object('name', split_part(h.name, ' ', 1), 'avatar_url', h.avatar_url),
+    'going_count', (SELECT count(*) FROM going),
+    'going', coalesce((
+      SELECT jsonb_agg(jsonb_build_object('name', g.name, 'avatar_url', g.avatar_url) ORDER BY g.created_at)
+      FROM (SELECT * FROM going ORDER BY created_at LIMIT 12) g
+    ), '[]'::jsonb)
+  )
+  FROM public.events e
+  LEFT JOIN public.profiles h ON h.user_id = e.host_id
+  WHERE e.id = p_event AND NOT e.is_canceled;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_shared_event(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_shared_event(UUID) TO anon, authenticated;
 
 -- ------------------------------------------------------------
 -- 6. Hearts on messages

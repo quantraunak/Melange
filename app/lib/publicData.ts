@@ -116,6 +116,12 @@ export type SharedEvent = {
   cover_url: string | null;
   scene: string | null;
   capacity: number | null;
+  /** false when the host gave a day and no time (29_projects_and_regions.sql). */
+  time_set?: boolean | null;
+  /** Paid events take no RSVP; the page says how to pay instead. */
+  is_paid?: boolean | null;
+  price?: string | null;
+  how_to_pay?: string | null;
   host: SharedEventPerson | null;
   going_count: number;
   /** The first 12 going, in RSVP order: first name and photo only. */
@@ -143,7 +149,11 @@ export function normalizeSharedEvent(raw: SharedEvent): SharedEvent {
 export const NIGHT_TIME_ZONE = "America/Los_Angeles";
 
 /** "Fri, Oct 24 · 8:00 PM" (Pacific), with " – 11:00 PM" when it ends the same day. */
-export function formatNightWhen(startAt: string, endAt?: string | null): string | null {
+export function formatNightWhen(
+  startAt: string,
+  endAt?: string | null,
+  timeSet: boolean | null = true
+): string | null {
   const start = new Date(startAt);
   if (Number.isNaN(start.getTime())) return null;
   const day = start.toLocaleDateString("en-US", {
@@ -152,6 +162,8 @@ export function formatNightWhen(startAt: string, endAt?: string | null): string 
     day: "numeric",
     timeZone: NIGHT_TIME_ZONE,
   });
+  // No time given: the day alone, not a made-up 12:00 PM.
+  if (timeSet === false) return day;
   const time = (d: Date) =>
     d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: NIGHT_TIME_ZONE });
   const end = endAt ? new Date(endAt) : null;
