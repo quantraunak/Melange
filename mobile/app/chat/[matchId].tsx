@@ -13,17 +13,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, MoreVertical } from "lucide-react-native";
+import { ArrowLeft, MoreVertical, Users } from "lucide-react-native";
 
 import { Avatar } from "@/components/Avatar";
 import { ChatBubble } from "@/components/chat/ChatBubble";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { colors, radii, typography } from "@/lib/theme";
+import { colors, fonts, radii, typography } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useMatches } from "@/lib/matches";
 import {
   blockUser,
+  getMyPosts,
   getMessages,
   sendMessage,
   type Message,
@@ -31,6 +32,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 import * as Haptics from "expo-haptics";
+import { addProjectMember } from "@/lib/projects";
 import {
   getMessageHearts,
   getPeerReadAt,
@@ -197,6 +199,63 @@ export default function ChatScreen() {
     setSending(false);
   }, [matchId, userId, text, sending]);
 
+  // "Add to my project": after talking, the owner puts this person on one of
+  // their projects. Nothing is sent to them; it's the owner's list. When the
+  // project is marked finished, both are asked to review each other.
+  const [myProjects, setMyProjects] = useState<{ id: string; title: string }[]>([]);
+  const [addedTo, setAddedTo] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    getMyPosts(userId).then(({ data }) => {
+      if (!alive) return;
+      setMyProjects(
+        (data || []).filter((p) => !p.finished_at).map((p) => ({ id: p.id, title: p.title }))
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+
+  const addTo = useCallback(
+    async (project: { id: string; title: string }) => {
+      if (!matchId) return;
+      const err = await addProjectMember(project.id, matchId);
+      if (err) {
+        setError(err);
+        return;
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      setAddedTo(project.title);
+    },
+    [matchId]
+  );
+
+  const pickProject = useCallback(() => {
+    if (!match || !myProjects.length) return;
+    const first = match.other_creator.name.split(" ")[0];
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `Add ${first} to which project?`,
+          message: "They won't get a message. When you mark the project finished, you'll both be asked for a review.",
+          options: ["Cancel", ...myProjects.map((p) => p.title)],
+          cancelButtonIndex: 0,
+        },
+        (idx) => {
+          if (idx > 0) addTo(myProjects[idx - 1]);
+        }
+      );
+    } else {
+      Alert.alert(
+        `Add ${first} to which project?`,
+        "They won't get a message. When you mark the project finished, you'll both be asked for a review.",
+        [...myProjects.slice(0, 2).map((p) => ({ text: p.title, onPress: () => addTo(p) })), { text: "Cancel", style: "cancel" as const }]
+      );
+    }
+  }, [match, myProjects, addTo]);
+
   const openMenu = useCallback(() => {
     if (!match || !userId) return;
     const otherId = match.other_user_id;
@@ -220,7 +279,8 @@ export default function ChatScreen() {
             style: "destructive",
             onPress: () => confirmBlock(),
           },
-          { text: "Cancel", style: "cancel" },
+          ...(myProjects.length ? [{ text: "Add to my project", onPress: () => pickProject() }] : []),
+          { text: "Cancel", style: "cancel" as const },
         ],
         { cancelable: true }
       );
@@ -253,12 +313,14 @@ export default function ChatScreen() {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           title: match.other_creator.name,
-          options: ["Cancel", "Report user", "Block user"],
+          options: ["Cancel", "Report user", "Block user", ...(myProjects.length ? ["Add to my project"] : [])],
           destructiveButtonIndex: [1, 2],
           cancelButtonIndex: 0,
         },
         (idx) => {
-          if (idx === 1) {
+          if (idx === 3) {
+            pickProject();
+          } else if (idx === 1) {
             router.push({
               pathname: "/report/[kind]/[id]",
               params: { kind: "user", id: otherId },
@@ -271,7 +333,7 @@ export default function ChatScreen() {
     } else {
       showAndroid();
     }
-  }, [match, userId, router, refreshMatches]);
+  }, [match, userId, router, refreshMatches, myProjects.length, pickProject]);
 
   if (!match) {
     // Still fetching matches, or we just kicked off the one-shot retry
@@ -347,6 +409,22 @@ export default function ChatScreen() {
       >
         {error ? <View style={{ paddingHorizontal: 16, paddingTop: 8 }}><ErrorBanner message={error} /></View> : null}
 
+        {myProjects.length ? (
+          <Pressable
+            onPress={addedTo ? undefined : pickProject}
+            disabled={!!addedTo}
+            style={({ pressed }) => [styles.projectBar, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+          >
+            <Users size={15} color={colors.brandText} />
+            <Text style={styles.projectBarText}>
+              {addedTo
+                ? `${match.other_creator.name.split(" ")[0]} is on "${addedTo}". Mark it finished when you're done.`
+                : `Working together? Add ${match.other_creator.name.split(" ")[0]} to your project`}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={colors.brand} />
@@ -414,6 +492,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
   },
   notFoundBtnText: { ...typography.bodyStrong, color: colors.onBrand },
+  projectBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomColor: colors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  projectBarText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText, flex: 1 },
   messageList: { paddingHorizontal: 14, paddingVertical: 12, flexGrow: 1 },
   emptyChat: {
     flex: 1,

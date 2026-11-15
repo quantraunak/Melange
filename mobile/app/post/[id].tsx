@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Pressable,
@@ -47,11 +48,18 @@ import {
   projectDates,
   projectPlace,
   projectRoles,
+  updatePost,
   type CollabPost,
   type CreatorInfo,
   type Profile,
 } from "@/lib/db";
 import { likeProject } from "@/lib/likeProject";
+import {
+  getProjectMembers,
+  removeProjectMember,
+  setProjectFinished,
+  type ProjectMember,
+} from "@/lib/projects";
 
 const { width } = Dimensions.get("window");
 const HERO_H = 400;
@@ -120,6 +128,65 @@ export default function ProjectDetailScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Who the owner put on this project (from a chat).
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const loadMembers = useCallback(() => {
+    if (id) getProjectMembers(id).then(setMembers);
+  }, [id]);
+  useEffect(loadMembers, [loadMembers]);
+  const [ownerBusy, setOwnerBusy] = useState(false);
+
+  /** Hide from Discover once there are enough people, or show it again. */
+  const setOpen = async (open: boolean) => {
+    if (!data) return;
+    setOwnerBusy(true);
+    const { error: err } = await updatePost(data.post.id, { is_active: open });
+    setOwnerBusy(false);
+    if (err) setError(err);
+    else load();
+  };
+
+  const finish = (done: boolean) => {
+    if (!data) return;
+    const run = async () => {
+      setOwnerBusy(true);
+      const err = await setProjectFinished(data.post.id, done);
+      setOwnerBusy(false);
+      if (err) setError(err);
+      else load();
+    };
+    if (!done) {
+      run();
+      return;
+    }
+    Alert.alert(
+      "Mark it finished?",
+      members.length
+        ? "It comes off Discover, and you and everyone on it will be asked to review each other."
+        : "It comes off Discover. Add the people you worked with from your chats first, so you can review each other.",
+      [
+        { text: "Not yet", style: "cancel" },
+        { text: "Finished", onPress: () => run() },
+      ]
+    );
+  };
+
+  const removeMember = (m: ProjectMember) => {
+    if (!data) return;
+    Alert.alert(`Take ${m.name.split(" ")[0]} off this project?`, undefined, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          const err = await removeProjectMember(data.post.id, m.user_id);
+          if (err) setError(err);
+          loadMembers();
+        },
+      },
+    ]);
+  };
 
   useEffect(() => {
     if (!userId || !id) return;
@@ -291,6 +358,38 @@ export default function ProjectDetailScreen() {
             </View>
           ) : null}
 
+          {members.length || isMine ? (
+            <View style={styles.members}>
+              <Text style={styles.eyebrow}>{post.finished_at ? "Made by" : "On this project"}</Text>
+              {members.map((m) => (
+                <View key={m.user_id} style={styles.memberRow}>
+                  <Pressable
+                    style={({ pressed }) => [styles.memberWho, pressed && { opacity: 0.6 }]}
+                    onPress={() => router.push({ pathname: "/profile/[userId]", params: { userId: m.user_id } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${m.name}'s profile`}
+                  >
+                    <Avatar creator={m} size="sm" />
+                    <Text style={styles.memberName}>
+                      {m.user_id === userId ? "You" : m.name}
+                      {m.role && m.role !== "other" ? <Text style={styles.memberRole}>{`  ${m.role}`}</Text> : null}
+                    </Text>
+                  </Pressable>
+                  {isMine || m.user_id === userId ? (
+                    <Pressable onPress={() => removeMember(m)} hitSlop={10} accessibilityLabel={`Remove ${m.name}`}>
+                      <X size={16} color={colors.iconFaint} />
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+              {isMine && !members.length ? (
+                <Text style={styles.memberHint}>
+                  Working with someone you met here? Open your chat with them and tap &quot;Add to your project&quot;.
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
           {creator ? (
             <Pressable
               // Your own too: it opens your profile the way others see it.
@@ -396,6 +495,33 @@ export default function ProjectDetailScreen() {
               <Pencil size={16} color={colors.accentInk} />
               <Text style={styles.messageText}>Edit project</Text>
             </Pressable>
+            {post.finished_at ? (
+              <Pressable onPress={() => finish(false)} disabled={ownerBusy} hitSlop={8} style={styles.ownerLink}>
+                <Text style={styles.ownerLinkText}>Finished. Not done after all? Undo</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Pressable
+                  onPress={() => setOpen(!post.is_active)}
+                  disabled={ownerBusy}
+                  style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.messageText}>
+                    {post.is_active ? "Enough people? Hide from Discover" : "Show on Discover again"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => finish(true)}
+                  disabled={ownerBusy}
+                  style={({ pressed }) => [styles.messageBtn, pressed && { opacity: 0.85 }]}
+                  accessibilityRole="button"
+                >
+                  <Check size={16} color={colors.accentInk} />
+                  <Text style={styles.messageText}>Mark project finished</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -509,6 +635,14 @@ const styles = StyleSheet.create({
   },
   gateLine: { ...typography.caption, flex: 1, fontFamily: fonts.semibold, color: colors.accentInk },
   gateAction: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
+  members: { gap: 8 },
+  memberRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  memberWho: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  memberName: { ...typography.bodyStrong, color: colors.text, flexShrink: 1 },
+  memberRole: { ...typography.caption, fontFamily: fonts.regular, color: colors.textSecondary },
+  memberHint: { ...typography.caption, color: colors.textSecondary },
+  ownerLink: { alignSelf: "center", paddingVertical: 6 },
+  ownerLinkText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   previewNote: {
     flexDirection: "row",
     alignItems: "center",

@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Flag, MapPin, MessageCircle, Share as ShareIcon } from "lucide-react-native";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { shareProfile } from "@/lib/share";
+import { getProjectsWorkedOn, type WorkedOn } from "@/lib/projects";
 
 import { Avatar } from "@/components/Avatar";
 import { HeartButton } from "@/components/HeartButton";
@@ -71,16 +72,20 @@ export default function PublicProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  /** Projects someone else put them on. */
+  const [workedOn, setWorkedOn] = useState<WorkedOn[]>([]);
 
   const load = useCallback(async () => {
     if (!viewedId) return;
     setLoading(true);
-    const [p, stories, projects, t] = await Promise.all([
+    const [p, stories, projects, t, on] = await Promise.all([
       getProfile(viewedId),
       getStoriesForUser(viewedId),
       getOpenProjectsBy(viewedId),
       getProfileTrust(viewedId),
+      getProjectsWorkedOn(viewedId),
     ]);
+    setWorkedOn(on);
     setProfile(p.data);
     setError(p.error);
     setWork(stories.data);
@@ -305,6 +310,27 @@ export default function PublicProfileScreen() {
                   <Text style={styles.rowMeta}>
                     {projectDates(pr) ?? pr.location ?? "Open project"}
                   </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {workedOn.length ? (
+          <View style={styles.block}>
+            <Text style={styles.eyebrow}>Worked on</Text>
+            {workedOn.map((w) => (
+              <Pressable
+                key={w.post_id}
+                onPress={() => router.push({ pathname: "/post/[id]", params: { id: w.post_id } })}
+                style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
+              >
+                <View style={[styles.thumb, styles.thumbEmpty]}>
+                  <Text style={styles.thumbLetter}>{w.title.trim().slice(0, 1).toUpperCase()}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>{w.title}</Text>
+                  <Text style={styles.rowMeta}>{w.finished_at ? "Finished" : "In progress"}</Text>
                 </View>
               </Pressable>
             ))}

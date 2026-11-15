@@ -383,7 +383,7 @@ export default function ProfileScreen() {
                   <Text style={styles.rowMeta}>
                     {projectDates(p) ?? formatRecordDate(p.created_at)}
                     {projectRoles(p).length ? ` · ${projectRoles(p).slice(0, 3).join(", ")}` : ""}
-                    {p.is_active ? "" : " · inactive"}
+                    {p.finished_at ? " · finished" : p.is_active ? "" : " · hidden from Discover"}
                   </Text>
                 </View>
                 {/* No pencil: the row is the one target, and the project

@@ -19,6 +19,7 @@ import { Avatar } from "@/components/Avatar";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { LikesList } from "@/components/LikesList";
 import { PushPrimer } from "@/components/PushPrimer";
+import { PendingReviews } from "@/components/PendingReviews";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { MatchRowSkeleton } from "@/components/ui/Skeleton";
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
@@ -153,6 +154,7 @@ export default function MessagesScreen() {
           <ScreenTitle title="Messages" />
           {/* One banner at most: a load failure outranks a failed unmatch. */}
           <ErrorBanner message={error || actionError} />
+          <PendingReviews />
           <LikesList reloadKey={likesReload} />
           {/* Asked here rather than at launch, where a "Don't Allow" is
               permanent before anyone has a reason to say yes. */}
