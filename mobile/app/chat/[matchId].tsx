@@ -30,6 +30,13 @@ import {
 } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
+import * as Haptics from "expo-haptics";
+import {
+  getMessageHearts,
+  getPeerReadAt,
+  setMessageHeart,
+  type MessageHeart,
+} from "@/lib/messageHearts";
 
 export default function ChatScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -61,6 +68,70 @@ export default function ChatScreen() {
   }, [match, matchesLoading, retriedNotFound, refreshMatches]);
 
   const listRef = useRef<FlatList<Message>>(null);
+
+  // Hearts on messages, live for both people.
+  const [hearts, setHearts] = useState<MessageHeart[]>([]);
+  useEffect(() => {
+    if (!matchId || !userId) return;
+    let alive = true;
+    const reload = () =>
+      getMessageHearts(matchId).then((h) => {
+        if (alive) setHearts(h);
+      });
+    reload();
+    const channel = supabase
+      .channel(`chat-hearts:${matchId}`)
+      // A delete carries only the key, so re-read on any change.
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_hearts", filter: `match_id=eq.${matchId}` }, reload)
+      .subscribe();
+    return () => {
+      alive = false;
+      supabase.removeChannel(channel);
+    };
+  }, [matchId, userId]);
+
+  const toggleHeart = useCallback(
+    async (msg: Message) => {
+      if (!matchId || !userId) return;
+      const mine = hearts.some((h) => h.message_id === msg.id && h.user_id === userId);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      setHearts((prev) =>
+        mine
+          ? prev.filter((h) => !(h.message_id === msg.id && h.user_id === userId))
+          : [...prev, { message_id: msg.id, user_id: userId }]
+      );
+      const err = await setMessageHeart(matchId, msg.id, userId, !mine);
+      if (err) {
+        setError(err);
+        getMessageHearts(matchId).then(setHearts);
+      }
+    },
+    [matchId, userId, hearts]
+  );
+
+  // "Seen": when the other person last opened this chat. Their read row is
+  // private to them, so ask the server now and then while the chat is open.
+  const [peerReadAt, setPeerReadAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!matchId || !userId) return;
+    let alive = true;
+    const check = () =>
+      getPeerReadAt(userId, matchId).then((t) => {
+        if (alive) setPeerReadAt(t);
+      });
+    check();
+    const timer = setInterval(check, 15000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [matchId, userId]);
+  const lastMine = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) if (messages[i].sender_id === userId) return messages[i];
+    return null;
+  }, [messages, userId]);
+  const seenId =
+    lastMine && peerReadAt && Date.parse(peerReadAt) >= Date.parse(lastMine.created_at) ? lastMine.id : null;
 
   // Load messages + mark read on open.
   useEffect(() => {
@@ -292,11 +363,21 @@ export default function ChatScreen() {
                 <Text style={styles.emptyChatText}>
                   Go first: say when you&apos;re free this week and what you&apos;d bring.
                 </Text>
+                <Text style={styles.emptyChatText}>Double-tap a message to heart it.</Text>
               </View>
             }
             renderItem={({ item, index }) => (
-              <ChatBubble item={item} prev={messages[index - 1]} isMe={item.sender_id === userId} />
+              <ChatBubble
+                item={item}
+                prev={messages[index - 1]}
+                isMe={item.sender_id === userId}
+                hearts={hearts.filter((h) => h.message_id === item.id).length}
+                onDoubleTap={() => toggleHeart(item)}
+                onLongPress={() => toggleHeart(item)}
+                footer={item.id === seenId ? "Seen" : null}
+              />
             )}
+            extraData={[hearts, seenId]}
           />
         )}
 

@@ -16,6 +16,8 @@ import {
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { MatchesProvider } from "@/lib/matches";
 import { isFreshSignup } from "@/lib/onboarding";
+import { HeartBanner } from "@/components/HeartBanner";
+import * as Notifications from "expo-notifications";
 import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -44,6 +46,30 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
     if (inAuth) router.replace(isFreshSignup() ? "/onboarding/photos" : "/(tabs)/connect");
   }, [loading, fontsReady, session, segments, router]);
 
+  // Tapping a push opens what it is about. Before this every push just
+  // opened the app wherever it was.
+  const lastResponse = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (!session || loading || !fontsReady || !lastResponse) return;
+    const d = (lastResponse.notification.request.content.data ?? {}) as Record<string, unknown>;
+    const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : null);
+    const matchId = str("matchId");
+    const userId = str("userId");
+    const postId = str("postId");
+    const eventId = str("eventId");
+    if ((d.kind === "message" || d.kind === "match") && matchId) {
+      router.push({ pathname: "/chat/[matchId]", params: { matchId } });
+    } else if ((d.kind === "heart" || d.kind === "like") && userId) {
+      router.push({ pathname: "/profile/[userId]", params: { userId } });
+    } else if (postId) {
+      router.push({ pathname: "/post/[id]", params: { id: postId } });
+    } else if (eventId) {
+      router.push({ pathname: "/event/[id]", params: { id: eventId } });
+    }
+    // Once per response: clear it so a re-render doesn't open it again.
+    Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
+  }, [lastResponse, session, loading, fontsReady, router]);
+
   return (
     <MatchesProvider>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
@@ -67,6 +93,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="account/edit-profile" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="account/delete" options={{ presentation: "modal" }} />
       </Stack>
+      {session ? <HeartBanner /> : null}
     </MatchesProvider>
   );
 }

@@ -406,4 +406,12 @@ BEGIN
                        AND tablename = 'message_hearts') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.message_hearts;
   END IF;
+  -- Hearts on people and work, so the app can show "X hearted you" the
+  -- moment it happens. RLS still limits each person to their own rows.
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables
+                     WHERE pubname = 'supabase_realtime' AND schemaname = 'public'
+                       AND tablename = 'hearts') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.hearts;
+  END IF;
 END $$;

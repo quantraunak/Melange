@@ -245,7 +245,7 @@ Deno.serve(async (req: Request) => {
     const { from_user, to_user, kind, target_id } = payload.record;
     if (from_user === to_user) return new Response("ok");
 
-    let what = "your profile";
+    let what = "you ✨";
     if (kind === "story") {
       const { data: story } = await admin
         .from("collab_stories")
@@ -261,7 +261,7 @@ Deno.serve(async (req: Request) => {
       to,
       title: `${name} hearted ${what}`,
       sound: "default",
-      body: "Say hi. You can message them from Messages.",
+      body: `Message ${name.split(" ")[0]}!`,
       data: { kind: "heart", userId: from_user },
     })));
   } else if (payload.type === "night_tag") {
