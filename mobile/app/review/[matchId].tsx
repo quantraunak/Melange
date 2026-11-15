@@ -72,7 +72,7 @@ export default function ReviewScreen() {
         <Text style={styles.title}>Review {match.other_creator.name}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.scroll}>
         <Text style={styles.hint}>
           Hidden until they review you too — prevents retaliation.
         </Text>

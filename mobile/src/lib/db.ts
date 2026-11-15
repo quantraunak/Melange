@@ -245,7 +245,7 @@ export const PORTFOLIO_MAX_IMAGES = 9;
  * cost more than it is worth at this size; a gate here costs nothing until
  * someone wants something from somebody else.
  */
-export const PROFILE_MIN_IMAGES = 3;
+export const PROFILE_MIN_IMAGES = 2;
 
 export type Gate = { ok: true; line: null } | { ok: false; line: string };
 
@@ -255,14 +255,17 @@ export type Gate = { ok: true; line: null } | { ok: false; line: string };
  * is missing and open the screen that fixes it.
  */
 /**
- * Off while Melange is getting its first people on. With the floor on, nobody
+ * On: two profile photos and a role before posting, liking or messaging
+ * (Jolea, Nov 2026). Photos on a project or an event stay optional.
+ *
+ * It was off while Melange was getting its first people on. With the floor on, nobody
  * below three photos and a role could post a project or like one, and most of
  * the people being invited were below it — so their projects never appeared.
  * Turn back on (true) once there are enough posts that quality matters more
  * than getting anything up. The server-side policies were already lifted by
  * 14_ungate_until_1_4.sql, so this is the only switch.
  */
-export const PROFILE_FLOOR_ON = false;
+export const PROFILE_FLOOR_ON = true;
 
 export function profileGate(
   profile: Pick<Profile, "role" | "portfolio_urls"> | null,
@@ -276,9 +279,9 @@ export function profileGate(
 
   const tail = verb === "post" ? "to post." : "first.";
   const what = needsPhotos && needsRole
-    ? "Add three photos and a role"
+    ? "Add 2 profile photos and what you do"
     : needsPhotos
-      ? "Add three photos"
+      ? "Add 2 profile photos"
       : "Pick a role";
   return { ok: false, line: `${what} ${tail}` };
 }

@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
   Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,15 +22,13 @@ import { colors, fonts, radii, typography } from "@/lib/theme";
 import { trackEvent } from "@/lib/analytics";
 import { clearFreshSignup, markFreshSignup } from "@/lib/onboarding";
 import { supabase } from "@/lib/supabase";
+import { ROLES } from "@/lib/db";
+import { normalizeSocialUrl } from "@/lib/reviews";
+import { setScene, type Scene } from "@/lib/scenes";
+import { SceneChips } from "@/components/SceneChips";
 
-const ROLES = [
-  { id: "photographer", label: "Photographer" },
-  { id: "model", label: "Model" },
-  { id: "makeup-artist", label: "Makeup Artist" },
-  { id: "stylist", label: "Stylist" },
-  { id: "designer", label: "Designer" },
-  { id: "other", label: "Other" },
-];
+/** Every role but "Other", which opens a field to type your own. */
+const ROLE_CHOICES = ROLES.filter((r) => r !== "Other");
 
 export default function Signup() {
   const router = useRouter();
@@ -41,9 +37,11 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [role, setRole] = useState<string>("");
-  const [skills, setSkills] = useState("");
+  /** "Other" picked: the role is whatever they type. */
+  const [otherRole, setOtherRole] = useState(false);
+  const [scene, setSceneChoice] = useState<Scene | null>(null);
   const [bio, setBio] = useState("");
-  const [project, setProject] = useState("");
+  const [instagram, setInstagram] = useState("");
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +49,8 @@ export default function Signup() {
 
   const submit = async () => {
     setError(null);
-    if (!name.trim()) return setError("Please enter your name.");
+    if (!name.trim()) return setError("Add your name.");
+    if (!role.trim()) return setError("Pick what you do, or tap Other and type it.");
     if (password.length < 6) return setError("Password must be at least 6 characters.");
     if (password !== confirm) return setError("Passwords do not match.");
     if (!acceptedTerms) return setError("Please accept the Terms and Privacy Policy to continue.");
@@ -101,8 +100,6 @@ export default function Signup() {
     // which is exactly the question the only real signup so far poses.
     trackEvent("signup_completed", { has_role: Boolean(role) });
 
-    const skillsArr = skills.split(",").map((s) => s.trim()).filter(Boolean);
-
     const { error: profileErr } = await supabase.from("profiles").upsert({
       user_id: userId,
       name: name.trim(),
@@ -111,28 +108,28 @@ export default function Signup() {
       // default the signup trigger uses (15_profile_on_signup.sql).
       role: role || "other",
       bio: bio.trim() || null,
-      current_project: project.trim() || null,
-      skills: skillsArr.length ? skillsArr : null,
+      instagram_url: normalizeSocialUrl("instagram", instagram),
       avatar_url: null,
     }, { onConflict: "user_id" });
 
-    setLoading(false);
-
     if (profileErr) {
+      setLoading(false);
       setError(`Profile insert failed: ${profileErr.message}`);
       return;
     }
+    // The region goes through set_scene, which checks it.
+    if (scene) await setScene(scene);
+    setLoading(false);
 
     // Auth state listener will route us into the app.
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
+      <View
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
+        <ScrollView automaticallyAdjustKeyboardInsets
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
@@ -144,8 +141,8 @@ export default function Signup() {
 
           <View style={styles.header}>
             <Logo size={40} />
-            <Text style={styles.title}>Create your profile</Text>
-            <Text style={styles.subtitle}>Only takes a minute.</Text>
+            <Text style={styles.title}>Make your Melange profile ✨</Text>
+            <Text style={styles.subtitle}>This is what people see when you message them or post.</Text>
           </View>
 
           <View style={styles.card}>
@@ -183,50 +180,70 @@ export default function Signup() {
               </Field>
             </View>
 
-            <Field label="What's your role?">
+            <Field label="What do you do?">
               <View style={styles.roleGrid}>
-                {ROLES.map((r) => {
-                  const selected = role === r.id;
+                {[...ROLE_CHOICES, "Other"].map((r) => {
+                  const selected = r === "Other" ? otherRole : !otherRole && role === r;
                   return (
                     <Pressable
-                      key={r.id}
+                      key={r}
                       style={[styles.rolePill, selected && styles.rolePillSelected]}
-                      onPress={() => setRole(r.id)}
+                      onPress={() => {
+                        if (r === "Other") {
+                          setOtherRole(true);
+                          setRole("");
+                        } else {
+                          setOtherRole(false);
+                          setRole(r);
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
                     >
                       {selected ? (
                         <Check size={14} color={colors.text} style={{ marginRight: 4 }} />
                       ) : null}
                       <Text style={[styles.rolePillText, selected && styles.rolePillTextSelected]}>
-                        {r.label}
+                        {r}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
+              {otherRole ? (
+                <Input
+                  value={role}
+                  onChangeText={setRole}
+                  placeholder="e.g. Tattoo artist"
+                  autoFocus
+                  containerStyle={{ marginTop: 8 }}
+                />
+              ) : null}
             </Field>
 
-            <Field label="Skills" hint="Comma-separated (e.g. Portrait, Lighting, Posing)">
-              <Input
-                value={skills}
-                onChangeText={setSkills}
-                placeholder="Portrait Photography, Lighting"
+            <Field label="Where are you?">
+              <SceneChips<Scene | null>
+                value={scene}
+                onChange={(s) => setSceneChoice(s === scene ? null : s)}
               />
             </Field>
 
-            <Field label="Current project" hint="What are you working on right now?">
-              <Input
-                value={project}
-                onChangeText={setProject}
-                placeholder="e.g. Editorial series in Brooklyn"
-              />
-            </Field>
-
-            <Field label="Bio">
+            <Field label="About you">
               <TextArea
                 value={bio}
                 onChangeText={setBio}
-                placeholder="Tell us about your work and what you're looking for."
+                placeholder="What you make, and what you want to make next."
                 numberOfLines={4}
+              />
+            </Field>
+
+            <Field label="Instagram (optional)">
+              <Input
+                value={instagram}
+                onChangeText={setInstagram}
+                placeholder="@yourname"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
             </Field>
 
@@ -259,7 +276,7 @@ export default function Signup() {
             <ErrorBanner message={error} />
 
             <Button
-              title="Create account"
+              title="Next: add photos"
               variant="primary"
               size="lg"
               loading={loading}
@@ -274,7 +291,7 @@ export default function Signup() {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

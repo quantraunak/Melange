@@ -4,8 +4,6 @@ import {
   Alert,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -300,7 +298,7 @@ export function ProjectForm({
   const last = step === STEPS.length - 1;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <View style={{ flex: 1 }}>
       <View style={styles.progress}>
         {STEPS.map((label, i) => (
           <Pressable key={label} onPress={() => i < step && setStep(i)} style={styles.progressItem}>
@@ -310,7 +308,7 @@ export function ProjectForm({
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {step === 0 ? (
           <>
             <Text style={styles.stepTitle}>What&apos;s your project?</Text>
@@ -511,7 +509,7 @@ export function ProjectForm({
           />
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

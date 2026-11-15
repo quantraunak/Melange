@@ -91,9 +91,9 @@ export function FirstPostNudge({
             >
               <X size={16} color={colors.onBrandMuted} />
             </Pressable>
-            <Text style={styles.title}>Post your first project</Text>
+            <Text style={styles.title}>What are you working on?</Text>
             <Text style={styles.body}>
-              Tap the + at the top right. Say what you&apos;re making and who you need.
+              Post your project and who you want to work with, so the right people find you.
             </Text>
             <Pressable
               onPress={post}
@@ -112,10 +112,10 @@ export function FirstPostNudge({
       <Modal visible={popup} transparent animationType="fade" onRequestClose={later}>
         <View style={styles.scrim}>
           <View style={styles.modal} accessibilityViewIsModal>
-            <Text style={styles.modalTitle}>Help us get Melange going ☆</Text>
+            <Text style={styles.modalTitle}>What project are you working on? ☆</Text>
             <Text style={styles.modalBody}>
-              Post a project so people can find you. It takes a minute: a title, a photo or two, and
-              who you&apos;re looking for.
+              A model building a portfolio who needs a stylist and a photographer? A short film that
+              needs an editor? Post it and say who you want to work with.
             </Text>
             <Pressable
               onPress={post}
