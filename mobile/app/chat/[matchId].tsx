@@ -32,7 +32,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 import * as Haptics from "expo-haptics";
-import { addProjectMember } from "@/lib/projects";
+import { addProjectMember, projectsWithMember } from "@/lib/projects";
 import {
   getMessageHearts,
   getPeerReadAt,
@@ -217,6 +217,21 @@ export default function ChatScreen() {
       alive = false;
     };
   }, [userId]);
+
+  // Already on one of them? Say so. Without this the bar asked again every
+  // time the chat opened, as if the add had never happened.
+  const otherUserId = match?.other_user_id;
+  useEffect(() => {
+    if (!otherUserId || !myProjects.length) return;
+    let alive = true;
+    projectsWithMember(myProjects.map((p) => p.id), otherUserId).then((ids) => {
+      const on = myProjects.find((p) => ids.includes(p.id));
+      if (alive && on) setAddedTo((cur) => cur ?? on.title);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [otherUserId, myProjects]);
 
   const addTo = useCallback(
     async (project: { id: string; title: string }) => {

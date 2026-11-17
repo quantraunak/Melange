@@ -98,6 +98,22 @@ export async function getProjectMembers(postId: string): Promise<ProjectMember[]
   }
 }
 
+/** Of these projects, the ones this person is already on. */
+export async function projectsWithMember(postIds: string[], userId: string): Promise<string[]> {
+  if (!postIds.length) return [];
+  try {
+    const { data, error } = await supabase
+      .from("project_members")
+      .select("post_id")
+      .eq("user_id", userId)
+      .in("post_id", postIds);
+    if (error) return [];
+    return (data || []).map((m) => m.post_id as string);
+  } catch {
+    return [];
+  }
+}
+
 /** Projects someone was put on by the owner, newest first. */
 export async function getProjectsWorkedOn(userId: string): Promise<WorkedOn[]> {
   try {

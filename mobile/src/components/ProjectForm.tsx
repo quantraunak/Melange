@@ -154,6 +154,14 @@ export function ProjectForm({
     setOtherRole("");
   };
 
+  // Typed under "Other" and never added with +: it still counts. Without
+  // this, typing "Tattoo artist" and tapping Next dropped it without a word.
+  const rolesWithTyped = (): string[] => {
+    const r = otherRole.trim();
+    if (!r || roles.some((x) => x.toLowerCase() === r.toLowerCase())) return roles;
+    return [...roles, r];
+  };
+
   const togglePay = (k: PayType) => {
     Haptics.selectionAsync();
     setPayTypes((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
@@ -217,6 +225,7 @@ export function ProjectForm({
     const v = validateStep(step);
     if (v) return setError(v);
     setError(null);
+    if (step === 1) addOtherRole();
     Keyboard.dismiss();
     Haptics.selectionAsync();
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
@@ -281,7 +290,7 @@ export function ProjectForm({
     const { error: submitErr } = await onSubmit({
       title: title.trim(),
       description: description.trim(),
-      roles,
+      roles: rolesWithTyped(),
       projectStart: startIso,
       projectEnd: endIso ?? startIso,
       location: location.trim(),

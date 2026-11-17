@@ -187,6 +187,40 @@ WHERE scene IN ('usc', 'ucsd', 'nyc');
 UPDATE public.waitlist     SET scene = CASE scene WHEN 'usc' THEN 'la' WHEN 'ucsd' THEN 'sd' WHEN 'nyc' THEN 'other_ca' WHEN 'other' THEN 'other_ca' ELSE scene END
 WHERE scene IN ('usc', 'ucsd', 'nyc', 'other');
 
+-- Older app versions and the old website write the old ids straight into
+-- these tables (2.0 puts 'usc' on an event it hosts). Without this the new
+-- CHECKs below would refuse the whole row and the event would not post.
+-- BEFORE triggers run ahead of the CHECK, so the row is stored as the region
+-- the old id became.
+CREATE OR REPLACE FUNCTION public.legacy_scene()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.scene := CASE NEW.scene
+    WHEN 'usc'   THEN 'la'
+    WHEN 'ucsd'  THEN 'sd'
+    WHEN 'nyc'   THEN CASE WHEN TG_TABLE_NAME = 'waitlist' THEN 'other_ca' ELSE NULL END
+    WHEN 'other' THEN CASE WHEN TG_TABLE_NAME = 'waitlist' THEN 'other_ca' ELSE NULL END
+    ELSE NEW.scene
+  END;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_legacy_scene ON public.profiles;
+CREATE TRIGGER trg_legacy_scene BEFORE INSERT OR UPDATE OF scene ON public.profiles
+  FOR EACH ROW WHEN (NEW.scene IN ('usc', 'ucsd', 'nyc', 'other')) EXECUTE FUNCTION public.legacy_scene();
+DROP TRIGGER IF EXISTS trg_legacy_scene ON public.events;
+CREATE TRIGGER trg_legacy_scene BEFORE INSERT OR UPDATE OF scene ON public.events
+  FOR EACH ROW WHEN (NEW.scene IN ('usc', 'ucsd', 'nyc', 'other')) EXECUTE FUNCTION public.legacy_scene();
+DROP TRIGGER IF EXISTS trg_legacy_scene ON public.invite_codes;
+CREATE TRIGGER trg_legacy_scene BEFORE INSERT OR UPDATE OF scene ON public.invite_codes
+  FOR EACH ROW WHEN (NEW.scene IN ('usc', 'ucsd', 'nyc', 'other')) EXECUTE FUNCTION public.legacy_scene();
+DROP TRIGGER IF EXISTS trg_legacy_scene ON public.waitlist;
+CREATE TRIGGER trg_legacy_scene BEFORE INSERT OR UPDATE OF scene ON public.waitlist
+  FOR EACH ROW WHEN (NEW.scene IN ('usc', 'ucsd', 'nyc', 'other')) EXECUTE FUNCTION public.legacy_scene();
+
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_scene_check
   CHECK (scene IS NULL OR scene IN ('sd', 'la', 'sf', 'other_ca', 'remote'));
 ALTER TABLE public.events ADD CONSTRAINT events_scene_check
@@ -205,6 +239,13 @@ AS $$
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'not authenticated';
+  END IF;
+  -- Version 2.0 and earlier still send the old ids, and this change reaches
+  -- those phones the moment it is applied. Take them as the region they
+  -- became rather than fail with "Unknown region."
+  p_scene := CASE p_scene WHEN 'usc' THEN 'la' WHEN 'ucsd' THEN 'sd' ELSE p_scene END;
+  IF p_scene = 'nyc' THEN
+    RAISE EXCEPTION 'Melange is California and remote for now. Update the app to pick your area.';
   END IF;
   IF p_scene IS NOT NULL AND p_scene NOT IN ('sd', 'la', 'sf', 'other_ca', 'remote') THEN
     RAISE EXCEPTION 'Unknown region.';

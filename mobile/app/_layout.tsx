@@ -57,6 +57,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
     const userId = str("userId");
     const postId = str("postId");
     const eventId = str("eventId");
+    const storyId = str("storyId");
     if ((d.kind === "message" || d.kind === "match") && matchId) {
       router.push({ pathname: "/chat/[matchId]", params: { matchId } });
     } else if ((d.kind === "heart" || d.kind === "like") && userId) {
@@ -65,6 +66,8 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
       router.push({ pathname: "/post/[id]", params: { id: postId } });
     } else if (eventId) {
       router.push({ pathname: "/event/[id]", params: { id: eventId } });
+    } else if (storyId) {
+      router.push({ pathname: "/story/[id]", params: { id: storyId } });
     }
     // Once per response: clear it so a re-render doesn't open it again.
     Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
