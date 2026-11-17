@@ -48,7 +48,7 @@ export default function OpengraphImage() {
               borderTop: "2px solid #16161A",
             }}
           >
-            Invite-only · USC · UCSD · LA · free on iPhone
+            San Diego · LA · SF · free on iPhone
           </div>
         </div>
       </div>

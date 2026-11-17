@@ -108,7 +108,7 @@ export default async function MarketingHome() {
       <section>
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-12 px-4 pb-16 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1fr_17rem] lg:gap-16">
           <div className="min-w-0">
-            <p className="melange-label">USC · UCSD · LA · NYC soon</p>
+            <p className="melange-label">San Diego · LA · SF · Remote</p>
 
             <h1 className="mt-5 font-display text-[2.6rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
               Where creative people find their next collaboration.
@@ -247,7 +247,7 @@ export default async function MarketingHome() {
       {/* ---------------- Updates (writes to the waitlist table) ---------------- */}
       <Section id="updates" label="Updates">
         <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
-          Not in USC, UCSD or LA?
+          Not in San Diego, LA or SF?
         </h2>
         <p className="mt-4 max-w-xl leading-relaxed text-muted-ink">
           Leave your email and where you are. We&apos;ll tell you when Melange opens near you,

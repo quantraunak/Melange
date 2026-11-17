@@ -120,7 +120,7 @@ export default async function JoinPage({
 
             <div className="mt-14 border-t border-rule pt-10">
               <h2 className="font-display text-3xl font-semibold leading-tight">
-                Not in USC, UCSD or LA?
+                Not in San Diego, LA or SF?
               </h2>
               <p className="mt-3 leading-relaxed text-muted-ink">
                 Leave your email and where you are, and we&apos;ll send
