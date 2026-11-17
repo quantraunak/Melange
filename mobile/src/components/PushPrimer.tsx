@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { X } from "lucide-react-native";
 
-import { colors, fonts, spacing, typography } from "@/lib/theme";
+import { colors, fonts, spacing, typography, radii } from "@/lib/theme";
 import { getPushPermission, registerForPushAsync } from "@/lib/push";
 
 /**
@@ -24,7 +24,7 @@ import { getPushPermission, registerForPushAsync } from "@/lib/push";
 
 const DISMISSED_KEY = "melange.push-primer-dismissed";
 
-export function PushPrimer({ userId }: { userId: string }) {
+export function PushPrimer({ userId, card = false }: { userId: string; card?: boolean }) {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -61,7 +61,7 @@ export function PushPrimer({ userId }: { userId: string }) {
   if (!show) return null;
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, card && styles.card]}>
       {/* One line, five words: it sits above people's conversations and
           should never be the loudest thing there. */}
       <Text style={styles.text} numberOfLines={1}>
@@ -83,6 +83,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingVertical: spacing.xs,
+  },
+  // Over a photo (Discover) the bare line was unreadable: grey text on sky.
+  card: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
   },
   text: { ...typography.caption, flex: 1, color: colors.textSecondary },
   action: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },

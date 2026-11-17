@@ -580,13 +580,13 @@ export default function DiscoverScreen() {
             top={topInset + 78}
             after={
               <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
-                <PushPrimer userId={userId} />
+                <PushPrimer userId={userId} card />
               </View>
             }
           />
         ) : (
           <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
-            <PushPrimer userId={userId} />
+            <PushPrimer userId={userId} card />
           </View>
         )
       ) : null}

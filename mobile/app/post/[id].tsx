@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   fact: { flexDirection: "row", alignItems: "center", gap: 10 },
-  factLabel: { ...typography.caption, width: 64 },
+  factLabel: { ...typography.caption, width: 84 },
   factValue: { ...typography.body, flex: 1, fontFamily: fonts.semibold },
   factsEmpty: typography.caption,
   byCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
