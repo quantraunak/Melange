@@ -4,9 +4,11 @@ import { Platform } from "react-native";
 import { registerPushToken } from "./db";
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
+  // A heart already gets its own banner inside the app (HeartBanner), so the
+  // system one would say it twice while the app is open.
+  handleNotification: async (n) => ({
+    shouldShowAlert: n.request.content.data?.kind !== "heart",
+    shouldShowBanner: n.request.content.data?.kind !== "heart",
     shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,

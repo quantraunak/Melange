@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -9,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { ImagePlus, X } from "lucide-react-native";
 
@@ -23,86 +24,119 @@ import { trackEvent } from "@/lib/analytics";
 import { getProfile, uploadFile } from "@/lib/db";
 import { isScene, type Scene } from "@/lib/scenes";
 import { SceneChips } from "@/components/SceneChips";
-import { createEvent, EVENT_CATEGORIES, type EventCategory } from "@/lib/events";
+import { createEvent, EVENT_CATEGORIES, getEvent, updateEvent, type EventCategory } from "@/lib/events";
+import { normalizeDate } from "@/components/ProjectForm";
 
-function defaultStartLocal(): string {
-  const d = new Date(Date.now() + 48 * 3600_000);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** "10/18/2026" for a Date, the format the field asks for. */
+function dateText(d: Date): string {
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+}
+
+/** "7:30" and pm for a Date. */
+function timeParts(d: Date): { text: string; pm: boolean } {
+  const h = d.getHours();
+  return { text: `${h % 12 || 12}:${pad(d.getMinutes())}`, pm: h >= 12 };
 }
 
 /**
- * Parse what someone typed into the Starts field as a *local* instant, or
- * return null if it isn't a date at all.
- *
- * Two bugs lived in the one-line `new Date(local).toISOString()` this
- * replaces:
- *
- * 1. Anything Date could not parse ("next friday", "10/20", a half-typed
- *    value) made toISOString() throw RangeError. onSubmit had no try/catch,
- *    so the throw escaped as an unhandled rejection after setBusy(true) —
- *    the Publish button span forever and no error was ever shown.
- * 2. A bare "2026-10-20" — which the field's own hint invites — is parsed by
- *    spec as UTC midnight, while every value with a time in it is parsed as
- *    local. West of UTC that stored the event on the previous day, and with
- *    the 4-hour default duration it could land in "Already happened"
- *    immediately. Same fix the rest of the app uses: anchor a date-only
- *    value at 12:00 local (see projectDates in src/lib/db.ts and monthYear
- *    in app/profile/[userId].tsx), and build the Date from explicit
- *    components so no string-parsing rule can reinterpret it.
+ * "7", "7:30", "730", "7:30pm", "19:30". Returns hours and minutes, or null
+ * when it isn't a time. An am/pm typed in the field wins over the toggle.
  */
-function parseLocalStart(raw: string): Date | null {
-  const s = raw.trim().replace(" ", "T");
-  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{1,2}):(\d{2}))?$/.exec(s);
-  if (!m) return null;
-  const [, yy, mm, dd, hh, mi] = m;
-  const year = Number(yy);
-  const month = Number(mm) - 1;
-  const day = Number(dd);
-  // Noon, not midnight, when only a date was given: it is the same calendar
-  // day in every timezone the value might later be rendered in.
-  const hour = hh === undefined ? 12 : Number(hh);
-  const minute = mi === undefined ? 0 : Number(mi);
-  if (hour > 23 || minute > 59) return null;
-  const d = new Date(year, month, day, hour, minute, 0, 0);
-  if (Number.isNaN(d.getTime())) return null;
-  // Date rolls overflow forward (Feb 31 becomes Mar 3). Reject instead of
-  // silently publishing an event on a day nobody typed.
-  if (d.getFullYear() !== year || d.getMonth() !== month || d.getDate() !== day) return null;
-  return d;
+export function parseTime(raw: string, pmToggle: boolean): { h: number; m: number } | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, "").replace(/\./g, "");
+  const t = /^(\d{1,2})(?::?(\d{2}))?(am|pm|a|p)?$/.exec(s);
+  if (!t) return null;
+  let h = Number(t[1]);
+  const m = t[2] === undefined ? 0 : Number(t[2]);
+  if (m > 59 || h > 23) return null;
+  const suffix = t[3];
+  if (h <= 12) {
+    const pm = suffix ? suffix.startsWith("p") : pmToggle;
+    if (h === 12) h = pm ? 12 : 0;
+    else if (pm) h += 12;
+  } else if (suffix) {
+    return null; // "19pm"
+  }
+  return { h, m };
 }
 
 export default function NewEventScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useAuth();
+  /** Set when editing an event you host. */
+  const { id: editId } = useLocalSearchParams<{ id?: string }>();
+  const [loadingEdit, setLoadingEdit] = useState(!!editId);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<EventCategory>("photo_walk");
-  const [startLocal, setStartLocal] = useState(defaultStartLocal);
+  const [category, setCategory] = useState<EventCategory>("other");
+  const [dateStr, setDateStr] = useState("");
+  const [timeStr, setTimeStr] = useState("");
+  const [pm, setPm] = useState(true);
   const [locationName, setLocationName] = useState("");
   const [city, setCity] = useState("");
   const [capacity, setCapacity] = useState("");
+  const [isPaid, setIsPaid] = useState(false);
+  const [price, setPrice] = useState("");
+  const [howToPay, setHowToPay] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  /** The cover already on an event being edited. */
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [scene, setScene] = useState<Scene | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // A night belongs to a scene; the host's own is the likely one. Only fills
-  // an empty choice, so a slow profile read can't undo a pick.
+  // An event belongs to a region; the host's own is the likely one. Only
+  // fills an empty choice, so a slow profile read can't undo a pick.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || editId) return;
     getProfile(userId).then(({ data }) => {
       if (isScene(data?.scene)) setScene((s) => s ?? (data.scene as Scene));
     });
-  }, [userId]);
+  }, [userId, editId]);
+
+  // Editing: fill the form from the event.
+  useEffect(() => {
+    if (!userId || !editId) return;
+    getEvent(editId, userId).then(({ data, error: err }) => {
+      setLoadingEdit(false);
+      if (!data) {
+        setError(err || "Couldn't load this event.");
+        return;
+      }
+      if (data.host_id !== userId) {
+        setError("Only the host can edit this event.");
+        return;
+      }
+      const d = new Date(data.start_at);
+      setTitle(data.title);
+      setDescription(data.description ?? "");
+      setCategory(data.category);
+      setDateStr(dateText(d));
+      if (data.time_set !== false) {
+        const t = timeParts(d);
+        setTimeStr(t.text);
+        setPm(t.pm);
+      }
+      setLocationName(data.location_name ?? "");
+      setCity(data.city ? data.city.replace(/\b\w/g, (c) => c.toUpperCase()) : "");
+      setCapacity(data.capacity ? String(data.capacity) : "");
+      setIsPaid(!!data.is_paid);
+      setPrice(data.price ?? "");
+      setHowToPay(data.how_to_pay ?? "");
+      setCoverUrl(data.cover_url);
+      if (isScene(data.scene)) setScene(data.scene as Scene);
+    });
+  }, [userId, editId]);
 
   if (!userId) return null;
 
   const pickCover = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setError("Photo permission is required for a cover image.");
+      setError("Allow photo access to add a cover.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -116,37 +150,43 @@ export default function NewEventScreen() {
 
   const onSubmit = async () => {
     if (!title.trim()) {
-      setError("Title is required.");
+      setError("Add a name for the event.");
       return;
     }
-    if (!startLocal.trim()) {
-      setError("Start date and time are required.");
+    const iso = normalizeDate(dateStr);
+    if (!iso) {
+      setError(dateStr.trim() ? "Date: try 10/18/2026." : "Add the date.");
       return;
     }
-    // Parse before setBusy, so an unparseable value is an error message
-    // rather than a Publish button that spins for the rest of the session.
-    const start = parseLocalStart(startLocal);
-    if (!start) {
-      setError("Use the format 2026-10-16T14:30, or just 2026-10-16 for the date.");
+    const time = timeStr.trim() ? parseTime(timeStr, pm) : null;
+    if (timeStr.trim() && !time) {
+      setError("Time: try 7:30.");
       return;
     }
+    if (isPaid && !howToPay.trim()) {
+      setError("Say how people pay, like Venmo @name or cash at the door.");
+      return;
+    }
+    const [y, mo, da] = iso.split("-").map(Number);
+    // With no time, noon: the same calendar day in every timezone.
+    const start = new Date(y, mo - 1, da, time ? time.h : 12, time ? time.m : 0, 0, 0);
+
     setBusy(true);
     setError(null);
-
     // Everything below can throw (upload, network, PostgREST). Without this
     // try/finally a throw left busy stuck true and the form dead.
     try {
-      let coverUrl: string | undefined;
+      let cover = coverUrl ?? undefined;
       if (coverUri) {
         const { url, error: upErr } = await uploadFile(userId, "posts", coverUri, "image/jpeg");
         if (upErr || !url) {
           setError(upErr || "Cover upload failed.");
           return;
         }
-        coverUrl = url;
+        cover = url;
       }
 
-      const { error: createErr } = await createEvent(userId, {
+      const fields = {
         title: title.trim(),
         description: description.trim() || undefined,
         category,
@@ -154,51 +194,100 @@ export default function NewEventScreen() {
         location_name: locationName.trim() || undefined,
         city: city.trim() || undefined,
         capacity: capacity ? Number(capacity) : undefined,
-        cover_url: coverUrl,
+        cover_url: cover,
         scene,
-      });
+        is_paid: isPaid,
+        price: isPaid ? price.trim() || undefined : undefined,
+        how_to_pay: isPaid ? howToPay.trim() || undefined : undefined,
+        time_set: !!time,
+      };
 
+      if (editId) {
+        const { error: upErr } = await updateEvent(editId, {
+          ...fields,
+          description: fields.description ?? null,
+          location_name: fields.location_name ?? null,
+          city: fields.city ?? null,
+          capacity: fields.capacity ?? null,
+          cover_url: fields.cover_url ?? null,
+          price: fields.price ?? null,
+          how_to_pay: fields.how_to_pay ?? null,
+        });
+        if (upErr) {
+          setError(upErr);
+          return;
+        }
+        router.back();
+        return;
+      }
+
+      const { error: createErr } = await createEvent(userId, fields);
       if (createErr) {
         setError(createErr);
         return;
       }
-      trackEvent("event_created", { category, city: city.trim() || "", scene: scene ?? "" });
+      trackEvent("event_created", { category, city: city.trim() || "", scene: scene ?? "", paid: isPaid });
       router.back();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not publish the event.");
+      setError(err instanceof Error ? err.message : "Couldn't save the event.");
     } finally {
       setBusy(false);
     }
   };
 
+  const shownCover = coverUri ?? coverUrl;
+
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Host an event</Text>
-        <Pressable hitSlop={12} onPress={() => router.back()}>
+        <Text style={styles.headerTitle}>{editId ? "Edit event" : "Post an event"}</Text>
+        <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Close">
           <X size={22} color={colors.text} />
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.hint}>
-          A shoot, a photo walk, a screening, a small show. Everyone going shares a chat
-          before it, and can heart each other for three days after.
-        </Text>
-
+      {loadingEdit ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.textSecondary} />
+        </View>
+      ) : (
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <Pressable style={styles.coverBox} onPress={pickCover}>
-          {coverUri ? (
-            <Image source={{ uri: coverUri }} style={styles.coverImg} />
+          {shownCover ? (
+            <Image source={{ uri: shownCover }} style={styles.coverImg} />
           ) : (
             <>
               <ImagePlus size={22} color={colors.iconFaint} />
-              <Text style={styles.coverLabel}>Add cover photo (optional)</Text>
+              <Text style={styles.coverLabel}>Add a photo (optional)</Text>
             </>
           )}
         </Pressable>
 
-        <Text style={styles.sectionLabel}>Category</Text>
+        <Field label="Name">
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Open mic night"
+            style={styles.input}
+            placeholderTextColor={colors.textTertiary}
+          />
+        </Field>
+
+        <Field label="About it">
+          <TextArea
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Doors at 7. Sign up to perform at the door."
+            numberOfLines={4}
+          />
+        </Field>
+
+        <Text style={styles.sectionLabel}>Type</Text>
         <View style={styles.catGrid}>
           {EVENT_CATEGORIES.map((c) => {
             const on = category === c.id;
@@ -214,48 +303,58 @@ export default function NewEventScreen() {
           })}
         </View>
 
-        <Field label="Scene" hint="Shows first to people in this scene.">
+        <View style={styles.row}>
+          <Field label="Date" style={{ flex: 1 }}>
+            <TextInput
+              value={dateStr}
+              onChangeText={setDateStr}
+              placeholder="10/18/2026"
+              style={styles.input}
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="numbers-and-punctuation"
+              autoCapitalize="none"
+            />
+          </Field>
+          <Field label="Time (optional)" style={{ flex: 1 }}>
+            <View style={styles.timeRow}>
+              <TextInput
+                value={timeStr}
+                onChangeText={setTimeStr}
+                placeholder="7:30"
+                style={[styles.input, { flex: 1 }]}
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numbers-and-punctuation"
+                autoCapitalize="none"
+              />
+              <View style={styles.ampm}>
+                {(["AM", "PM"] as const).map((label) => {
+                  const on = (label === "PM") === pm;
+                  return (
+                    <Pressable
+                      key={label}
+                      onPress={() => setPm(label === "PM")}
+                      style={[styles.ampmBtn, on && styles.ampmOn]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                    >
+                      <Text style={[styles.ampmText, on && styles.ampmTextOn]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </Field>
+        </View>
+
+        <Field label="Area">
           <SceneChips<Scene | null> value={scene} onChange={(s) => setScene(s === scene ? null : s)} />
         </Field>
 
-        <Field label="Title">
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Golden hour photo walk in Brooklyn"
-            style={styles.input}
-            placeholderTextColor={colors.textTertiary}
-          />
-        </Field>
-
-        <Field label="Description">
-          <TextArea
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Meet at the fountain at 6. Bring a film camera if you have one."
-            numberOfLines={4}
-          />
-        </Field>
-
-        <Field
-          label="Starts (local time)"
-          hint="Already happened? Put the date it was on — a date on its own is fine."
-        >
-          <TextInput
-            value={startLocal}
-            onChangeText={setStartLocal}
-            placeholder="2026-10-16T14:30"
-            style={styles.input}
-            placeholderTextColor={colors.textTertiary}
-            autoCapitalize="none"
-          />
-        </Field>
-
-        <Field label="Location name">
+        <Field label="Place">
           <TextInput
             value={locationName}
             onChangeText={setLocationName}
-            placeholder="Washington Square Park"
+            placeholder="The Echo"
             style={styles.input}
             placeholderTextColor={colors.textTertiary}
           />
@@ -265,13 +364,54 @@ export default function NewEventScreen() {
           <TextInput
             value={city}
             onChangeText={setCity}
-            placeholder="New York"
+            placeholder="Los Angeles"
             style={styles.input}
             placeholderTextColor={colors.textTertiary}
           />
         </Field>
 
-        <Field label="Capacity (optional)">
+        <Text style={styles.sectionLabel}>Cost</Text>
+        <View style={styles.costRow}>
+          {([false, true] as const).map((paid) => {
+            const on = isPaid === paid;
+            return (
+              <Pressable
+                key={String(paid)}
+                onPress={() => setIsPaid(paid)}
+                style={[styles.catChip, styles.costChip, on && styles.catChipOn]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+              >
+                <Text style={[styles.catText, on && styles.catTextOn]}>{paid ? "Paid" : "Free"}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {isPaid ? (
+          <>
+            <Field label="Price">
+              <TextInput
+                value={price}
+                onChangeText={setPrice}
+                placeholder="$10"
+                style={styles.input}
+                placeholderTextColor={colors.textTertiary}
+                maxLength={60}
+              />
+            </Field>
+            <Field label="How to pay">
+              <TextArea
+                value={howToPay}
+                onChangeText={setHowToPay}
+                placeholder="Venmo @yourname, or cash at the door"
+                numberOfLines={2}
+                maxLength={300}
+              />
+            </Field>
+          </>
+        ) : null}
+
+        <Field label="Spots (optional)">
           <TextInput
             value={capacity}
             onChangeText={setCapacity}
@@ -283,8 +423,9 @@ export default function NewEventScreen() {
         </Field>
 
         <ErrorBanner message={error} />
-        <Button title="Publish" variant="primary" loading={busy} onPress={onSubmit} />
+        <Button title={editId ? "Save" : "Post"} variant="primary" loading={busy} onPress={onSubmit} />
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -303,6 +444,16 @@ const styles = StyleSheet.create({
   },
   headerTitle: { ...typography.headline },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  row: { flexDirection: "row", gap: 12 },
+  timeRow: { flexDirection: "row", gap: 6, alignItems: "center" },
+  ampm: { flexDirection: "row", borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radii.sm, overflow: "hidden" },
+  ampmBtn: { paddingHorizontal: 8, paddingVertical: 10, backgroundColor: colors.white },
+  ampmOn: { backgroundColor: colors.surface },
+  ampmText: { ...typography.caption, color: colors.textSecondary },
+  ampmTextOn: { color: colors.text, fontFamily: fonts.semibold },
+  costRow: { flexDirection: "row", gap: 8 },
+  costChip: { width: undefined, minWidth: 96, paddingHorizontal: 16 },
   hint: { ...typography.caption, color: colors.textSecondary },
   coverBox: {
     height: 120,

@@ -20,8 +20,9 @@ describe("public profile handles", () => {
 
 describe("scenes", () => {
   it("matches the scene ids the database allows", () => {
-    expect(SCENES.map((s) => s.id)).toEqual(["usc", "ucsd", "la", "nyc"]);
-    expect(sceneLabel("ucsd")).toBe("UCSD");
+    expect(SCENES.map((s) => s.id)).toEqual(["sd", "la", "sf", "other_ca", "remote"]);
+    expect(sceneLabel("sd")).toBe("San Diego");
+    expect(sceneLabel("nyc")).toBeNull();
     expect(sceneLabel("nowhere")).toBeNull();
     expect(sceneLabel(null)).toBeNull();
   });

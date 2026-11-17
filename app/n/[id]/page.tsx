@@ -62,7 +62,7 @@ export default async function SharedNightPage({ params }: Props) {
   const e = await getSharedEvent(id);
   if (!e) notFound();
 
-  const when = formatNightWhen(e.start_at, e.end_at);
+  const when = formatNightWhen(e.start_at, e.end_at, e.time_set);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-paper text-ink">
@@ -98,6 +98,12 @@ export default async function SharedNightPage({ params }: Props) {
                 <dd className="min-w-0 break-words">{e.location_name}</dd>
               </>
             ) : null}
+            {e.is_paid ? (
+              <>
+                <dt className="melange-label pt-0.5">Cost</dt>
+                <dd className="min-w-0 break-words">{e.price ? `Paid · ${e.price}` : "Paid"}</dd>
+              </>
+            ) : null}
             {e.host?.name ? (
               <>
                 <dt className="melange-label pt-0.5">Host</dt>
@@ -115,7 +121,16 @@ export default async function SharedNightPage({ params }: Props) {
         </header>
 
         <div className="mt-8">
-          <NightRsvp eventId={e.id} ended={nightHasEnded(e.start_at, e.end_at)} />
+          {e.is_paid ? (
+            <div>
+              <h2 className="font-display text-2xl font-semibold">How to pay</h2>
+              <p className="mt-2 whitespace-pre-line break-words">
+                {e.how_to_pay || "Ask the host."}
+              </p>
+            </div>
+          ) : (
+            <NightRsvp eventId={e.id} ended={nightHasEnded(e.start_at, e.end_at)} />
+          )}
         </div>
 
         <section className="mt-10">

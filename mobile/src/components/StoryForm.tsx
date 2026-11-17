@@ -4,8 +4,6 @@ import {
   Alert,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -218,7 +216,7 @@ export function StoryForm({
   const last = step === STEPS.length - 1;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <View style={{ flex: 1 }}>
       <View style={styles.progress}>
         {STEPS.map((label, i) => (
           <Pressable key={label} onPress={() => i < step && setStep(i)} style={styles.progressItem}>
@@ -228,7 +226,7 @@ export function StoryForm({
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {step === 0 ? (
           <>
             <Text style={styles.stepTitle}>What did you make?</Text>
@@ -385,7 +383,7 @@ export function StoryForm({
           />
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

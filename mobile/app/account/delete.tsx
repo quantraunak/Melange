@@ -62,7 +62,7 @@ export default function DeleteAccount() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.warnBlock}>
           <Text style={styles.warnTitle}>This cannot be undone.</Text>
           <Text style={styles.warnBody}>

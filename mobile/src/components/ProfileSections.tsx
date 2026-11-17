@@ -103,15 +103,11 @@ export function ProfileAbout({ profile, emptyHint }: { profile: Profile; emptyHi
     [profile]
   );
 
-  // Shown only once the owner has saved their profile from a build that
-  // labels this field publicly. It was collected for years inside Edit
-  // profile as "Current project" and never displayed to anyone, so printing
-  // the existing values would publish text five real people wrote in private.
-  // See 19_looking_for_consent.sql.
-  const lookingFor = profile.looking_for_is_public ? profile.current_project?.trim() : undefined;
+  // No "Current project" / "Looking for" on profiles any more: who you need
+  // goes on a project post. The column stays; nothing shows it.
   const bio = profile.bio?.trim();
   const photos = profile.portfolio_urls ?? [];
-  const empty = !roles.length && !lookingFor && !bio && !links.length && !photos.length;
+  const empty = !roles.length && !bio && !links.length && !photos.length;
   const [viewing, setViewing] = useState<number | null>(null);
 
   return (
@@ -125,13 +121,6 @@ export function ProfileAbout({ profile, emptyHint }: { profile: Profile; emptyHi
           {roles.map((r) => (
             <Chip key={r} label={r} size="sm" />
           ))}
-        </View>
-      ) : null}
-
-      {lookingFor ? (
-        <View style={styles.lookingFor}>
-          <Text style={styles.label}>Looking for</Text>
-          <Text style={styles.body}>{lookingFor}</Text>
         </View>
       ) : null}
 
@@ -202,10 +191,10 @@ export function ProfileTrustSections({
             >
               <Avatar creator={c.with} size="sm" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
+                <Text style={styles.rowTitle}>
                   {c.title ?? `With ${c.with.name}`}
                 </Text>
-                <Text style={styles.rowMeta} numberOfLines={1}>
+                <Text style={styles.rowMeta}>
                   {c.title ? `with ${c.with.name} · ` : ""}
                   {monthYear(c.date)}
                 </Text>

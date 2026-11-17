@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -51,7 +49,6 @@ export default function EditProfileScreen() {
     name: "",
     role: "",
     bio: "",
-    currentProject: "",
     skills: "",
     instagram: "",
     linkedin: "",
@@ -75,7 +72,6 @@ export default function EditProfileScreen() {
         name: data.name || "",
         role: data.role || "",
         bio: data.bio || "",
-        currentProject: data.current_project || "",
         skills: data.skills?.join(", ") || "",
         instagram: data.instagram_url || "",
         linkedin: data.linkedin_url || "",
@@ -129,10 +125,6 @@ export default function EditProfileScreen() {
       name: form.name.trim(),
       role: form.role.trim() || undefined,
       bio: form.bio.trim() || undefined,
-      current_project: form.currentProject.trim() || undefined,
-      // Saving from this screen is the consent: it is the screen that shows
-      // the field is public, under the label "What you're looking for".
-      looking_for_is_public: true,
       skills: skillsArr.length ? skillsArr : undefined,
       vibes: vibes.length ? vibes : [],
       instagram_url: normalizeSocialUrl("instagram", form.instagram),
@@ -169,11 +161,10 @@ export default function EditProfileScreen() {
           <ActivityIndicator color={colors.text} />
         </View>
       ) : (
-        <KeyboardAvoidingView
+        <View
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <ErrorBanner message={error} />
 
             <Field label="Name">
@@ -254,14 +245,6 @@ export default function EditProfileScreen() {
               />
             </Field>
 
-            <Field label="What you're looking for" hint="Shown at the top of your profile.">
-              <Input
-                value={form.currentProject}
-                onChangeText={(t) => setForm({ ...form, currentProject: t })}
-                placeholder="e.g. A stylist for an editorial in LA this month"
-              />
-            </Field>
-
             <Field label="Instagram">
               <Input
                 value={form.instagram}
@@ -305,7 +288,7 @@ export default function EditProfileScreen() {
           <SafeAreaView edges={["bottom"]} style={styles.footer}>
             <Button title="Save profile" variant="primary" loading={saving} onPress={onSave} />
           </SafeAreaView>
-        </KeyboardAvoidingView>
+        </View>
       )}
     </SafeAreaView>
   );

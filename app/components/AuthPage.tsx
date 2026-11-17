@@ -26,6 +26,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [signupNotice, setSignupNotice] = useState<string | null>(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
   // Password reset ("forgot password") — inline on the login tab rather than a
@@ -115,10 +116,21 @@ export default function AuthPage() {
       const { data, error } = await supabase.auth.signUp({
         email: signupForm.email,
         password: signupForm.password,
+        // The database creates the profile from these (15_profile_on_signup.sql),
+        // which is the only way it gets a name when email confirmation is on.
+        options: { data: { name: signupForm.name, role: signupForm.role || "other" } },
       });
 
       if (error) {
         setSignupError(error.message);
+        return;
+      }
+
+      // Email confirmation is on: no session until they click the link.
+      if (!data.session) {
+        setSignupNotice(
+          `We sent a link to ${signupForm.email}. Click it to confirm your email, then sign in.`
+        );
         return;
       }
 
@@ -416,6 +428,12 @@ export default function AuthPage() {
                     .
                   </span>
                 </label>
+
+                {signupNotice && (
+                  <p className="text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-md p-2">
+                    {signupNotice}
+                  </p>
+                )}
 
                 {signupError && (
                   <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">

@@ -1,18 +1,19 @@
 /**
- * Scenes, as the database spells them (profiles.scene / waitlist.scene in
- * 23_scenes_invites_nights.sql). Keep ids in sync with those CHECKs.
+ * Regions, as the database spells them (profiles.scene / waitlist.scene,
+ * 29_projects_and_regions.sql). Keep ids in sync with those CHECKs.
+ * California and remote for now.
  */
 export const SCENES = [
-  { id: "usc", label: "USC", place: "Los Angeles", live: true },
-  { id: "ucsd", label: "UCSD", place: "San Diego", live: true },
-  { id: "la", label: "LA", place: "Silver Lake / Echo Park", live: true },
-  { id: "nyc", label: "NYC", place: "New York", live: false },
+  { id: "sd", label: "San Diego", place: "San Diego", live: true },
+  { id: "la", label: "LA", place: "Los Angeles", live: true },
+  { id: "sf", label: "SF", place: "San Francisco", live: true },
+  { id: "other_ca", label: "Other California", place: "California", live: true },
+  { id: "remote", label: "Remote", place: "Remote", live: true },
 ] as const;
 
 export type SceneId = (typeof SCENES)[number]["id"];
 
-/** waitlist.scene also accepts "other" for people outside the four scenes. */
-export type WaitlistScene = SceneId | "other";
+export type WaitlistScene = SceneId;
 
 export function sceneLabel(id: string | null | undefined): string | null {
   if (!id) return null;

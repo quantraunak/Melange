@@ -30,6 +30,12 @@ export type MelangeEvent = {
   is_canceled: boolean;
   /** Which scene the night belongs to (23_scenes_invites_nights.sql). */
   scene?: string | null;
+  /** Paid events (29_projects_and_regions.sql): no RSVPs, just how to pay. */
+  is_paid?: boolean | null;
+  price?: string | null;
+  how_to_pay?: string | null;
+  /** false when the host gave a day and no time. */
+  time_set?: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -309,6 +315,10 @@ export async function createEvent(
     cover_url?: string;
     capacity?: number;
     scene?: string | null;
+    is_paid?: boolean;
+    price?: string;
+    how_to_pay?: string;
+    time_set?: boolean;
   }
 ): Promise<{ data: MelangeEvent | null; error: string | null }> {
   try {
@@ -325,13 +335,50 @@ export async function createEvent(
     if (input.cover_url) row.cover_url = input.cover_url;
     if (input.capacity) row.capacity = input.capacity;
     if (input.scene) row.scene = input.scene;
+    if (input.is_paid) {
+      row.is_paid = true;
+      if (input.price) row.price = input.price;
+      if (input.how_to_pay) row.how_to_pay = input.how_to_pay;
+    }
+    if (input.time_set === false) row.time_set = false;
 
-    const { data, error } = await supabase.from("events").insert(row).select().single();
-    if (error) return { data: null, error: error.message };
+    let { data, error } = await supabase.from("events").insert(row).select().single();
+    // A database without 29_projects_and_regions.sql: a free event still
+    // posts. A paid one does not, or it would go up as free.
+    if (error && isMissingEventColumns(error.message) && !input.is_paid) {
+      delete row.time_set;
+      ({ data, error } = await supabase.from("events").insert(row).select().single());
+    }
+    if (error) {
+      return {
+        data: null,
+        error: isMissingEventColumns(error.message) ? EVENTS_NEED_UPDATE : error.message,
+      };
+    }
     return { data: data as MelangeEvent, error: null };
   } catch (err) {
     return { data: null, error: errMsg(err) };
   }
+}
+
+export const EVENTS_NEED_UPDATE =
+  "Paid events need the latest database update (29_projects_and_regions.sql).";
+
+function isMissingEventColumns(message: string): boolean {
+  return /(is_paid|price|how_to_pay|time_set)/i.test(message) &&
+    /(does not exist|schema cache|could not find)/i.test(message);
+}
+
+/**
+ * "Sat, Oct 18, 2026 · 7:30 PM", or the day alone when the host gave no time.
+ * Before time_set existed a date-only event was stored at noon and shown as
+ * 12:00 PM, which read like a real start time.
+ */
+export function eventWhen(e: Pick<MelangeEvent, "start_at" | "time_set">): string {
+  const d = new Date(e.start_at);
+  const date = d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  if (e.time_set === false) return date;
+  return `${date} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
 
 export async function updateEvent(

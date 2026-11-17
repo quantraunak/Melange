@@ -10,7 +10,10 @@ import {
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Flag, MapPin, MessageCircle } from "lucide-react-native";
+import { ArrowLeft, Flag, MapPin, MessageCircle, Share as ShareIcon } from "lucide-react-native";
+import { PhotoViewer } from "@/components/PhotoViewer";
+import { shareProfile } from "@/lib/share";
+import { getProjectsWorkedOn, type WorkedOn } from "@/lib/projects";
 
 import { Avatar } from "@/components/Avatar";
 import { HeartButton } from "@/components/HeartButton";
@@ -68,16 +71,21 @@ export default function PublicProfileScreen() {
   const [trust, setTrust] = useState<ProfileTrust | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  /** Projects someone else put them on. */
+  const [workedOn, setWorkedOn] = useState<WorkedOn[]>([]);
 
   const load = useCallback(async () => {
     if (!viewedId) return;
     setLoading(true);
-    const [p, stories, projects, t] = await Promise.all([
+    const [p, stories, projects, t, on] = await Promise.all([
       getProfile(viewedId),
       getStoriesForUser(viewedId),
       getOpenProjectsBy(viewedId),
       getProfileTrust(viewedId),
+      getProjectsWorkedOn(viewedId),
     ]);
+    setWorkedOn(on);
     setProfile(p.data);
     setError(p.error);
     setWork(stories.data);
@@ -159,15 +167,27 @@ export default function PublicProfileScreen() {
           </View>
         ) : null}
         <View style={styles.identity}>
-          <Avatar creator={{ name: profile.name, avatar_url: profile.avatar_url }} size="xl" />
+          <Pressable
+            onPress={() => (profile.avatar_url ? setAvatarOpen(true) : undefined)}
+            disabled={!profile.avatar_url}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={`${profile.name}'s photo, full screen`}
+          >
+            <Avatar creator={{ name: profile.name, avatar_url: profile.avatar_url }} size="xl" />
+          </Pressable>
+          <PhotoViewer
+            photos={profile.avatar_url ? [profile.avatar_url] : []}
+            index={avatarOpen ? 0 : null}
+            onClose={() => setAvatarOpen(false)}
+          />
           <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={2}>
+            <Text style={styles.name}>
               {profile.name}
             </Text>
             {city ? (
               <View style={styles.cityRow}>
                 <MapPin size={13} color={colors.iconFaint} strokeWidth={1.8} />
-                <Text style={styles.city} numberOfLines={1}>
+                <Text style={styles.city}>
                   {city}
                 </Text>
               </View>
@@ -195,6 +215,18 @@ export default function PublicProfileScreen() {
             <HeartButton kind="profile" targetId={profile.user_id} ownerId={profile.user_id} label />
           </View>
         ) : null}
+
+        <Pressable
+          onPress={() => shareProfile(profile, profile.user_id === me).then((e) => e && setError(e))}
+          style={({ pressed }) => [styles.shareRow, pressed && { opacity: 0.6 }]}
+          hitSlop={8}
+          accessibilityRole="button"
+        >
+          <ShareIcon size={15} color={colors.brandText} />
+          <Text style={styles.shareText}>
+            {profile.user_id === me ? "Share your profile" : `Share ${profile.name.split(" ")[0]}'s profile`}
+          </Text>
+        </Pressable>
 
         <ProfileAbout profile={profile} />
 
@@ -232,11 +264,11 @@ export default function PublicProfileScreen() {
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.rowTitle} numberOfLines={2}>
+                    <Text style={styles.rowTitle}>
                       {w.title}
                     </Text>
                     {names.length ? (
-                      <Text style={styles.rowMeta} numberOfLines={1}>
+                      <Text style={styles.rowMeta}>
                         with {names.slice(0, 3).join(", ")}
                       </Text>
                     ) : null}
@@ -272,12 +304,33 @@ export default function PublicProfileScreen() {
                   </View>
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle} numberOfLines={2}>
+                  <Text style={styles.rowTitle}>
                     {pr.title}
                   </Text>
-                  <Text style={styles.rowMeta} numberOfLines={1}>
+                  <Text style={styles.rowMeta}>
                     {projectDates(pr) ?? pr.location ?? "Open project"}
                   </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {workedOn.length ? (
+          <View style={styles.block}>
+            <Text style={styles.eyebrow}>Worked on</Text>
+            {workedOn.map((w) => (
+              <Pressable
+                key={w.post_id}
+                onPress={() => router.push({ pathname: "/post/[id]", params: { id: w.post_id } })}
+                style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
+              >
+                <View style={[styles.thumb, styles.thumbEmpty]}>
+                  <Text style={styles.thumbLetter}>{w.title.trim().slice(0, 1).toUpperCase()}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>{w.title}</Text>
+                  <Text style={styles.rowMeta}>{w.finished_at ? "Finished" : "In progress"}</Text>
                 </View>
               </Pressable>
             ))}
@@ -318,6 +371,8 @@ const styles = StyleSheet.create({
   cityRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.xs },
   city: { ...typography.caption, color: colors.textSecondary },
   actions: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.lg },
+  shareRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.md, alignSelf: "flex-start" },
+  shareText: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText },
   messageBtn: {
     flex: 1,
     flexDirection: "row",

@@ -53,6 +53,8 @@ describe("shared night page data", () => {
       "Sat, Oct 24 · 8:00 PM",
     );
     expect(formatNightWhen("not a date")).toBeNull();
+    // No time given: the day, never a made-up noon.
+    expect(formatNightWhen("2026-10-24T19:00:00+00:00", null, false)).toBe("Sat, Oct 24");
   });
 
   it("builds the link-preview line", () => {

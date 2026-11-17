@@ -115,7 +115,17 @@ export function NightPhotoViewer({
             getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
             onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W))}
             renderItem={({ item }) => (
-              <View style={styles.page}>
+              // Pinch to zoom, like every other photo viewer in the app.
+              <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.page}
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                bouncesZoom
+                centerContent
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+              >
                 {item.url ? (
                   <Image
                     source={{ uri: item.url, cacheKey: item.path }}
@@ -125,7 +135,7 @@ export function NightPhotoViewer({
                     accessibilityLabel={`Photo from ${firstName(item.uploader_name)}`}
                   />
                 ) : null}
-              </View>
+              </ScrollView>
             )}
             style={{ flex: 1 }}
           />

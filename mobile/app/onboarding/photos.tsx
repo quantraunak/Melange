@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -9,13 +9,13 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { useAuth } from "@/lib/auth";
 import { getProfile, PROFILE_MIN_IMAGES } from "@/lib/db";
 import { clearFreshSignup } from "@/lib/onboarding";
-import { colors, fonts, GUTTER, spacing, typography } from "@/lib/theme";
+import { colors, GUTTER, spacing, typography } from "@/lib/theme";
 
 /**
- * The one optional step after signup: three photos. Liking a project or
- * posting one needs PROFILE_MIN_IMAGES, so asking now, while someone is
- * already in "set up my profile" mode, saves a wall later. Skip is always
- * there and always works.
+ * The step after signup: profile photos. Liking, messaging and posting need
+ * PROFILE_MIN_IMAGES, so this asks for them now, while someone is already
+ * setting up. No Skip: the fresh-signup flag is cleared on open, so closing
+ * the app still lands in the app, and the floor asks again from there.
  */
 export default function OnboardingPhotosScreen() {
   const router = useRouter();
@@ -50,14 +50,11 @@ export default function OnboardingPhotosScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.top}>
-        <Pressable onPress={done} hitSlop={12} accessibilityRole="button">
-          <Text style={styles.skip}>Skip</Text>
-        </Pressable>
-      </View>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Add 3 photos you&apos;ve made or love</Text>
-        <Text style={styles.body}>They&apos;re the first thing people see on your profile.</Text>
+        <Text style={styles.title}>Add your profile photos ✨</Text>
+        <Text style={styles.body}>
+          At least {PROFILE_MIN_IMAGES}. You, or work you&apos;ve made. They&apos;re the first thing people see.
+        </Text>
         <PortfolioPhotos
           userId={userId}
           photos={photos}
@@ -73,7 +70,7 @@ export default function OnboardingPhotosScreen() {
           variant="primary"
           size="lg"
           fullWidth
-          disabled={photos.length === 0}
+          disabled={photos.length < PROFILE_MIN_IMAGES}
           onPress={done}
         />
       </View>
@@ -83,8 +80,6 @@ export default function OnboardingPhotosScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  top: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: GUTTER, paddingVertical: spacing.md },
-  skip: { ...typography.body, fontFamily: fonts.semibold, color: colors.brandText },
   scroll: { paddingHorizontal: GUTTER, paddingTop: spacing.xl, gap: spacing.lg },
   title: { ...typography.display1, color: colors.text },
   body: { ...typography.body, color: colors.textSecondary },

@@ -274,11 +274,10 @@ export function EventsFeed({
 
           {events.length === 0 && !error ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Nothing on the calendar yet</Text>
               <Text style={styles.emptyBody}>
                 {cityFilter
                   ? "Nothing matches that place. Clear the filter, or post the first one there."
-                  : "Going to a gallery opening or a golden-hour walk anyway? Tap Post an event and say when and where."}
+                  : "Nothing posted yet. Got a show or a performance coming up? Post it here."}
               </Text>
             </View>
           ) : (
@@ -388,7 +387,7 @@ function EventCard({
 
       <View style={styles.cardBody}>
         <Text style={styles.catText}>
-          {past ? day : time} · {cat.label}
+          {[past ? day : event.time_set === false ? null : time, cat.label].filter(Boolean).join(" · ")}
         </Text>
         <Pressable
           onPress={onOpen}
@@ -422,10 +421,9 @@ function EventCard({
         ) : null}
         <Pressable
           style={({ pressed }) => [styles.hostRow, pressed && styles.pressedOpacity]}
-          onPress={isMine ? undefined : onOpenHost}
-          disabled={isMine}
-          accessibilityRole={isMine ? undefined : "button"}
-          accessibilityLabel={isMine ? undefined : `${event.host.name}'s profile`}
+          onPress={onOpenHost}
+          accessibilityRole="button"
+          accessibilityLabel={isMine ? "Your profile" : `${event.host.name}'s profile`}
         >
           <Avatar
             creator={{ name: event.host.name, avatar_url: event.host.avatar_url }}
@@ -463,6 +461,32 @@ function EventCard({
             </Text>
           </Pressable>
         )
+      ) : event.is_paid ? (
+        // No RSVP on a paid event: the page says how to pay.
+        <View style={styles.rsvpRow}>
+          <Pressable
+            style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
+            onPress={onOpen}
+            accessibilityLabel={`${event.title}, how to pay`}
+          >
+            <Text style={styles.rsvpLabel}>
+              {event.price ? `Paid · ${event.price}` : "Paid"} · How to pay
+            </Text>
+          </Pressable>
+          {isMine ? null : (
+            <>
+              <View style={styles.rsvpDivider} />
+              <Pressable
+                style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
+                onPress={onMessage}
+                accessibilityLabel={`Message ${event.host.name}`}
+              >
+                <MessageCircle size={14} color={colors.textSecondary} />
+                <Text style={styles.rsvpLabel}>Message</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
       ) : (
       <View style={styles.rsvpRow}>
         <Pressable

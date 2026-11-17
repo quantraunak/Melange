@@ -116,7 +116,9 @@ export default function EditProjectsScreen() {
           projectStart: post.project_start ?? null,
           projectEnd: post.project_end ?? null,
           location: post.location ?? "",
-          payType: post.pay_type ?? null,
+          region: post.region ?? null,
+          isRemote: post.is_remote ?? false,
+          payTypes: post.pay_types?.length ? post.pay_types : post.pay_type ? [post.pay_type] : [],
           compensation: post.compensation ?? "",
           mediaUrls: post.media_urls ?? [],
         }}
@@ -130,7 +132,10 @@ export default function EditProjectsScreen() {
             project_start: v.projectStart,
             project_end: v.projectEnd,
             location: v.location || null,
-            pay_type: v.payType,
+            pay_type: v.payTypes[0] ?? null,
+            pay_types: v.payTypes,
+            region: v.region,
+            is_remote: v.isRemote,
             compensation: v.compensation || null,
             media_urls: v.mediaUrls.length ? v.mediaUrls : null,
           });

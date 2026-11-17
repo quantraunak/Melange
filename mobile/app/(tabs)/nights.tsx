@@ -110,7 +110,10 @@ export default function NightsScreen() {
           />
         }
       >
-        <ScreenTitle title="Events" action={{ label: "Host", onPress: () => router.push("/event/new"), accessibilityLabel: "Host an event" }} />
+        <ScreenTitle title="Events" action={{ label: "Post an event", onPress: () => router.push("/event/new") }} />
+        <Text style={styles.intro}>
+          Small shows, student performances, open mics, gallery nights. Post yours here.
+        </Text>
 
         {label ? (
           <ChipRow>
@@ -152,14 +155,10 @@ export default function NightsScreen() {
           <View style={styles.empty}>
             {/* One action. "See every scene" was a second one, and the All
                 chip right above already does it. */}
-            <Text style={styles.emptyTitle}>
-              {scope === "scene" && label ? `No events in ${label} yet` : "No events coming up"}
-            </Text>
             <Text style={styles.emptyBody}>
-              Host one: pick a time and a place, say what to bring. Everyone who says they&apos;re going
-              gets a group chat.
+              Nothing posted yet. Got a show or a performance coming up? Post it here.
             </Text>
-            <Button title="Host an event" variant="primary" onPress={() => router.push("/event/new")} />
+            <Button title="Post an event" variant="primary" onPress={() => router.push("/event/new")} />
           </View>
         ) : (
           <View style={{ gap: spacing.lg }}>
@@ -191,4 +190,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: "flex-start", gap: spacing.md, paddingVertical: spacing.xxl },
   emptyTitle: { ...typography.display2 },
   emptyBody: { ...typography.body, color: colors.textSecondary },
+  intro: { ...typography.body, color: colors.textSecondary, marginTop: -spacing.sm },
 });
