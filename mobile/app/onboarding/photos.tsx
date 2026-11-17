@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -9,13 +9,15 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { useAuth } from "@/lib/auth";
 import { getProfile, PROFILE_MIN_IMAGES } from "@/lib/db";
 import { clearFreshSignup } from "@/lib/onboarding";
-import { colors, GUTTER, spacing, typography } from "@/lib/theme";
+import { colors, fonts, GUTTER, spacing, typography } from "@/lib/theme";
 
 /**
  * The step after signup: profile photos. Liking, messaging and posting need
  * PROFILE_MIN_IMAGES, so this asks for them now, while someone is already
- * setting up. No Skip: the fresh-signup flag is cleared on open, so closing
- * the app still lands in the app, and the floor asks again from there.
+ * setting up. "Skip for now" is there because without it the only way past
+ * a denied photo permission or a failed upload was to kill the app, and most
+ * people who sign up have no photos ready. Skipping changes nothing about
+ * the floor: it still asks before a like, a message or a post.
  */
 export default function OnboardingPhotosScreen() {
   const router = useRouter();
@@ -65,6 +67,14 @@ export default function OnboardingPhotosScreen() {
         <ErrorBanner message={error} />
       </ScrollView>
       <View style={styles.footer}>
+        {photos.length < PROFILE_MIN_IMAGES ? (
+          <Pressable onPress={done} hitSlop={12} accessibilityRole="button" style={styles.skip}>
+            <Text style={styles.skipText}>Skip for now</Text>
+            <Text style={styles.skipHint}>
+              You can look around. You&apos;ll need {PROFILE_MIN_IMAGES} photos to like, message or post.
+            </Text>
+          </Pressable>
+        ) : null}
         <Button
           title="Done"
           variant="primary"
@@ -83,5 +93,8 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: GUTTER, paddingTop: spacing.xl, gap: spacing.lg },
   title: { ...typography.display1, color: colors.text },
   body: { ...typography.body, color: colors.textSecondary },
-  footer: { paddingHorizontal: GUTTER, paddingBottom: spacing.md },
+  footer: { paddingHorizontal: GUTTER, paddingBottom: spacing.md, gap: spacing.md },
+  skip: { alignItems: "center", gap: 2 },
+  skipText: { ...typography.body, fontFamily: fonts.semibold, color: colors.brandText },
+  skipHint: { ...typography.caption, color: colors.textSecondary, textAlign: "center" },
 });

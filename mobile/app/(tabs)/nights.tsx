@@ -50,7 +50,9 @@ export default function NightsScreen() {
       if (err) console.warn("nights: getProfile failed", err);
       const scene = data?.scene ?? null;
       setMyScene(scene);
-      setScope(scene ? "scene" : "all");
+      // Everything first. Opening on your own area hid every event anywhere
+      // else behind a chip, and there aren't enough events yet for that.
+      setScope("all");
     })();
     return () => {
       live = false;

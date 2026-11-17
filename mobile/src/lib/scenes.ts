@@ -111,9 +111,10 @@ export type ScenePerson = {
 };
 
 /**
- * People for Discover once the projects run out: members of my scene (or of
- * every scene, if I haven't picked one) with at least one photo, whom I
- * haven't hearted and who aren't blocked either way.
+ * People for Discover once the projects run out: everyone with at least one
+ * photo whom I haven't hearted and who isn't blocked either way, people in my
+ * area first. Area used to be a hard filter, which with this few people on
+ * Melange meant picking one emptied the deck.
  *
  * I can only read blocks I made, so the other direction is asked of
  * is_blocked_pair() per candidate. The list is capped so that stays cheap.
@@ -146,7 +147,6 @@ export async function getDiscoverPeople(
       .not("portfolio_urls", "is", null)
       .neq("portfolio_urls", "{}")
       .neq("user_id", userId);
-    if (scene) q = q.eq("scene", scene);
     const { data, error } = await q
       .order("member_since", { ascending: false })
       .limit(limit + skip.size);
@@ -165,6 +165,8 @@ export async function getDiscoverPeople(
         handle: (p.handle as string | null) ?? null,
       }))
       .filter((p) => !skip.has(p.user_id) && p.portfolio_urls.length > 0)
+      // Stable: within each group the newest members stay first.
+      .sort((a, b) => Number(!!scene && b.scene === scene) - Number(!!scene && a.scene === scene))
       .slice(0, limit);
 
     const checks = await Promise.all(

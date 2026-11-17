@@ -3,7 +3,9 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { colors, fonts, GUTTER, radii, spacing, typography } from "@/lib/theme";
-import type { Profile } from "@/lib/db";
+import { PROFILE_FLOOR_ON, PROFILE_MIN_IMAGES, type Profile } from "@/lib/db";
+import { SceneChips } from "@/components/SceneChips";
+import { setScene, type Scene } from "@/lib/scenes";
 
 /**
  * What a profile still needs before people can tell who you are: a photo, what
@@ -15,9 +17,15 @@ export function profileMissing(profile: Pick<Profile, "portfolio_urls" | "role" 
   // A profile photo (avatar) doesn't count: messaging someone you haven't
   // matched with needs one photo of your work (meets_message_floor in
   // 20_message_floor.sql), and "done" here has to mean that works.
-  const hasPhoto = (profile.portfolio_urls?.length ?? 0) > 0;
+  // With the floor on, "done" has to mean liking and posting work too, and
+  // those need PROFILE_MIN_IMAGES. Saying done at one photo sent people into
+  // a gate the nudge had just told them they were past.
+  const need = PROFILE_FLOOR_ON ? PROFILE_MIN_IMAGES : 1;
+  const have = profile.portfolio_urls?.length ?? 0;
   const role = profile.role?.trim();
-  if (!hasPhoto) out.push("a photo of your work");
+  if (have < need) {
+    out.push(need - have === 1 ? (have ? "one more profile photo" : "a photo of your work") : `${need - have} profile photos`);
+  }
   if (!role || role === "other") out.push("what you do");
   if (!profile.bio?.trim()) out.push("a short bio");
   return out;
@@ -38,6 +46,20 @@ export function ProfileNudge({ profile }: { profile: Profile }) {
   const router = useRouter();
   const [popup, setPopup] = useState(false);
   const missing = profileMissing(profile);
+  // Where are you? Most people joined before areas existed and were never
+  // asked. One tap here, no popup: it helps, it isn't required.
+  const [area, setArea] = useState<Scene | null>(null);
+  const [areaError, setAreaError] = useState<string | null>(null);
+  const pickArea = async (s: Scene | null) => {
+    if (!s) return;
+    setAreaError(null);
+    setArea(s);
+    const { error } = await setScene(s);
+    if (error) {
+      setArea(null);
+      setAreaError(error);
+    }
+  };
 
   // A beat after focus, not on it: coming back from Edit profile, the tab is
   // still showing the old profile until its reload lands, and popping up then
@@ -52,7 +74,19 @@ export function ProfileNudge({ profile }: { profile: Profile }) {
     }, [])
   );
 
-  if (!missing.length) return null;
+  if (!missing.length) {
+    if (profile.scene) return null;
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{area ? "Got it" : "Where are you?"}</Text>
+        <Text style={styles.body}>
+          {area ? "People near you come first now." : "So people near you come first."}
+        </Text>
+        <SceneChips<Scene | null> value={area} onChange={pickArea} />
+        {areaError ? <Text style={styles.body}>{areaError}</Text> : null}
+      </View>
+    );
+  }
 
   const edit = () => {
     setPopup(false);
