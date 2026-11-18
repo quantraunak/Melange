@@ -36,6 +36,8 @@ export type MelangeEvent = {
   how_to_pay?: string | null;
   /** false when the host gave a day and no time. */
   time_set?: boolean | null;
+  /** What kind of event, typed in when the type is Other (30_event_type_other.sql). */
+  category_label?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -65,7 +67,9 @@ export const EVENT_CATEGORIES: { id: EventCategory; label: string }[] = [
   { id: "other", label: "Other" },
 ];
 
-export function categoryDisplay(c: EventCategory): { label: string } {
+/** The type's name, or what the host typed when they picked Other. */
+export function categoryDisplay(c: EventCategory, typed?: string | null): { label: string } {
+  if (c === "other" && typed?.trim()) return { label: typed.trim() };
   return EVENT_CATEGORIES.find((x) => x.id === c) ?? { label: c };
 }
 
@@ -319,6 +323,7 @@ export async function createEvent(
     price?: string;
     how_to_pay?: string;
     time_set?: boolean;
+    category_label?: string;
   }
 ): Promise<{ data: MelangeEvent | null; error: string | null }> {
   try {
@@ -341,10 +346,16 @@ export async function createEvent(
       if (input.how_to_pay) row.how_to_pay = input.how_to_pay;
     }
     if (input.time_set === false) row.time_set = false;
+    if (input.category === "other" && input.category_label) row.category_label = input.category_label;
 
     let { data, error } = await supabase.from("events").insert(row).select().single();
     // A database without 29_projects_and_regions.sql: a free event still
     // posts. A paid one does not, or it would go up as free.
+    // Just the typed type missing (no 30_event_type_other.sql yet): post without it.
+    if (error && /category_label/i.test(error.message)) {
+      delete row.category_label;
+      ({ data, error } = await supabase.from("events").insert(row).select().single());
+    }
     if (error && isMissingEventColumns(error.message) && !input.is_paid) {
       delete row.time_set;
       ({ data, error } = await supabase.from("events").insert(row).select().single());
@@ -388,12 +399,11 @@ export async function updateEvent(
   try {
     const row: Record<string, unknown> = { ...patch };
     if (typeof row.city === "string") row.city = row.city.toLowerCase();
-    const { data, error } = await supabase
-      .from("events")
-      .update(row)
-      .eq("id", eventId)
-      .select()
-      .single();
+    let { data, error } = await supabase.from("events").update(row).eq("id", eventId).select().single();
+    if (error && /category_label/i.test(error.message)) {
+      delete row.category_label;
+      ({ data, error } = await supabase.from("events").update(row).eq("id", eventId).select().single());
+    }
     if (error) return { data: null, error: error.message };
     return { data: data as MelangeEvent, error: null };
   } catch (err) {

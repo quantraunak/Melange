@@ -59,6 +59,8 @@ export default function EditProfileScreen() {
   const [saved, setSaved] = useState<{ handle: string; scene: Scene | null }>({ handle: "", scene: null });
   const [scene, setSceneChoice] = useState<Scene | null>(null);
   const [vibes, setVibes] = useState<string[]>([]);
+  /** "Other" tapped, or a role that isn't in the list: show the box to type it. */
+  const [otherOpen, setOtherOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,7 +72,8 @@ export default function EditProfileScreen() {
     if (data) {
       setForm({
         name: data.name || "",
-        role: data.role || "",
+        // "other" is the sign-up default for "didn't say": show it as empty.
+        role: data.role && data.role !== "other" ? data.role : "",
         bio: data.bio || "",
         skills: data.skills?.join(", ") || "",
         instagram: data.instagram_url || "",
@@ -78,6 +81,8 @@ export default function EditProfileScreen() {
         reel: data.reel_url || "",
         handle: data.handle || "",
       });
+      // A role that isn't one of the chips is a typed one: open its box.
+      setOtherOpen(!!data.role && data.role !== "other" && !(ROLES as readonly string[]).includes(data.role));
       const sc = isScene(data.scene) ? data.scene : null;
       setSceneChoice(sc);
       setSaved({ handle: data.handle || "", scene: sc });
@@ -192,22 +197,36 @@ export default function EditProfileScreen() {
 
             <Field label="What you do" hint="Pick one, or type your own.">
               <ChipRow>
-                {ROLES.map((r) => (
+                {ROLES.filter((r) => r !== "Other").map((r) => (
                   <Chip
                     key={r}
                     label={r}
                     size="sm"
-                    selected={form.role === r}
-                    onPress={() => setForm({ ...form, role: form.role === r ? "" : r })}
+                    selected={!otherOpen && form.role === r}
+                    onPress={() => {
+                      setOtherOpen(false);
+                      setForm({ ...form, role: form.role === r ? "" : r });
+                    }}
                   />
                 ))}
+                <Chip
+                  label="Other"
+                  size="sm"
+                  selected={otherOpen}
+                  onPress={() => {
+                    if (!otherOpen) setForm({ ...form, role: "" });
+                    setOtherOpen(!otherOpen);
+                  }}
+                />
               </ChipRow>
-              <Text style={styles.subLabel}>Or type your own</Text>
-              <Input
-                value={form.role}
-                onChangeText={(t) => setForm({ ...form, role: t })}
-                placeholder="e.g. Set designer, Creative director"
-              />
+              {otherOpen ? (
+                <Input
+                  value={form.role}
+                  onChangeText={(t) => setForm({ ...form, role: t })}
+                  placeholder="Type what you do, e.g. Tattoo artist"
+                  autoFocus
+                />
+              ) : null}
             </Field>
 
             <Field label="Reel or portfolio link" hint="Instagram, Vimeo, your site. People look here first.">

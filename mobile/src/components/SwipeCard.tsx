@@ -420,6 +420,13 @@ export function SwipeCard({
   };
 
   useEffect(() => {
+    // A new card starts centred. The deck's own reset (tx = 0 in its swipe
+    // handler) runs inside triggerSwipe, which the heart and X buttons call
+    // BEFORE they start the fly-off animation, so after one button tap the
+    // next card mounted still flying off-screen: invisible, and every tap
+    // after that "did nothing". Resetting on mount covers both paths.
+    tx.value = 0;
+    ty.value = 0;
     entrance.value = 0;
     entrance.value = withSpring(1, motion.springs.promote);
     crossed.value = 0;

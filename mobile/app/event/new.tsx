@@ -72,6 +72,8 @@ export default function NewEventScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<EventCategory>("other");
+  /** With Other picked: what kind of event it is, typed. */
+  const [categoryLabel, setCategoryLabel] = useState("");
   const [dateStr, setDateStr] = useState("");
   const [timeStr, setTimeStr] = useState("");
   const [pm, setPm] = useState(true);
@@ -114,6 +116,7 @@ export default function NewEventScreen() {
       setTitle(data.title);
       setDescription(data.description ?? "");
       setCategory(data.category);
+      setCategoryLabel(data.category_label ?? "");
       setDateStr(dateText(d));
       if (data.time_set !== false) {
         const t = timeParts(d);
@@ -200,6 +203,7 @@ export default function NewEventScreen() {
         price: isPaid ? price.trim() || undefined : undefined,
         how_to_pay: isPaid ? howToPay.trim() || undefined : undefined,
         time_set: !!time,
+        category_label: category === "other" ? categoryLabel.trim() || undefined : undefined,
       };
 
       if (editId) {
@@ -212,6 +216,7 @@ export default function NewEventScreen() {
           cover_url: fields.cover_url ?? null,
           price: fields.price ?? null,
           how_to_pay: fields.how_to_pay ?? null,
+          category_label: fields.category_label ?? null,
         });
         if (upErr) {
           setError(upErr);
@@ -302,6 +307,18 @@ export default function NewEventScreen() {
             );
           })}
         </View>
+        {category === "other" ? (
+          <Field label="What kind of event?">
+            <TextInput
+              value={categoryLabel}
+              onChangeText={setCategoryLabel}
+              placeholder="e.g. Open mic, Poetry night, Film screening"
+              style={styles.input}
+              placeholderTextColor={colors.textTertiary}
+              maxLength={40}
+            />
+          </Field>
+        ) : null}
 
         <View style={styles.row}>
           <Field label="Date" style={{ flex: 1 }}>

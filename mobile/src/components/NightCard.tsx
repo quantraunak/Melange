@@ -42,7 +42,7 @@ export function NightCard({
   showScene?: boolean;
   onPress: () => void;
 }) {
-  const cat = categoryDisplay(night.category);
+  const cat = categoryDisplay(night.category, night.category_label);
   const { day, time } = formatEventTime(night.start_at);
   const scene = showScene ? sceneLabel(night.scene) : null;
   const going = night.going_count;
