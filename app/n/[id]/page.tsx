@@ -122,15 +122,14 @@ export default async function SharedNightPage({ params }: Props) {
 
         <div className="mt-8">
           {e.is_paid ? (
-            <div>
+            <div className="mb-8">
               <h2 className="font-display text-2xl font-semibold">How to pay</h2>
               <p className="mt-2 whitespace-pre-line break-words">
                 {e.how_to_pay || "Ask the host."}
               </p>
             </div>
-          ) : (
-            <NightRsvp eventId={e.id} ended={nightHasEnded(e.start_at, e.end_at)} />
-          )}
+          ) : null}
+          <NightRsvp eventId={e.id} ended={nightHasEnded(e.start_at, e.end_at)} />
         </div>
 
         <section className="mt-10">

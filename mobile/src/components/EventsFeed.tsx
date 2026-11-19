@@ -461,33 +461,20 @@ function EventCard({
             </Text>
           </Pressable>
         )
-      ) : event.is_paid ? (
-        // No RSVP on a paid event: the page says how to pay.
-        <View style={styles.rsvpRow}>
-          <Pressable
-            style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
-            onPress={onOpen}
-            accessibilityLabel={`${event.title}, how to pay`}
-          >
-            <Text style={styles.rsvpLabel}>
-              {event.price ? `Paid · ${event.price}` : "Paid"} · How to pay
-            </Text>
-          </Pressable>
-          {isMine ? null : (
-            <>
-              <View style={styles.rsvpDivider} />
-              <Pressable
-                style={({ pressed }) => [styles.rsvpBtn, pressed && styles.pressedOpacity]}
-                onPress={onMessage}
-                accessibilityLabel={`Message ${event.host.name}`}
-              >
-                <MessageCircle size={14} color={colors.textSecondary} />
-                <Text style={styles.rsvpLabel}>Message</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
       ) : (
+      <>
+      {event.is_paid ? (
+        <Pressable
+          onPress={onOpen}
+          hitSlop={6}
+          style={({ pressed }) => [pressed && styles.pressedOpacity]}
+          accessibilityLabel={`${event.title}, how to pay`}
+        >
+          <Text style={styles.paidLine}>
+            {event.price ? `Paid · ${event.price}` : "Paid"} · How to pay
+          </Text>
+        </Pressable>
+      ) : null}
       <View style={styles.rsvpRow}>
         <Pressable
           style={({ pressed }) => [
@@ -546,6 +533,7 @@ function EventCard({
           </>
         )}
       </View>
+      </>
       )}
     </View>
   );
@@ -553,6 +541,7 @@ function EventCard({
 
 const styles = StyleSheet.create({
   feed: { gap: 12 },
+  paidLine: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
   peopleLink: { ...typography.caption, fontFamily: fonts.semibold, color: colors.brandText, marginTop: 2 },
   pastHint: { ...typography.caption, color: colors.textSecondary, marginTop: -4 },
   actionRow: { flexDirection: "row", justifyContent: "flex-end" },

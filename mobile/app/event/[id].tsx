@@ -306,8 +306,8 @@ export default function EventScreen() {
   const cat = categoryDisplay(event.category, event.category_label);
   const hostIsMe = event.host_id === userId;
   const ended = nightEnded(event);
-  // A paid event has no RSVP: people pay the host the way the event says.
-  const canRsvp = !hostIsMe && !event.is_canceled && !ended && !event.is_paid;
+  // Paid events take RSVPs too: going or interested, and the page says how to pay.
+  const canRsvp = !hostIsMe && !event.is_canceled && !ended;
   const full = isEventFull(event);
   const scene = sceneLabel(event.scene);
   // Members see who's going through event_people, which carries handles and
@@ -490,11 +490,7 @@ export default function EventScreen() {
             />
           ) : (
             <Text style={styles.muted}>
-              {canRsvp
-                ? "RSVP to join the chat."
-                : event.is_paid && !ended
-                  ? "Questions? Message the host."
-                  : "The chat is for the host and everyone who went."}
+              {canRsvp ? "RSVP to join the chat." : "The chat is for the host and everyone who went."}
             </Text>
           )}
         </View>
