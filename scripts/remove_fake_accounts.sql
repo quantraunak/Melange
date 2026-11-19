@@ -8,9 +8,10 @@
 --
 --   STEP 2 (delete): run the BEGIN ... COMMIT block.
 --
--- Who counts as fake: the demo creatives from the seed scripts
--- (scripts/seed_media.json, seed_stories.mjs) and the second demo login
--- (demo2@melange.app). Deleting the auth user removes their profile, posts,
+-- Who counts as fake: the five seeded creatives (Aria Nakamura, Devin Park,
+-- Jordan Rivera, Maya Chen, Sofia Blake: *.creative@melange.app) and the second
+-- demo login (demo2@melange.app). Matched by exact email, not display name, so a
+-- real person who shares a name is never touched. Deleting the auth user removes their profile, posts,
 -- stories, swipes, chats and hearts too (every table cascades from it).
 --
 -- KEPT: review@melange.app, the login Apple uses to review each build. Its
@@ -26,10 +27,11 @@ SELECT u.id, u.email, p.name, u.created_at,
 FROM auth.users u
 LEFT JOIN public.profiles p ON p.user_id = u.id
 WHERE lower(u.email) IN (
-        'demo2@melange.app'
+        'demo2@melange.app',
+        'aria.creative@melange.app', 'devin.creative@melange.app', 'jordan.creative@melange.app',
+        'maya.creative@melange.app', 'sofia.creative@melange.app'
         -- , 'review@melange.app'
       )
-   OR p.name IN ('Aria Nakamura', 'Devin Park', 'Jordan Rivera', 'Maya Chen', 'Sofia Blake')
 ORDER BY u.created_at;
 
 -- ---------------------------------------------------------------- STEP 2
@@ -48,10 +50,11 @@ WHERE id IN (
   FROM auth.users u
   LEFT JOIN public.profiles p ON p.user_id = u.id
   WHERE lower(u.email) IN (
-          'demo2@melange.app'
+          'demo2@melange.app',
+          'aria.creative@melange.app', 'devin.creative@melange.app', 'jordan.creative@melange.app',
+          'maya.creative@melange.app', 'sofia.creative@melange.app'
           -- , 'review@melange.app'
         )
-     OR p.name IN ('Aria Nakamura', 'Devin Park', 'Jordan Rivera', 'Maya Chen', 'Sofia Blake')
 );
 
 COMMIT;

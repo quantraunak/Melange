@@ -214,7 +214,9 @@ export default function EditProfileScreen() {
                   size="sm"
                   selected={otherOpen}
                   onPress={() => {
-                    if (!otherOpen) setForm({ ...form, role: "" });
+                    // Opening or closing the box clears the role, so a typed role
+                    // never saves while no chip shows it.
+                    setForm({ ...form, role: "" });
                     setOtherOpen(!otherOpen);
                   }}
                 />
