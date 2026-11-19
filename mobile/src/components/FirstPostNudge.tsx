@@ -30,9 +30,13 @@ export function useHasPosted(userId: string | null): boolean | null {
   return posted;
 }
 
+// The popup shows once per app launch; module scope so it survives remounts.
+let poppedThisLaunch = false;
+
 /**
  * Getting the first people on: until you have posted a project, Discover asks
- * you to — a big card at the top, and a popup every time you open Discover.
+ * you to. The first time Discover opens after launch that's a popup; after
+ * that it's a card at the top. Never both at once, which read as a duplicate.
  * Both stop for good once you have a post.
  *
  * `after` takes the card's place once it's put off ("Later" or the X), so the
@@ -51,15 +55,23 @@ export function FirstPostNudge({
   const router = useRouter();
   const [cardHidden, setCardHidden] = useState(false);
   const [popup, setPopup] = useState(false);
+  const [popupDone, setPopupDone] = useState(poppedThisLaunch);
 
-  // Every time Discover comes into focus without a post: pop up again.
-  // A beat after focus, not on it: right after posting, Discover still thinks
-  // you haven't until its re-check lands, and popping up then would nag
-  // someone who just did it.
+  // First focus after launch: pop up. A beat after focus, not on it: right
+  // after posting, Discover still thinks you haven't until its re-check lands,
+  // and popping up then would nag someone who just did it.
+  // Later focuses: the card comes back instead.
   useFocusEffect(
     useCallback(() => {
       setCardHidden(false);
-      const t = setTimeout(() => setPopup(true), 900);
+      if (poppedThisLaunch) {
+        setPopupDone(true);
+        return;
+      }
+      const t = setTimeout(() => {
+        poppedThisLaunch = true;
+        setPopup(true);
+      }, 900);
       return () => {
         clearTimeout(t);
         setPopup(false);
@@ -71,16 +83,18 @@ export function FirstPostNudge({
 
   const post = () => {
     setPopup(false);
+    setPopupDone(true);
     router.push("/post/new");
   };
   const later = () => {
     setPopup(false);
+    setPopupDone(true);
     setCardHidden(true);
   };
 
   return (
     <>
-      {!cardHidden ? (
+      {!popupDone ? null : !cardHidden ? (
         <View style={[styles.slot, { top }]} pointerEvents="box-none">
           <View style={styles.card}>
             <Pressable
