@@ -361,7 +361,7 @@ function EventCard({
   /** Opens the event page: details, and everyone going, each a way to reach them. */
   onOpen: () => void;
 }) {
-  const cat = categoryDisplay(event.category);
+  const cat = categoryDisplay(event.category, event.category_label);
   const { day, time } = formatEventTime(event.start_at);
   const going = event.my_rsvp === "going";
   const interested = event.my_rsvp === "interested";

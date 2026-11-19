@@ -303,7 +303,7 @@ export default function EventScreen() {
     );
   }
 
-  const cat = categoryDisplay(event.category);
+  const cat = categoryDisplay(event.category, event.category_label);
   const hostIsMe = event.host_id === userId;
   const ended = nightEnded(event);
   // A paid event has no RSVP: people pay the host the way the event says.

@@ -420,6 +420,10 @@ export function SwipeCard({
   };
 
   useEffect(() => {
+    // tx is the deck's (shared across cards) and is NOT reset here: Undo sets
+    // it to the screen edge and springs it back to 0 as the old card remounts,
+    // and a reset on mount would cancel that fly-back. ty is this card's own.
+    ty.value = 0;
     entrance.value = 0;
     entrance.value = withSpring(1, motion.springs.promote);
     crossed.value = 0;
@@ -433,9 +437,13 @@ export function SwipeCard({
     // Clear immediately: holding this until an animation callback is what let
     // a mid-flight touch leave it set forever, killing both buttons.
     onButtonSwipeComplete();
-    triggerSwipe(dir);
+    // Start the fly-off BEFORE committing the swipe: the deck's handler sets
+    // tx = 0 for the next card, and it has to run last. In the other order the
+    // fly-off overwrote that reset, the next card mounted off-screen
+    // (invisible), and every tap after the first heart or X did nothing.
     const target = dir === "right" ? SCREEN_W * 1.25 : -SCREEN_W * 1.25;
     tx.value = withTiming(target, { duration: 240, easing: motion.easings.exit });
+    triggerSwipe(dir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingButtonSwipe]);
 

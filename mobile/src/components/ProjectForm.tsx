@@ -125,6 +125,8 @@ export function ProjectForm({
   const [isRemote, setIsRemote] = useState(initial?.isRemote ?? false);
   const [payTypes, setPayTypes] = useState<PayType[]>(initial?.payTypes ?? []);
   const [otherRole, setOtherRole] = useState("");
+  /** "Other" tapped: the box to type a role opens under the chips. */
+  const [otherOpen, setOtherOpen] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
   const [compensation, setCompensation] = useState(initial?.compensation ?? "");
   const [assets, setAssets] = useState<Asset[]>(
@@ -345,22 +347,34 @@ export function ProjectForm({
               {customRoles.map((r) => (
                 <Chip key={r} label={r} selected onPress={() => toggleRole(r)} />
               ))}
+              <Chip
+                label="Other"
+                selected={otherOpen}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  if (otherOpen) addOtherRole();
+                  setOtherOpen((o) => !o);
+                }}
+              />
             </ChipRow>
-            <Field label="Other" hint="Type anyone not listed.">
-              <View style={styles.otherRow}>
-                <Input
-                  value={otherRole}
-                  onChangeText={setOtherRole}
-                  placeholder="e.g. Tattoo artist"
-                  onSubmitEditing={addOtherRole}
-                  returnKeyType="done"
-                  containerStyle={{ flex: 1 }}
-                />
-                <Pressable onPress={addOtherRole} style={styles.otherAdd} accessibilityLabel="Add">
-                  <Plus size={18} color={colors.onBrand} />
-                </Pressable>
-              </View>
-            </Field>
+            {otherOpen ? (
+              <Field label="Who else?" hint="Type it, then tap + to add more than one.">
+                <View style={styles.otherRow}>
+                  <Input
+                    value={otherRole}
+                    onChangeText={setOtherRole}
+                    placeholder="e.g. Tattoo artist"
+                    onSubmitEditing={addOtherRole}
+                    returnKeyType="done"
+                    autoFocus
+                    containerStyle={{ flex: 1 }}
+                  />
+                  <Pressable onPress={addOtherRole} style={styles.otherAdd} accessibilityLabel="Add">
+                    <Plus size={18} color={colors.onBrand} />
+                  </Pressable>
+                </View>
+              </Field>
+            ) : null}
           </>
         ) : null}
 
