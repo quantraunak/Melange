@@ -14,7 +14,9 @@ export type AnalyticsEvent =
   | "event_rsvp"
   | "event_created"
   | "conversation_started"
-  | "heart_profile";
+  | "heart_profile"
+  | "share_project"
+  | "like_accepted";
 
 /**
  * Record one product event.

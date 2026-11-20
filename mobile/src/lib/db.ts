@@ -273,15 +273,20 @@ export function profileGate(
 ): Gate {
   if (!PROFILE_FLOOR_ON) return { ok: true, line: null };
   const photos = profile?.portfolio_urls?.length ?? 0;
-  const needsPhotos = photos < PROFILE_MIN_IMAGES;
+  // Liking and messaging take one photo, posting two. Two photos before your
+  // first like stopped people at the exact moment they wanted to act, and the
+  // server's message floor (20_message_floor.sql) is already one.
+  const min = verb === "post" ? PROFILE_MIN_IMAGES : 1;
+  const needsPhotos = photos < min;
   const needsRole = !profile?.role?.trim();
   if (!needsPhotos && !needsRole) return { ok: true, line: null };
 
   const tail = verb === "post" ? "to post." : "first.";
+  const pics = min === 1 ? "a profile photo" : `${min} profile photos`;
   const what = needsPhotos && needsRole
-    ? "Add 2 profile photos and what you do"
+    ? `Add ${pics} and what you do`
     : needsPhotos
-      ? "Add 2 profile photos"
+      ? `Add ${pics}`
       : "Pick a role";
   return { ok: false, line: `${what} ${tail}` };
 }

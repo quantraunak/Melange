@@ -146,7 +146,9 @@ export async function getDiscoverPeople(
       .not("member_since", "is", null)
       .not("portfolio_urls", "is", null)
       .neq("portfolio_urls", "{}")
-      .neq("user_id", userId);
+      .neq("user_id", userId)
+      // Accounts that aren't people (the App Review login): 32_shared_projects.sql.
+      .eq("hide_from_discover", false);
     const { data, error } = await q
       .order("member_since", { ascending: false })
       .limit(limit + skip.size);

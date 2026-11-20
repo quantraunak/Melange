@@ -109,6 +109,14 @@ export default function DiscoverScreen() {
   /** Kept whole because the gate reads role and portfolio, not just a name. */
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [gateLine, setGateLine] = useState<string | null>(null);
+  // "Sent to Kara": a like on a project used to leave the screen in silence,
+  // and silence after your first like reads as "this app is dead".
+  const [sentLine, setSentLine] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sentLine) return;
+    const t = setTimeout(() => setSentLine(null), 3500);
+    return () => clearTimeout(t);
+  }, [sentLine]);
   const posted = useHasPosted(userId);
 
   const [lastSwipe, setLastSwipe] = useState<{ post: DeckCard; dir: SwipeDir } | null>(null);
@@ -357,6 +365,9 @@ export default function DiscoverScreen() {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           await refreshMatches();
           setCelebration({ creator: post.creator, matchId: match.id, projectTitle: post.title });
+        } else {
+          const first = (post.creator.name || "them").split(" ")[0];
+          setSentLine(`Sent to ${first}. If it's a yes, they'll message you here.`);
         }
       }
 
@@ -552,7 +563,15 @@ export default function DiscoverScreen() {
             </Pressable>
           </Glass>
         </View>
-      ) : userId ? (
+      ) : sentLine ? (
+        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="none">
+          <Glass style={styles.gate} elevated>
+            <Text style={styles.gateLine}>{sentLine}</Text>
+          </Glass>
+        </View>
+      ) : null}
+
+      {gateLine ? null : userId ? (
         /**
          * Offered from the first visit, not after the first like. Waiting for
          * a like meant most people never saw it: on 2026-10-20 only 3 of 13

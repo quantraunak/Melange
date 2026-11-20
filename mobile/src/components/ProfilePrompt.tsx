@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
 
-import { getProfile, profileGate, PROFILE_MIN_IMAGES } from "@/lib/db";
+import { getProfile, profileGate } from "@/lib/db";
 
 /**
  * Tells someone their profile is below the floor BEFORE they hit it.
@@ -39,10 +39,10 @@ export function useProfileGap(userId: string | null): string | null {
           return;
         }
         const photos = data.portfolio_urls?.length ?? 0;
-        const need = PROFILE_MIN_IMAGES - photos;
+        // Liking takes one photo (profileGate); posting asks for more there.
         setLine(
-          need > 0
-            ? `Add ${need} more photo${need === 1 ? "" : "s"} so people can see your work.`
+          photos < 1
+            ? "Add a photo so people can see your work."
             : "Pick a role so people know what you do."
         );
       })
