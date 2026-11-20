@@ -55,7 +55,7 @@ export default function OnboardingPhotosScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Add your profile photos ✨</Text>
         <Text style={styles.body}>
-          At least {PROFILE_MIN_IMAGES}. You, or work you&apos;ve made. They&apos;re the first thing people see.
+          You, or work you&apos;ve made. They&apos;re the first thing people see.
         </Text>
         <PortfolioPhotos
           userId={userId}
@@ -67,11 +67,11 @@ export default function OnboardingPhotosScreen() {
         <ErrorBanner message={error} />
       </ScrollView>
       <View style={styles.footer}>
-        {photos.length < PROFILE_MIN_IMAGES ? (
+        {photos.length < 1 ? (
           <Pressable onPress={done} hitSlop={12} accessibilityRole="button" style={styles.skip}>
             <Text style={styles.skipText}>Skip for now</Text>
             <Text style={styles.skipHint}>
-              You can look around. You&apos;ll need {PROFILE_MIN_IMAGES} photos to like, message or post.
+              You can look around. You&apos;ll need a photo to like or message, and {PROFILE_MIN_IMAGES} to post.
             </Text>
           </Pressable>
         ) : null}
@@ -80,7 +80,7 @@ export default function OnboardingPhotosScreen() {
           variant="primary"
           size="lg"
           fullWidth
-          disabled={photos.length < PROFILE_MIN_IMAGES}
+          disabled={photos.length < 1}
           onPress={done}
         />
       </View>

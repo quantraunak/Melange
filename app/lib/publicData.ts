@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * Signed-out reads for the public pages (/@handle, /s/[id], /n/[id], and the
+ * Signed-out reads for the public pages (/@handle, /s/[id], /n/[id], /p/[id], and the
  * landing page's weekly theme), called from
  * server components with the anon key and no session, so these pages see
  * exactly what a stranger would — the RPCs are SECURITY DEFINER and decide
@@ -23,11 +23,19 @@ function anonClient() {
     );
   }
   return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
   });
 }
 
-export type PublicShoot = { id: string; title: string | null; cover_url: string | null };
+export type PublicShoot = {
+  id: string;
+  title: string | null;
+  cover_url: string | null;
+};
 
 export type PublicProfile = {
   user_id: string;
@@ -58,12 +66,18 @@ export type SharedStory = {
   story: string | null;
   media_urls: string[] | null;
   happened_on: string | null;
-  author: { user_id: string; name: string | null; role: string | null; avatar_url: string | null };
+  author: {
+    user_id: string;
+    name: string | null;
+    role: string | null;
+    avatar_url: string | null;
+  };
   credits: SharedCredit[];
 };
 
 const HANDLE_RE = /^[a-z0-9._]{3,30}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** "@Jane.Doe" / "%40jane.doe" → "jane.doe", or null if it can't be a handle. */
 export function normalizeHandle(raw: string): string | null {
@@ -77,34 +91,49 @@ export function normalizeHandle(raw: string): string | null {
   return HANDLE_RE.test(h) ? h : null;
 }
 
-export const getPublicProfile = cache(async (rawHandle: string): Promise<PublicProfile | null> => {
-  const handle = normalizeHandle(rawHandle);
-  if (!handle) return null;
-  const { data, error } = await anonClient().rpc("get_public_profile", { p_handle: handle });
-  if (error) throw new Error(`get_public_profile failed: ${error.message}`);
-  if (!data) return null;
-  const p = data as PublicProfile;
-  return {
-    ...p,
-    portfolio_urls: (p.portfolio_urls ?? []).filter(Boolean),
-    shoots: p.shoots ?? [],
-    confirmed_credits: Number(p.confirmed_credits ?? 0),
-    founding: Boolean(p.founding),
-  };
-});
+export const getPublicProfile = cache(
+  async (rawHandle: string): Promise<PublicProfile | null> => {
+    const handle = normalizeHandle(rawHandle);
+    if (!handle) return null;
+    const { data, error } = await anonClient().rpc("get_public_profile", {
+      p_handle: handle,
+    });
+    if (error) throw new Error(`get_public_profile failed: ${error.message}`);
+    if (!data) return null;
+    const p = data as PublicProfile;
+    return {
+      ...p,
+      portfolio_urls: (p.portfolio_urls ?? []).filter(Boolean),
+      shoots: p.shoots ?? [],
+      confirmed_credits: Number(p.confirmed_credits ?? 0),
+      founding: Boolean(p.founding),
+    };
+  },
+);
 
-export const getSharedStory = cache(async (id: string): Promise<SharedStory | null> => {
-  // The RPC takes a UUID; anything else would come back as a cast error,
-  // which is "not found", not an outage.
-  if (!UUID_RE.test(id)) return null;
-  const { data, error } = await anonClient().rpc("get_shared_story", { p_story: id });
-  if (error) throw new Error(`get_shared_story failed: ${error.message}`);
-  if (!data) return null;
-  const s = data as SharedStory;
-  return { ...s, media_urls: (s.media_urls ?? []).filter(Boolean), credits: s.credits ?? [] };
-});
+export const getSharedStory = cache(
+  async (id: string): Promise<SharedStory | null> => {
+    // The RPC takes a UUID; anything else would come back as a cast error,
+    // which is "not found", not an outage.
+    if (!UUID_RE.test(id)) return null;
+    const { data, error } = await anonClient().rpc("get_shared_story", {
+      p_story: id,
+    });
+    if (error) throw new Error(`get_shared_story failed: ${error.message}`);
+    if (!data) return null;
+    const s = data as SharedStory;
+    return {
+      ...s,
+      media_urls: (s.media_urls ?? []).filter(Boolean),
+      credits: s.credits ?? [],
+    };
+  },
+);
 
-export type SharedEventPerson = { name: string | null; avatar_url: string | null };
+export type SharedEventPerson = {
+  name: string | null;
+  avatar_url: string | null;
+};
 
 export type SharedEvent = {
   id: string;
@@ -140,7 +169,9 @@ export function normalizeSharedEvent(raw: SharedEvent): SharedEvent {
     cover_url: raw.cover_url || null,
     host: raw.host?.name ? raw.host : null,
     // Never claim fewer going than the faces on the page.
-    going_count: Number.isFinite(count) ? Math.max(count, going.length) : going.length,
+    going_count: Number.isFinite(count)
+      ? Math.max(count, going.length)
+      : going.length,
     going,
   };
 }
@@ -152,7 +183,7 @@ export const NIGHT_TIME_ZONE = "America/Los_Angeles";
 export function formatNightWhen(
   startAt: string,
   endAt?: string | null,
-  timeSet: boolean | null = true
+  timeSet: boolean | null = true,
 ): string | null {
   const start = new Date(startAt);
   if (Number.isNaN(start.getTime())) return null;
@@ -165,10 +196,20 @@ export function formatNightWhen(
   // No time given: the day alone, not a made-up 12:00 PM.
   if (timeSet === false) return day;
   const time = (d: Date) =>
-    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: NIGHT_TIME_ZONE });
+    d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: NIGHT_TIME_ZONE,
+    });
   const end = endAt ? new Date(endAt) : null;
-  const ymd = (d: Date) => d.toLocaleDateString("en-US", { timeZone: NIGHT_TIME_ZONE });
-  if (end && !Number.isNaN(end.getTime()) && end > start && ymd(end) === ymd(start)) {
+  const ymd = (d: Date) =>
+    d.toLocaleDateString("en-US", { timeZone: NIGHT_TIME_ZONE });
+  if (
+    end &&
+    !Number.isNaN(end.getTime()) &&
+    end > start &&
+    ymd(end) === ymd(start)
+  ) {
     return `${day} · ${time(start)} – ${time(end)}`;
   }
   return `${day} · ${time(start)}`;
@@ -185,17 +226,23 @@ export function sharedEventSummary(e: SharedEvent): string {
         day: "numeric",
         timeZone: NIGHT_TIME_ZONE,
       });
-  return [`${e.going_count} going`, day, e.location_name].filter(Boolean).join(" · ");
+  return [`${e.going_count} going`, day, e.location_name]
+    .filter(Boolean)
+    .join(" · ");
 }
 
-export const getSharedEvent = cache(async (id: string): Promise<SharedEvent | null> => {
-  // Same as getSharedStory: a non-UUID is "not found", not an outage.
-  if (!UUID_RE.test(id)) return null;
-  const { data, error } = await anonClient().rpc("get_shared_event", { p_event: id });
-  if (error) throw new Error(`get_shared_event failed: ${error.message}`);
-  if (!data) return null;
-  return normalizeSharedEvent(data as SharedEvent);
-});
+export const getSharedEvent = cache(
+  async (id: string): Promise<SharedEvent | null> => {
+    // Same as getSharedStory: a non-UUID is "not found", not an outage.
+    if (!UUID_RE.test(id)) return null;
+    const { data, error } = await anonClient().rpc("get_shared_event", {
+      p_event: id,
+    });
+    if (error) throw new Error(`get_shared_event failed: ${error.message}`);
+    if (!data) return null;
+    return normalizeSharedEvent(data as SharedEvent);
+  },
+);
 
 export type WeeklyTheme = {
   id: string;
@@ -213,3 +260,43 @@ export const getCurrentTheme = cache(async (): Promise<WeeklyTheme | null> => {
   const t = data as WeeklyTheme;
   return { ...t, posts: Number(t.posts ?? 0) };
 });
+
+/** A project shared by link: /p/<id>. See get_shared_project in 32_shared_projects.sql. */
+export type SharedProject = {
+  id: string;
+  title: string;
+  description: string | null;
+  roles: string[];
+  location: string | null;
+  is_remote: boolean;
+  project_start: string | null;
+  project_end: string | null;
+  pay_type: string | null;
+  pay_types: string[];
+  compensation: string | null;
+  media_urls: string[];
+  owner: {
+    name: string | null;
+    role: string | null;
+    avatar_url: string | null;
+    handle: string | null;
+  };
+};
+
+export const getSharedProject = cache(
+  async (id: string): Promise<SharedProject | null> => {
+    if (!UUID_RE.test(id)) return null;
+    const { data, error } = await anonClient().rpc("get_shared_project", {
+      p_post: id,
+    });
+    if (error) throw new Error(`get_shared_project failed: ${error.message}`);
+    if (!data) return null;
+    const p = data as SharedProject;
+    return {
+      ...p,
+      roles: (p.roles ?? []).filter(Boolean),
+      pay_types: (p.pay_types ?? []).filter(Boolean),
+      media_urls: (p.media_urls ?? []).filter(Boolean),
+    };
+  },
+);

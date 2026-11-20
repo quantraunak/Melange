@@ -23,3 +23,25 @@ export async function shareProfile(
     return err instanceof Error ? err.message : "Couldn't open sharing.";
   }
 }
+
+/**
+ * Share a project: the system sheet with its public page, which shows the
+ * project and who it needs to anyone, with or without the app.
+ */
+export async function shareProject(
+  post: { id: string; title: string },
+  ownerName: string | null,
+  isMine: boolean
+): Promise<string | null> {
+  const url = `${SITE_URL}/p/${post.id}`;
+  const first = (ownerName || "").split(" ")[0];
+  const message = isMine
+    ? `I'm looking for people for "${post.title}" on Melange ✨ ${url}`
+    : `${first ? `${first} is` : "Someone's"} looking for people for "${post.title}" on Melange ✨ ${url}`;
+  try {
+    await Share.share({ message });
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : "Couldn't open sharing.";
+  }
+}

@@ -23,6 +23,7 @@ import {
   Flag,
   MapPin,
   Pencil,
+  Share2,
   Users,
   Wallet,
   X,
@@ -54,6 +55,7 @@ import {
   type Profile,
 } from "@/lib/db";
 import { likeProject } from "@/lib/likeProject";
+import { shareProject } from "@/lib/share";
 import {
   getProjectMembers,
   removeProjectMember,
@@ -465,7 +467,9 @@ export default function ProjectDetailScreen() {
             {swiped === "right" ? (
               <View style={styles.applied}>
                 <Check size={18} color={colors.accent} strokeWidth={2.75} />
-                <Text style={styles.appliedText}>Liked. If they like you back, a chat opens.</Text>
+                <Text style={styles.appliedText}>
+                  Sent to {(creator?.name || "them").split(" ")[0]}. If it&apos;s a yes, they&apos;ll message you.
+                </Text>
               </View>
             ) : (
               <Pressable
@@ -531,15 +535,30 @@ export default function ProjectDetailScreen() {
         <Pressable onPress={() => router.back()} style={styles.glassBtn} accessibilityLabel="Close">
           <X size={20} color={colors.text} />
         </Pressable>
-        {isMine ? (
+        <View style={styles.topRight}>
+          {/* Crew calls already travel through group chats and stories; a
+              project you can't send anywhere can't fill its roles. */}
           <Pressable
-            onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: post.id } })}
+            onPress={async () => {
+              const err = await shareProject(post, creator?.name ?? null, isMine);
+              if (err) setError(err);
+              else trackEvent("share_project", { post_id: post.id, mine: isMine });
+            }}
             style={styles.glassBtn}
-            accessibilityLabel="Edit project"
+            accessibilityLabel="Share project"
           >
-            <Pencil size={18} color={colors.text} />
+            <Share2 size={18} color={colors.text} />
           </Pressable>
-        ) : null}
+          {isMine ? (
+            <Pressable
+              onPress={() => router.push({ pathname: "/post/edit/[id]", params: { id: post.id } })}
+              style={styles.glassBtn}
+              accessibilityLabel="Edit project"
+            >
+              <Pencil size={18} color={colors.text} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
     </View>
@@ -567,6 +586,7 @@ const styles = StyleSheet.create({
   heroImg: { width, height: HERO_H },
   placeholder: { justifyContent: "flex-end", paddingHorizontal: 20, paddingBottom: 8, backgroundColor: colors.bg },
   placeholderTitle: { ...typography.display1 },
+  topRight: { flexDirection: "row", gap: 8 },
   topBar: {
     position: "absolute",
     left: 16,

@@ -109,7 +109,7 @@ function isDuplicate(message: string): boolean {
 function plainMessage(message: string): string {
   if (isDuplicate(message)) return "You've already swiped on this project.";
   if (/row-level security|42501|permission denied|violates row/i.test(message)) {
-    return "Add 2 profile photos and what you do first.";
+    return "Add a profile photo and what you do first.";
   }
   console.warn("likeProject: unexpected failure", message);
   return "That didn't go through. Check your connection and try again.";
