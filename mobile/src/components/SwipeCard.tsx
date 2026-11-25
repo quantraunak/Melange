@@ -548,23 +548,34 @@ export function SwipeCard({
         {/* A flat paper band under the status bar, so its dark glyphs read on any photo. */}
         <Scrim height={topInset} />
 
-        {images > 1 ? (
-          <View style={styles.pagingRow} pointerEvents="box-none">
+        {/* The photo is most of the card, and people tap it to see more.
+            The edges page through photos; the middle (or the whole photo,
+            when there is only one) opens the person or the project. It used
+            to do nothing, so a person's card read as impossible to open. */}
+        <View style={styles.pagingRow} pointerEvents="box-none">
+          {images > 1 ? (
             <Pressable
               style={styles.pageZone}
               onPress={() => page(-1)}
               disabled={disabled}
               accessibilityLabel="Previous photo"
             />
-            <View style={styles.pageZoneSpacer} pointerEvents="none" />
+          ) : null}
+          <Pressable
+            style={styles.pageZoneSpacer}
+            onPress={onOpenDetails}
+            disabled={disabled}
+            accessibilityLabel={post.isPerson ? `Open ${post.title}'s profile` : "Open project details"}
+          />
+          {images > 1 ? (
             <Pressable
               style={styles.pageZone}
               onPress={() => page(1)}
               disabled={disabled}
               accessibilityLabel="Next photo"
             />
-          </View>
-        ) : null}
+          ) : null}
+        </View>
 
         <Segments count={images} index={imageIndex} topInset={topInset} />
 
