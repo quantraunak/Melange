@@ -228,14 +228,27 @@ export default function DiscoverScreen() {
    */
   const handleSwipe = useCallback(
     async (dir: SwipeDir) => {
-      if (!userId || !current || swiping) return;
+      // The card has already started flying off by the time this runs (both
+      // the finger and the buttons start the fly-off first). Any return that
+      // does not advance the deck must bring it back, or the card stays
+      // off-screen: the card behind it looks like the next card but takes no
+      // touches, and the whole deck is dead after one swipe. That is what
+      // every 0-photo account (sign-up lets you skip photos) hit on its
+      // first heart.
+      const bringBack = () => {
+        tx.value = withSpring(0, motion.springs.snap);
+      };
+      if (!userId || !current || swiping) return bringBack();
       const post = current;
 
       /* A left swipe costs the other person nothing, so it is never gated.
-         A right swipe asks for their attention, and that is what has a price. */
-      if (dir === "right") {
+         A right swipe asks for their attention, and that is what has a price.
+         A profile that hasn't loaded yet isn't judged here; likeProject
+         checks again once it has one. */
+      if (dir === "right" && (myProfile || post.isPerson)) {
         const gate = profileGate(myProfile, "like");
         if (!gate.ok) {
+          bringBack();
           setGateLine(gate.line);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
           return;
@@ -543,8 +556,11 @@ export default function DiscoverScreen() {
       </View>
 
       {/* One line at the point of the action, not a meter somewhere else. */}
+      {/* At the top, where the push card sits: down by the tab bar it
+          covered the X and heart, so after one refused like the deck had no
+          buttons left. */}
       {gateLine ? (
-        <View style={[styles.gateSlot, { bottom: barTop + GUTTER }]} pointerEvents="box-none">
+        <View style={[styles.gateSlot, { top: topInset + 78 }]} pointerEvents="box-none">
           <Glass style={styles.gate} elevated>
             <Text style={styles.gateLine}>{gateLine}</Text>
             <Pressable onPress={() => router.push("/account/edit-profile")} hitSlop={10}>
