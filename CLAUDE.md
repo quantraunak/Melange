@@ -7,9 +7,14 @@ GitHub requires the two CI checks ("Web (lint, typecheck, build)" and
 "Mobile (lint, typecheck)") to pass, and the branch to be up to date with
 `main`. No approval is required.
 
-When Jolea asks to merge her own PR, do it once both checks are green:
-`gh pr merge <number> --merge`. If GitHub says the branch is out of date, run
-`gh pr update-branch <number>`, wait for the checks again, then merge.
+Jolea's PRs merge themselves. Right after opening one, turn on auto-merge:
+`gh pr merge <number> --auto --merge`. GitHub then merges it the moment both
+checks pass, with no one needing to click anything. If a check fails, fix it
+and push; the PR still merges on its own once it is green. If GitHub says the
+branch is out of date, run `gh pr update-branch <number>`.
+
+Before turning on auto-merge, read the whole diff once as if you were a user
+of the app (see the last section), and fix what you find first.
 
 ## What merging does and does not do
 
